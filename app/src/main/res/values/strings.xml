@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">长辈关爱</string>
+    <string name="voice_button">语音</string>
+    <string name="emergency_button">紧急求助</string>
+    <string name="emergency_active">紧急状态已激活</string>
+    <string name="health_data_title">健康数据</string>
+    <string name="voice_command_title">语音命令</string>
+    <string name="select_mode">请选择使用模式</string>
+    <string name="elderly_mode">老年人模式</string>
+    <string name="family_mode">家属模式</string>
+    
+    <!-- 新增导航和界面文本 -->
+    <string name="nav_health_data">健康数据</string>
+    <string name="nav_health_plan">健康计划</string>
+    <string name="nav_health_tips">养生建议</string>
+    <string name="nav_family">家人关爱</string>
+    
+    <string name="heart_rate">心率</string>
+    <string name="blood_oxygen">血氧</string>
+    <string name="blood_pressure">血压</string>
+    <string name="steps">步数</string>
+    <string name="bpm_unit">次/分钟</string>
+    <string name="percent_unit">%</string>
+    <string name="mmhg_unit">mmHg</string>
+    <string name="steps_unit">步</string>
+    
+    <string name="location_title">当前位置</string>
+    <string name="health_warning">健康提醒</string>
+    <string name="normal_status">一切正常</string>
+    <string name="warning_status">注意健康</string>
+    
+    <string name="btn_consult">云咨询</string>
+    <string name="btn_services">生活服务</string>
+    <string name="btn_video_call">视频通话</string>
+    <string name="btn_emergency">紧急求助</string>
+    
+    <string name="today_plan">今日计划</string>
+    <string name="no_health_data">暂无健康数据</string>
+</resources>
