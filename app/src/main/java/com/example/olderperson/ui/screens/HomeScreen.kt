@@ -1,5 +1,6 @@
 package com.example.olderperson.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,22 +10,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.VideoCall
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
@@ -32,6 +42,7 @@ import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 /**
  * 首页界面
@@ -48,7 +59,10 @@ fun HomeScreen(
     var showHealthData by remember { mutableStateOf(false) }
     
     if (showHealthData) {
-        HealthDataScreen(textToSpeechService)
+        HealthDataScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showHealthData = false }
+        )
     } else {
         val scrollState = rememberScrollState()
         val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
@@ -577,38 +591,53 @@ fun HealthReminderCard() {
 
 @Composable
 fun HealthDataScreen(
-    textToSpeechService: TextToSpeechService
+    textToSpeechService: TextToSpeechService,
+    onBackClick: () -> Unit = {}
 ) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
         // 顶部栏
-        HealthDataTopBar()
+        HealthDataTopBar(onBackClick)
         
         // 用户信息
         UserInfoSection()
         
         // 数据标签切换
-        DataTabs()
+        DataTabs(selectedTabIndex) { selectedTabIndex = it }
         
-        // 健康数据图表
-        HealthDataChart()
-        
-        // 健康事件统计
-        HealthEvents()
+        // 不同标签页内容
+        when (selectedTabIndex) {
+            0 -> DataDisplayTab()
+            1 -> StatisticsTab()
+            2 -> HealthServiceTab()
+        }
     }
 }
 
 @Composable
-fun HealthDataTopBar() {
+fun HealthDataTopBar(onBackClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "返回",
+            tint = Color.Black,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onBackClick() }
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
         Text(
             text = "健康数据",
             fontSize = 18.sp,
@@ -619,7 +648,7 @@ fun HealthDataTopBar() {
         Spacer(modifier = Modifier.weight(1f))
         
         Icon(
-            imageVector = Icons.Default.Favorite,
+            imageVector = Icons.Default.Share,
             contentDescription = "分享",
             tint = Color.Black
         )
@@ -694,8 +723,7 @@ fun DataItem(value: String, label: String) {
 }
 
 @Composable
-fun DataTabs() {
-    var selectedTabIndex by remember { mutableStateOf(0) }
+fun DataTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     val tabs = listOf("数据展示", "统计分析", "健康服务")
     
     Row(
@@ -709,7 +737,7 @@ fun DataTabs() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { selectedTabIndex = index }
+                    .clickable { onTabSelected(index) }
             ) {
                 Text(
                     text = title,
@@ -734,70 +762,85 @@ fun DataTabs() {
     }
 }
 
+// 数据展示页面（图片1）
 @Composable
-fun HealthDataChart() {
-    Box(
+fun DataDisplayTab() {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
             .padding(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.fillMaxWidth()
+        // 位置信息
+        LocationInfoCard()
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 步数统计
+        StepsCard()
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 心率卡片
+        HeartRateCard()
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 底部图形
+        BottomChart()
+    }
+}
+
+@Composable
+fun LocationInfoCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .background(Color(0xFF9C27B0), CircleShape)
-                        .padding(4.dp)
-                ) {
-                    Text(
-                        text = "98",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "GPS定位",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
                 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "健康评级",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    text = "四川省成都市高新区",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // 这里只是一个占位，实际应该是曲线图
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-            ) {
-                // 简单模拟曲线
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .align(Alignment.Center)
-                        .padding(horizontal = 16.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF9C27B0).copy(alpha = 0.2f),
-                                    Color(0xFF9C27B0).copy(alpha = 0.5f),
-                                    Color(0xFF9C27B0).copy(alpha = 0.2f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF673AB7),
+                                Color(0xFFE91E63)
+                            )
                         )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -805,69 +848,631 @@ fun HealthDataChart() {
 }
 
 @Composable
-fun HealthEvents() {
+fun StepsCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.width(80.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF9800).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsWalk,
+                        contentDescription = "步数",
+                        tint = Color(0xFFFF9800),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "步数",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                
+                Text(
+                    text = "2180+",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+            
+            // 步数图表
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                StepBar(height = 40.dp, color = Color(0xFFFF5722))
+                StepBar(height = 20.dp, color = Color(0xFFFF9800))
+                StepBar(height = 60.dp, color = Color(0xFF9C27B0))
+                StepBar(height = 30.dp, color = Color(0xFF9C27B0))
+                StepBar(height = 70.dp, color = Color(0xFFFF5722))
+            }
+        }
+    }
+}
+
+@Composable
+fun StepBar(height: Dp, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .width(10.dp)
+                .height(height)
+                .background(color, RoundedCornerShape(5.dp))
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = listOf("08", "9", "12", "15", "18").random(),
+            fontSize = 10.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun HeartRateCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.width(80.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE91E63).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "心率",
+                        tint = Color(0xFFE91E63),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "心率",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                
+                Text(
+                    text = "102 Bpm",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+            
+            // 心率图表
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                repeat(10) {
+                    HeartRateBar(
+                        height = (30 + (Math.random() * 50).roundToInt()).dp,
+                        color = when {
+                            it % 3 == 0 -> Color(0xFFE91E63)
+                            it % 3 == 1 -> Color(0xFF9C27B0)
+                            else -> Color.Black
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HeartRateBar(height: Dp, color: Color) {
+    Box(
+        modifier = Modifier
+            .width(3.dp)
+            .height(height)
+            .background(color, RoundedCornerShape(1.5.dp))
+    )
+}
+
+@Composable
+fun BottomChart() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp))
+    ) {
+        // 这里仅占位，实际应该是波形图
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(30.dp)
+                .align(Alignment.Center)
+                .padding(horizontal = 16.dp)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFFFF5722).copy(alpha = 0.2f),
+                            Color(0xFFFF5722).copy(alpha = 0.5f),
+                            Color(0xFFFF5722).copy(alpha = 0.2f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                )
+        )
+    }
+}
+
+// 统计分析页面（图片2）
+@Composable
+fun StatisticsTab() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // 标题
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "最近一周发生了",
-                fontSize = 16.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Text(
-                text = "6",
-                fontSize = 16.sp,
-                color = Color(0xFFFF5722),
-                fontWeight = FontWeight.Bold
-            )
-            
-            Text(
-                text = " 次事件",
-                fontSize = 16.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        // 健康评级
+        Text(
+            text = "健康评级",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         
-        // 事件标尺
+        // 曲线图
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .padding(vertical = 16.dp)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFFFF5722),
-                            Color(0xFFFF9800),
-                            Color(0xFF4CAF50)
+                .height(180.dp)
+                .background(Color(0xFFF8F8F8), RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Y轴标签
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("100", fontSize = 10.sp, color = Color.Gray)
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "98",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF9C27B0)
                         )
-                    ),
-                    shape = RoundedCornerShape(4.dp)
-                )
-        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Text(
+                            text = "健康指数",
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                
+                // 曲线图区域
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(vertical = 16.dp)
+                ) {
+                    // 简化的曲线
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val path = Path().apply {
+                            moveTo(0f, size.height * 0.5f)
+                            cubicTo(
+                                size.width * 0.2f, size.height * 0.7f,
+                                size.width * 0.4f, size.height * 0.3f,
+                                size.width * 0.6f, size.height * 0.2f
+                            )
+                            cubicTo(
+                                size.width * 0.8f, size.height * 0.1f,
+                                size.width * 0.9f, size.height * 0.6f,
+                                size.width, size.height * 0.4f
+                            )
+                        }
+                        
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF9C27B0),
+                            style = Stroke(width = 4f)
+                        )
+                    }
+                }
+                
+                // X轴标签
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf("周一", "周二", "周四", "周五", "周六", "周日").forEach { day ->
+                        Text(
+                            text = day,
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
         
-        // 事件类型
+        // 事件统计
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+        ) {
+            // 标题
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "最近一周发生了",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = "6",
+                    fontSize = 16.sp,
+                    color = Color(0xFFFF5722),
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = " 次事件",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            // 事件标尺
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .padding(vertical = 16.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFFF5722),
+                                Color(0xFFFF9800),
+                                Color(0xFF4CAF50)
+                            )
+                        ),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+            
+            // 事件类型
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                EventTypeItem("3 次", "血压偏高警报")
+                EventTypeItem("1 次", "身体疼痛")
+                EventTypeItem("2 次", "健康电子提醒")
+            }
+        }
+        
+        // 分享按钮
+        Button(
+            onClick = { },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+        ) {
+            Text(
+                text = "分享",
+                modifier = Modifier.padding(vertical = 8.dp),
+                fontSize = 16.sp
+            )
+        }
+    }
+}
+
+// 健康服务页面（图片3）
+@Composable
+fun HealthServiceTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // VIP会员卡
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFBA68C8),
+                                Color(0xFFE91E63)
+                            )
+                        )
+                    )
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "颐年铂金会员",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Text(
+                            text = "优质健康服务等你领",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp
+                        )
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.3f), CircleShape)
+                            .padding(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "VIP",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 预约信息
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            EventTypeItem("3 次", "血压偏高警报")
-            EventTypeItem("1 次", "身体疼痛")
-            EventTypeItem("2 次", "健康电子提醒")
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "预约时间",
+                tint = Color(0xFFE91E63),
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "预约时间",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                
+                Text(
+                    text = "2021-05-16",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+            }
+            
+            Button(
+                onClick = {},
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF9800)
+                ),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text("立即续费")
+            }
         }
+        
+        // 专业健康师
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text(
+                text = "专业健康师",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 头像
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "李月",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center)
+                    )
+                }
+                
+                // 信息
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)
+                ) {
+                    Text(
+                        text = "李月",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                    
+                    Text(
+                        text = "认证健康师 · 4年",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+                
+                // 评分
+                Box(
+                    modifier = Modifier
+                        .size(60.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(60.dp)) {
+                        drawArc(
+                            color = Color(0xFFFF9800),
+                            startAngle = -90f,
+                            sweepAngle = 165.6f, // 4.6/5 * 360 = 165.6
+                            useCenter = false,
+                            style = Stroke(width = 8f, cap = StrokeCap.Round),
+                            size = Size(size.width, size.height)
+                        )
+                    }
+                    
+                    Text(
+                        text = "4.6",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF9800)
+                    )
+                }
+            }
+        }
+        
+        // 会员权益
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text(
+                text = "会员权益",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                ServiceItem(title = "健康体检报告", icon = Icons.Default.Description)
+                ServiceItem(title = "定制健康计划", icon = Icons.Default.Assignment)
+                ServiceItem(title = "营养专业分析", icon = Icons.Default.Analytics)
+            }
+        }
+    }
+}
+
+@Composable
+fun ServiceItem(title: String, icon: ImageVector) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFF5F5F5)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = Color.Gray,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = title,
+            fontSize = 14.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
