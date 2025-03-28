@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.screens.HomeScreen
 import com.example.olderperson.ui.screens.LoginScreen
@@ -23,6 +24,8 @@ import com.example.olderperson.ui.theme.OlderPersonTheme
 class MainActivity : ComponentActivity() {
     // 视频通话服务
     private lateinit var videoCallService: VideoCallService
+    // 文字转语音服务
+    private lateinit var textToSpeechService: TextToSpeechService
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -35,8 +38,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 初始化视频通话服务
+        // 初始化服务
         videoCallService = VideoCallService(this)
+        textToSpeechService = TextToSpeechService(this)
 
         checkPermissions()
         startServices()
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         videoCallService.release()
+        textToSpeechService.shutdown()
     }
 
     private fun startServices() {
@@ -70,7 +75,7 @@ class MainActivity : ComponentActivity() {
                 
                 if (isLoggedIn) {
                     // 应用主界面和视频通话界面
-                    MainContent(videoCallService)
+                    MainContent(videoCallService, textToSpeechService)
                 } else {
                     // 登录界面
                     LoginScreen(
@@ -88,7 +93,10 @@ enum class NavSection {
 }
 
 @Composable
-fun MainContent(videoCallService: VideoCallService) {
+fun MainContent(
+    videoCallService: VideoCallService,
+    textToSpeechService: TextToSpeechService
+) {
     // 是否显示视频通话界面的状态
     var showVideoCall by remember { mutableStateOf(false) }
 
@@ -102,6 +110,7 @@ fun MainContent(videoCallService: VideoCallService) {
         // 显示主页面
         HomeScreen(
             videoCallService = videoCallService,
+            textToSpeechService = textToSpeechService,
             onVideoCallClick = { showVideoCall = true }
         )
     }
