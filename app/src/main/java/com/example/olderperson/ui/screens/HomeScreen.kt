@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Healing
@@ -37,6 +38,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,6 +80,7 @@ fun HomeScreen(
     var showHealthData by remember { mutableStateOf(false) }
     var showHealthPlan by remember { mutableStateOf(false) }
     var showRehabilitation by remember { mutableStateOf(false) }
+    var showWellness by remember { mutableStateOf(false) }
     
     if (showHealthData) {
         HealthDataScreen(
@@ -92,6 +96,11 @@ fun HomeScreen(
         RehabilitationScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showRehabilitation = false }
+        )
+    } else if (showWellness) {
+        WellnessScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showWellness = false }
         )
     } else {
         val scrollState = rememberScrollState()
@@ -170,7 +179,8 @@ fun HomeScreen(
                     textToSpeechService = textToSpeechService,
                     onHealthDataClick = { showHealthData = true },
                     onHealthPlanClick = { showHealthPlan = true },
-                    onRehabilitationClick = { showRehabilitation = true }
+                    onRehabilitationClick = { showRehabilitation = true },
+                    onWellnessClick = { showWellness = true }
                 )
             }
         }
@@ -230,7 +240,8 @@ fun NormalModeScreen(
     textToSpeechService: TextToSpeechService,
     onHealthDataClick: () -> Unit = {},
     onHealthPlanClick: () -> Unit = {},
-    onRehabilitationClick: () -> Unit = {}
+    onRehabilitationClick: () -> Unit = {},
+    onWellnessClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -246,7 +257,8 @@ fun NormalModeScreen(
             textToSpeechService = textToSpeechService,
             onHealthDataClick = onHealthDataClick,
             onHealthPlanClick = onHealthPlanClick,
-            onRehabilitationClick = onRehabilitationClick
+            onRehabilitationClick = onRehabilitationClick,
+            onWellnessClick = onWellnessClick
         )
         
         // 健康数据卡片区域
@@ -373,7 +385,8 @@ fun FunctionNavigation(
     textToSpeechService: TextToSpeechService,
     onHealthDataClick: () -> Unit = {},
     onHealthPlanClick: () -> Unit = {},
-    onRehabilitationClick: () -> Unit = {}
+    onRehabilitationClick: () -> Unit = {},
+    onWellnessClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -396,7 +409,8 @@ fun FunctionNavigation(
         FunctionItem(
             title = "养生天地", 
             icon = Icons.Default.LocalCafe, 
-            textToSpeechService = textToSpeechService
+            textToSpeechService = textToSpeechService,
+            onClick = onWellnessClick
         )
         FunctionItem(
             title = "康复指导", 
@@ -2451,4 +2465,4 @@ data class RehabilitationGuide(
     val imageUrl: String,
     val description: String,
     val category: String
-) 
+)
