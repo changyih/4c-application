@@ -2,13 +2,18 @@ package com.example.olderperson.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.ArrowBack
@@ -20,6 +25,18 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,11 +74,23 @@ fun HomeScreen(
     onMessageClick: () -> Unit = {}
 ) {
     var showHealthData by remember { mutableStateOf(false) }
+    var showHealthPlan by remember { mutableStateOf(false) }
+    var showRehabilitation by remember { mutableStateOf(false) }
     
     if (showHealthData) {
         HealthDataScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showHealthData = false }
+        )
+    } else if (showHealthPlan) {
+        HealthPlanScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showHealthPlan = false }
+        )
+    } else if (showRehabilitation) {
+        RehabilitationScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showRehabilitation = false }
         )
     } else {
         val scrollState = rememberScrollState()
@@ -138,7 +167,9 @@ fun HomeScreen(
                     scrollState = scrollState,
                     paddingValues = paddingValues,
                     textToSpeechService = textToSpeechService,
-                    onHealthDataClick = { showHealthData = true }
+                    onHealthDataClick = { showHealthData = true },
+                    onHealthPlanClick = { showHealthPlan = true },
+                    onRehabilitationClick = { showRehabilitation = true }
                 )
             }
         }
@@ -196,13 +227,15 @@ fun NormalModeScreen(
     scrollState: ScrollState,
     paddingValues: PaddingValues,
     textToSpeechService: TextToSpeechService,
-    onHealthDataClick: () -> Unit = {}
+    onHealthDataClick: () -> Unit = {},
+    onHealthPlanClick: () -> Unit = {},
+    onRehabilitationClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
             .background(Background),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -210,7 +243,9 @@ fun NormalModeScreen(
         // 功能导航区域
         FunctionNavigation(
             textToSpeechService = textToSpeechService,
-            onHealthDataClick = onHealthDataClick
+            onHealthDataClick = onHealthDataClick,
+            onHealthPlanClick = onHealthPlanClick,
+            onRehabilitationClick = onRehabilitationClick
         )
         
         // 健康数据卡片区域
@@ -335,65 +370,79 @@ fun BottomNavItem(
 @Composable
 fun FunctionNavigation(
     textToSpeechService: TextToSpeechService,
-    onHealthDataClick: () -> Unit = {}
+    onHealthDataClick: () -> Unit = {},
+    onHealthPlanClick: () -> Unit = {},
+    onRehabilitationClick: () -> Unit = {}
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Text(
-            text = "健康服务",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 16.dp)
+        FunctionItem(
+            title = "健康数据", 
+            icon = Icons.Default.Favorite, 
+            textToSpeechService = textToSpeechService, 
+            onClick = onHealthDataClick
         )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            FunctionItem(title = "健康数据", color = BrightBlue, textToSpeechService, onClick = onHealthDataClick)
-            FunctionItem(title = "健康计划", color = WarmPink, textToSpeechService)
-            FunctionItem(title = "养生天地", color = FreshGreen, textToSpeechService)
-            FunctionItem(title = "康复指导", color = OrangeGradient, textToSpeechService)
-        }
+        FunctionItem(
+            title = "健康计划", 
+            icon = Icons.Default.DateRange, 
+            textToSpeechService = textToSpeechService,
+            onClick = onHealthPlanClick
+        )
+        FunctionItem(
+            title = "养生天地", 
+            icon = Icons.Default.LocalCafe, 
+            textToSpeechService = textToSpeechService
+        )
+        FunctionItem(
+            title = "康复指导", 
+            icon = Icons.Default.Healing, 
+            textToSpeechService = textToSpeechService,
+            onClick = onRehabilitationClick
+        )
     }
 }
 
 /**
- * 功能导航项
+ * 导航按钮
  */
 @Composable
 fun FunctionItem(
     title: String,
-    color: Color,
+    icon: ImageVector,
     textToSpeechService: TextToSpeechService,
     onClick: () -> Unit = { textToSpeechService.speak(title) }
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(80.dp)
             .clickable { onClick() }
+            .padding(8.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(color),
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF333333)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = title.first().toString(),
-                color = Color.White,
-                fontSize = 24.sp
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         
         Text(
             text = title,
             style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
             textAlign = TextAlign.Center
         )
     }
@@ -1500,4 +1549,905 @@ fun EventTypeItem(count: String, label: String) {
             textAlign = TextAlign.Center
         )
     }
-} 
+}
+
+/**
+ * 健康计划页面
+ */
+@Composable
+fun HealthPlanScreen(
+    textToSpeechService: TextToSpeechService,
+    onBackClick: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // 顶部栏
+        HealthPlanTopBar(onBackClick)
+        
+        // 计划列表
+        HealthPlansList(textToSpeechService)
+    }
+}
+
+/**
+ * 健康计划顶部栏
+ */
+@Composable
+fun HealthPlanTopBar(onBackClick: () -> Unit = {}) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "返回",
+            tint = Color.Black,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onBackClick() }
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Text(
+            text = "健康计划",
+            fontSize = 18.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "添加计划",
+            tint = Color.Black,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { /* 添加计划 */ }
+        )
+    }
+}
+
+/**
+ * 健康计划列表
+ */
+@Composable
+fun HealthPlansList(textToSpeechService: TextToSpeechService) {
+    // 示例计划数据
+    val plans = listOf(
+        HealthPlan(
+            id = 1,
+            title = "每日慢走计划",
+            subtitle = "中低强度有氧运动",
+            description = "每天进行30分钟的散步，保持心率在90-110bpm之间，可以有效提高心肺功能。",
+            timeText = "每天 9:00-9:30",
+            progress = 0.7f,
+            progressText = "已完成7天/10天",
+            icon = Icons.Default.DirectionsWalk,
+            iconBackground = Color(0xFFFF9800),
+            isActive = true
+        ),
+        HealthPlan(
+            id = 2,
+            title = "血压监测计划",
+            subtitle = "定时测量记录",
+            description = "每天早晚各测量一次血压，并记录数据，有助于医生掌握血压变化趋势。",
+            timeText = "每天 7:00, 19:00",
+            progress = 0.3f,
+            progressText = "已完成3天/10天",
+            icon = Icons.Default.Favorite,
+            iconBackground = Color(0xFFE91E63),
+            isActive = true
+        ),
+        HealthPlan(
+            id = 3,
+            title = "健康饮食计划",
+            subtitle = "低盐低油饮食",
+            description = "控制每日盐分摄入量在5g以下，减少油脂摄入，多食用蔬果，帮助控制血压。",
+            timeText = "每日三餐",
+            progress = 0.5f,
+            progressText = "已完成5天/10天",
+            icon = Icons.Default.Restaurant,
+            iconBackground = Color(0xFF4CAF50),
+            isActive = false
+        ),
+        HealthPlan(
+            id = 4,
+            title = "睡眠改善计划",
+            subtitle = "规律作息时间",
+            description = "保持规律的睡眠时间，每晚10点前入睡，确保7-8小时的充足睡眠，提高睡眠质量。",
+            timeText = "每天 22:00-6:00",
+            progress = 0.8f,
+            progressText = "已完成8天/10天",
+            icon = Icons.Default.Bedtime,
+            iconBackground = Color(0xFF673AB7),
+            isActive = false
+        )
+    )
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // 活跃计划标题
+        Text(
+            text = "进行中的计划",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        
+        // 活跃计划列表
+        plans.filter { it.isActive }.forEach { plan ->
+            HealthPlanCard(plan = plan, textToSpeechService = textToSpeechService)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        
+        // 非活跃计划标题
+        Text(
+            text = "其他计划",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+        )
+        
+        // 非活跃计划列表
+        plans.filter { !it.isActive }.forEach { plan ->
+            HealthPlanCard(plan = plan, textToSpeechService = textToSpeechService)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+/**
+ * 健康计划卡片
+ */
+@Composable
+fun HealthPlanCard(
+    plan: HealthPlan,
+    textToSpeechService: TextToSpeechService
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { 
+                expanded = !expanded
+                textToSpeechService.speak(plan.title + "，" + plan.description)
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // 计划标题和图标
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 图标
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(plan.iconBackground.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = plan.icon,
+                        contentDescription = plan.title,
+                        tint = plan.iconBackground,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                // 标题和副标题
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = plan.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    
+                    Text(
+                        text = plan.subtitle,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+                
+                // 展开/收起图标
+                IconButton(
+                    onClick = { expanded = !expanded }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "收起" else "展开",
+                        tint = Color.Gray
+                    )
+                }
+            }
+            
+            // 时间信息
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = "时间",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = plan.timeText,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+            
+            // 进度条
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = plan.progressText,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                
+                LinearProgressIndicator(
+                    progress = { plan.progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    trackColor = Color.LightGray,
+                    color = plan.iconBackground
+                )
+            }
+            
+            // 详情描述 (仅当展开时显示)
+            if (expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text(
+                        text = "计划详情",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = plan.description,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        lineHeight = 20.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // 操作按钮
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { /* 编辑 */ }
+                        ) {
+                            Text("编辑", color = Color.Gray)
+                        }
+                        
+                        TextButton(
+                            onClick = { /* 暂停/开始 */ }
+                        ) {
+                            Text(
+                                text = if (plan.isActive) "暂停" else "开始",
+                                color = plan.iconBackground
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 健康计划数据类
+ */
+data class HealthPlan(
+    val id: Int,
+    val title: String,
+    val subtitle: String,
+    val description: String,
+    val timeText: String,
+    val progress: Float,
+    val progressText: String,
+    val icon: ImageVector,
+    val iconBackground: Color,
+    val isActive: Boolean
+)
+
+/**
+ * 康复指导页面
+ */
+@Composable
+fun RehabilitationScreen(
+    textToSpeechService: TextToSpeechService,
+    onBackClick: () -> Unit = {}
+) {
+    var selectedFilter by remember { mutableStateOf("所有") }
+    var selectedGuide by remember { mutableStateOf<RehabilitationGuide?>(null) }
+    
+    // 筛选选项
+    val filterOptions = listOf("所有", "脑血管及脑部", "骨科疾病", "肾脏及泌尿")
+    
+    // 康复指导列表数据
+    val guideList = listOf(
+        RehabilitationGuide(
+            id = 1,
+            title = "初级水疗康复定制",
+            location = "康复科 | 天府区",
+            rating = 5.0f,
+            distance = "15 km",
+            imageUrl = "",
+            description = "专业水疗康复服务，适合轻度关节疼痛、术后康复阶段的老年人。通过水中运动减轻关节压力，促进血液循环，改善肌肉功能。",
+            category = "骨科疾病"
+        ),
+        RehabilitationGuide(
+            id = 2,
+            title = "老年性痴呆认知复健",
+            location = "康复科 | 武侯区",
+            rating = 4.0f,
+            distance = "22 km",
+            imageUrl = "",
+            description = "针对轻中度老年痴呆患者的认知功能训练，包括记忆力训练、注意力训练、语言能力恢复等多方面综合干预，延缓认知功能下降。",
+            category = "脑血管及脑部"
+        ),
+        RehabilitationGuide(
+            id = 3,
+            title = "脑卒中后康复复建",
+            location = "康复科 | 天府区",
+            rating = 4.5f,
+            distance = "48 km",
+            imageUrl = "",
+            description = "专为脑卒中后遗症患者设计的综合康复计划，包括肢体功能训练、平衡训练、言语治疗等，帮助患者最大程度恢复生活自理能力。",
+            category = "脑血管及脑部"
+        ),
+        RehabilitationGuide(
+            id = 4,
+            title = "腿中风，踝助康复",
+            location = "康复科 | 高新区",
+            rating = 3.5f,
+            distance = "89 km",
+            imageUrl = "",
+            description = "针对下肢功能障碍患者的专项康复治疗，采用现代康复技术与传统推拿相结合，促进血液循环，改善肌肉萎缩，提高行走能力。",
+            category = "脑血管及脑部"
+        ),
+        RehabilitationGuide(
+            id = 5,
+            title = "心血管疾病康复",
+            location = "康复科 | 高新区",
+            rating = 5.0f,
+            distance = "106 km",
+            imageUrl = "",
+            description = "为心血管疾病患者提供的专业康复指导，包括心肺功能训练、营养调理、生活方式管理等，提高心肺功能，预防疾病复发。",
+            category = "肾脏及泌尿"
+        )
+    )
+    
+    // 根据筛选条件过滤列表
+    val filteredGuides = if (selectedFilter == "所有") {
+        guideList
+    } else {
+        guideList.filter { it.category == selectedFilter }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // 主要内容
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            // 顶部栏
+            RehabilitationTopBar(onBackClick)
+            
+            // 搜索栏
+            SearchBar()
+            
+            // 筛选栏
+            FilterBar(
+                options = filterOptions,
+                selectedOption = selectedFilter,
+                onOptionSelected = { selectedFilter = it }
+            )
+            
+            // 服务统计
+            ServiceCount(count = filteredGuides.size)
+            
+            // 康复指导列表
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                items(filteredGuides) { guide ->
+                    RehabilitationGuideItem(
+                        guide = guide,
+                        textToSpeechService = textToSpeechService,
+                        onClick = { selectedGuide = guide }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+        
+        // 详情弹窗
+        if (selectedGuide != null) {
+            GuideDetailDialog(
+                guide = selectedGuide!!,
+                onDismiss = { selectedGuide = null },
+                textToSpeechService = textToSpeechService
+            )
+        }
+    }
+}
+
+/**
+ * 康复指导顶部栏
+ */
+@Composable
+fun RehabilitationTopBar(onBackClick: () -> Unit = {}) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = "返回",
+            tint = Color.Black,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onBackClick() }
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Text(
+            text = "康复指导",
+            fontSize = 18.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/**
+ * 搜索栏
+ */
+@Composable
+fun SearchBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(Color(0xFFF5F5F5), RoundedCornerShape(24.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "搜索",
+            tint = Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Text(
+            text = "搜索服务",
+            color = Color.Gray,
+            fontSize = 14.sp,
+            modifier = Modifier.weight(1f)
+        )
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .padding(4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "清除",
+                tint = Color.Gray,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 筛选栏
+ */
+@Composable
+fun FilterBar(
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { option ->
+            FilterChip(
+                option = option,
+                isSelected = option == selectedOption,
+                onClick = { onOptionSelected(option) }
+            )
+        }
+    }
+}
+
+/**
+ * 筛选选项
+ */
+@Composable
+fun FilterChip(
+    option: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isSelected) Color(0xFF333333) else Color(0xFFF5F5F5)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = option,
+            color = if (isSelected) Color.White else Color.Gray,
+            fontSize = 14.sp
+        )
+    }
+}
+
+/**
+ * 服务数量显示
+ */
+@Composable
+fun ServiceCount(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "服务总计(${count}条)",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+/**
+ * 康复指导项
+ */
+@Composable
+fun RehabilitationGuideItem(
+    guide: RehabilitationGuide,
+    textToSpeechService: TextToSpeechService,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { 
+                onClick()
+                textToSpeechService.speak(guide.title)
+            },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 图片
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF0F0F0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Healing,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // 内容
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = guide.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = guide.location,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // 评分
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 星级
+                    Row {
+                        repeat(5) { index ->
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (index < guide.rating) Color(0xFFFFB900) else Color.LightGray,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 距离
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .size(8.dp)
+                        .background(Color(0xFF4CAF50))
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = guide.distance,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 康复指导详情弹窗
+ */
+@Composable
+fun GuideDetailDialog(
+    guide: RehabilitationGuide,
+    onDismiss: () -> Unit,
+    textToSpeechService: TextToSpeechService
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp)
+                .clickable { /* 防止点击穿透 */ },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // 标题
+                Text(
+                    text = guide.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 位置和评分
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = guide.location,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    
+                    Text(
+                        text = "距离: ${guide.distance}",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 评分
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 星级
+                    Row {
+                        repeat(5) { index ->
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (index < guide.rating) Color(0xFFFFB900) else Color.LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 分割线
+                Divider(color = Color.LightGray)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 简介
+                Text(
+                    text = "服务简介",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = guide.description,
+                    fontSize = 14.sp,
+                    color = Color.DarkGray,
+                    lineHeight = 20.sp
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 按钮
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    OutlinedButton(
+                        onClick = { onDismiss() },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.Gray
+                        ),
+                        border = BorderStroke(1.dp, Color.Gray),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("关闭")
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Button(
+                        onClick = { 
+                            textToSpeechService.speak("已预约${guide.title}") 
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50)
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("立即预约")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 康复指导数据类
+ */
+data class RehabilitationGuide(
+    val id: Int,
+    val title: String,
+    val location: String,
+    val rating: Float,
+    val distance: String,
+    val imageUrl: String,
+    val description: String,
+    val category: String
+) 
