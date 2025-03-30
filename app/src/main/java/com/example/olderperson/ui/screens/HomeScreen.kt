@@ -81,6 +81,7 @@ fun HomeScreen(
     var showHealthPlan by remember { mutableStateOf(false) }
     var showRehabilitation by remember { mutableStateOf(false) }
     var showWellness by remember { mutableStateOf(false) }
+    var showService by remember { mutableStateOf(false) }
     
     if (showHealthData) {
         HealthDataScreen(
@@ -96,6 +97,11 @@ fun HomeScreen(
         RehabilitationScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showRehabilitation = false }
+        )
+    } else if (showService) {
+        ServiceScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showService = false }
         )
     } else if (showWellness) {
         WellnessScreen(
@@ -282,6 +288,15 @@ fun BottomNavigationBar(
     onProfileClick: () -> Unit = {},
     onMessageClick: () -> Unit = {}
 ) {
+    var showService by remember { mutableStateOf(false) }
+    
+    if (showService) {
+        ServiceScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showService = false }
+        )
+        return
+    }
     Surface(
         color = Surface,
         modifier = Modifier
@@ -306,7 +321,10 @@ fun BottomNavigationBar(
             BottomNavItem(
                 text = "服务",
                 isSelected = false,
-                onClick = { textToSpeechService.speak("服务") }
+                onClick = { 
+                    textToSpeechService.speak("服务")
+                    showService = true
+                }
             )
             
             // 消息按钮
