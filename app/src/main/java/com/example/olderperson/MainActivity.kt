@@ -133,7 +133,8 @@ fun MainContent(
                 onMessageClick = { currentSection = NavSection.MESSAGE }
             )
             NavSection.PROFILE -> ProfileScreen(
-                onBackToHome = { currentSection = NavSection.HOME }
+                onBackToHome = { currentSection = NavSection.HOME },
+                textToSpeechService = textToSpeechService
             )
             NavSection.MESSAGE -> MessageScreen(
                 onBackToHome = { currentSection = NavSection.HOME }
