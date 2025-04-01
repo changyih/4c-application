@@ -491,13 +491,41 @@ fun FunctionItem(
  */
 @Composable
 fun HealthDataCards(textToSpeechService: TextToSpeechService) {
+    var showMoreData by remember { mutableStateOf(false) }
+    
     Column {
-        Text(
-            text = "实时健康监测",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "实时健康监测",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // 更多按钮
+            TextButton(
+                onClick = { 
+                    showMoreData = !showMoreData 
+                    textToSpeechService.speak(if (showMoreData) "展开更多健康数据" else "收起健康数据")
+                },
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = if (showMoreData) "收起" else "更多",
+                    color = Color.White
+                )
+                Icon(
+                    imageVector = if (showMoreData) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (showMoreData) "收起" else "更多",
+                    tint = Color.White
+                )
+            }
+        }
         
+        // 主要健康数据（始终显示）
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -524,12 +552,196 @@ fun HealthDataCards(textToSpeechService: TextToSpeechService) {
                 textToSpeechService
             )
         }
+        
+        // 更多健康数据（点击"更多"按钮后显示）
+        AnimatedVisibility(
+            visible = showMoreData,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(modifier = Modifier.padding(top = 16.dp)) {
+                // 第一行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 血压卡片
+                    HealthDataCard(
+                        title = "血压",
+                        value = "120/80",
+                        unit = "mmHg",
+                        time = "2:50 pm",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(BrightBlue, Tertiary),
+                        textToSpeechService
+                    )
+                    
+                    // 血糖卡片
+                    HealthDataCard(
+                        title = "血糖",
+                        value = "5.4",
+                        unit = "mmol/L",
+                        time = "2:30 pm",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(FreshGreen, Color(0xFF4CAF50)),
+                        textToSpeechService
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第二行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 视觉能力卡片
+                    HealthDataCard(
+                        title = "视觉能力",
+                        value = "0.8",
+                        unit = "视力",
+                        time = "昨天",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF9C27B0), Color(0xFFE040FB)),
+                        textToSpeechService
+                    )
+                    
+                    // 听觉能力卡片
+                    HealthDataCard(
+                        title = "听觉能力",
+                        value = "正常",
+                        unit = "",
+                        time = "昨天",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF3F51B5), Color(0xFF7986CB)),
+                        textToSpeechService
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第三行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 肢体体征卡片
+                    HealthDataCard(
+                        title = "肢体体征",
+                        value = "良好",
+                        unit = "",
+                        time = "今天",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF00BCD4), Color(0xFF80DEEA)),
+                        textToSpeechService
+                    )
+                    
+                    // 认知能力卡片
+                    HealthDataCard(
+                        title = "认知能力",
+                        value = "90",
+                        unit = "分",
+                        time = "上周",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFFFF5722), Color(0xFFFF8A65)),
+                        textToSpeechService
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第四行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 血脂卡片
+                    HealthDataCard(
+                        title = "血脂",
+                        value = "4.2",
+                        unit = "mmol/L",
+                        time = "上周",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF8BC34A), Color(0xFFAED581)),
+                        textToSpeechService
+                    )
+                    
+                    // RM值卡片
+                    HealthDataCard(
+                        title = "RM值",
+                        value = "1.5",
+                        unit = "",
+                        time = "上周",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF795548), Color(0xFFA1887F)),
+                        textToSpeechService
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第五行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 肌肉维度卡片
+                    HealthDataCard(
+                        title = "肌肉维度",
+                        value = "良好",
+                        unit = "",
+                        time = "本月",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF607D8B), Color(0xFF90A4AE)),
+                        textToSpeechService
+                    )
+                    
+                    // 肺活量卡片
+                    HealthDataCard(
+                        title = "肺活量",
+                        value = "3200",
+                        unit = "ml",
+                        time = "上月",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFF009688), Color(0xFF80CBC4)),
+                        textToSpeechService
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第六行额外数据
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 握力卡片
+                    HealthDataCard(
+                        title = "握力",
+                        value = "25",
+                        unit = "kg",
+                        time = "上月",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFFFF9800), Color(0xFFFFB74D)),
+                        textToSpeechService
+                    )
+                    
+                    // 人体成分卡片
+                    HealthDataCard(
+                        title = "人体成分",
+                        value = "正常",
+                        unit = "",
+                        time = "上月",
+                        modifier = Modifier.weight(1f),
+                        gradientColors = listOf(Color(0xFFC2185B), Color(0xFFF06292)),
+                        textToSpeechService
+                    )
+                }
+            }
+        }
     }
 }
 
-/**
- * 健康数据卡片
- */
 @Composable
 fun HealthDataCard(
     title: String,
@@ -546,7 +758,8 @@ fun HealthDataCard(
             .clickable { textToSpeechService.speak("$title 为 $value $unit，测量时间是 $time") },
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
-        )
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Box(
             modifier = Modifier
@@ -556,42 +769,172 @@ fun HealthDataCard(
                 )
                 .padding(16.dp)
         ) {
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
+            // 顶部信息区域
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                // 左侧标题和单位
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // 标题和单位
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Text(
+                            text = "($unit)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                }
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
+                // 右侧头像
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = when {
+                            title.contains("血氧") -> Icons.Default.Air
+                            title.contains("心率") -> Icons.Default.Favorite
+                            title.contains("血压") -> Icons.Default.LocalHospital
+                            title.contains("血糖") -> Icons.Default.Restaurant
+                            else -> Icons.Default.Analytics
+                        },
+                        contentDescription = title,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            
+            // 中间数值显示区域
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 8.dp)
+            ) {
+                // 数值指示器（刻度条）
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 刻度值
+                    listOf("1.00", "2.00", "3.00", "4.00", "5.00").forEachIndexed { index, mark ->
+                        Text(
+                            text = mark,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (index == 2) Color.Black else Color.White.copy(alpha = 0.5f),
+                            fontSize = if (index == 2) 10.sp else 8.sp,
+                            modifier = Modifier
+                                .background(
+                                    if (index == 2) Color.White else Color.Transparent,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(if (index == 2) 4.dp else 0.dp)
+                        )
+                    }
+                }
+                
+                // 数值和单位
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
+                    // 左侧数值显示
                     Text(
                         text = value,
                         style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp
                     )
                     
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+                    // 右侧可视化指示器
+                    Box(
+                        modifier = Modifier
+                            .width(24.dp)
+                            .height(80.dp)
+                    ) {
+                        // 背景条
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.2f))
+                                .align(Alignment.Center)
+                        )
+                        
+                        // 数值指示条
+                        val fillPercentage = when {
+                            value.contains("%") -> value.replace("%", "").toFloatOrNull() ?: 0f
+                            value.toFloatOrNull() != null -> {
+                                val numValue = value.toFloat()
+                                when {
+                                    title.contains("心率") -> (numValue / 200f) * 100f // 假设最大心率200
+                                    title.contains("血糖") -> (numValue / 10f) * 100f  // 假设最大血糖10
+                                    else -> 70f // 默认值
+                                }
+                            }
+                            else -> 70f // 默认值
+                        } / 100f
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight(fillPercentage)
+                                .width(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White)
+                                .align(Alignment.BottomCenter)
+                        )
+                        
+                        // 顶部指示器
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .offset(y = (-fillPercentage * 80f).dp)
+                                .clip(CircleShape)
+                                .background(Color.Cyan)
+                                .align(Alignment.BottomCenter)
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                Text(
-                    text = time,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
             }
+            
+            // 底部时间显示
+            Text(
+                text = time,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
+            
+            // 底部单位显示
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.align(Alignment.BottomEnd)
+            )
         }
     }
 }
