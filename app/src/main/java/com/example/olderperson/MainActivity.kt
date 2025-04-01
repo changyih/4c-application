@@ -24,7 +24,6 @@ import androidx.core.content.ContextCompat
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.screens.HomeScreen
-import com.example.olderperson.ui.screens.LoginScreen
 import com.example.olderperson.ui.screens.MessageScreen
 import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.screens.VideoCallScreen
@@ -79,18 +78,8 @@ class MainActivity : ComponentActivity() {
     private fun startServices() {
         setContent {
             OlderPersonTheme {
-                // 登录状态
-                var isLoggedIn by remember { mutableStateOf(false) }
-                
-                if (isLoggedIn) {
-                    // 应用主界面和视频通话界面
-                    MainContent(videoCallService, textToSpeechService)
-                } else {
-                    // 登录界面
-                    LoginScreen(
-                        onLoginSuccess = { isLoggedIn = true }
-                    )
-                }
+                // 直接显示主界面，因为用户已经通过新的登录界面登录了
+                MainContent(videoCallService, textToSpeechService)
             }
         }
     }
