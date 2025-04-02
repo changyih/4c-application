@@ -1071,28 +1071,8 @@ fun DiseaseCheckCard(
     }
 }
 
-@Composable
-fun HomeServiceScreen(
-    textToSpeechService: TextToSpeechService,
-    onBackClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        // 顶部栏
-        TopBar("家政服务", onBackClick, textToSpeechService)
-        
-        // 内容区域 - 占位实现
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("家政服务页面 - 待实现")
-        }
-    }
-}
+// HomeServiceScreen已移至单独文件实现
+// 参见HomeServiceScreen.kt
 
 @Composable
 fun EmergencyHelpScreen(
