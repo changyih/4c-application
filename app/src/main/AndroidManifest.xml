@@ -8,16 +8,20 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
+        android:name=".OlderPersonApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -27,6 +31,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OlderPerson"
         tools:targetApi="31">
+        
+        <!-- 百度地图AK设置 -->
+        <meta-data
+            android:name="com.baidu.lbsapi.API_KEY"
+            android:value="oKrfzIGwhp2BZSfRSoodFfj9FrNFXgBP" />
         
         <activity
             android:name="com.example.olderperson.LoginActivity"
@@ -42,6 +51,12 @@
             android:name="com.example.olderperson.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.OlderPerson" />
+            
+        <!-- 百度定位服务 -->
+        <service 
+            android:name="com.baidu.location.f" 
+            android:enabled="true" 
+            android:process=":remote" />
     </application>
 
 </manifest>

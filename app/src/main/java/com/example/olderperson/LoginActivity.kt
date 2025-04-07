@@ -2,6 +2,7 @@ package com.example.olderperson
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,6 +31,27 @@ import com.example.olderperson.ui.theme.OlderPersonTheme
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 添加全局异常处理
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val message = "应用发生错误: ${throwable.message}"
+            
+            // 记录错误日志
+            Log.e("LoginActivity", message, throwable)
+            
+            // 显示一个错误提示
+            runOnUiThread {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+            
+            // 等待提示显示
+            try {
+                Thread.sleep(1000)
+            } catch (e: InterruptedException) {
+                // 忽略
+            }
+        }
+        
         setContent {
             OlderPersonTheme {
                 Surface(
@@ -38,12 +60,18 @@ class LoginActivity : ComponentActivity() {
                 ) {
                     LoginScreen(
                         onLoginSuccess = { isCareMode ->
-                            if (isCareMode) {
-                                startActivity(Intent(this, MainActivity::class.java))
-                                finish()
-                            } else {
-                                // TODO: 跳转到呵护模式界面
-                                Toast.makeText(this, "呵护模式界面开发中", Toast.LENGTH_SHORT).show()
+                            try {
+                                if (isCareMode) {
+                                    startActivity(Intent(this, MainActivity::class.java))
+                                    finish()
+                                } else {
+                                    // TODO: 跳转到呵护模式界面
+                                    Toast.makeText(this, "呵护模式界面开发中", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                // 处理启动MainActivity时可能发生的异常
+                                Log.e("LoginActivity", "启动MainActivity时发生异常: ${e.message}", e)
+                                Toast.makeText(this, "启动应用时发生错误: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
                     )
