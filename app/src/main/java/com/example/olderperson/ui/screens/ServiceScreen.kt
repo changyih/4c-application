@@ -483,7 +483,7 @@ val serviceItems = listOf(
         id = "community",
         name = "社区活动",
         description = "查看和参与社区组织的各类老年人活动。",
-        icon = Icons.Default.People
+        icon = Icons.Default.Groups
     )
 )
 
@@ -1534,25 +1534,4 @@ val emergencyServices = listOf(
     )
 )
 
-@Composable
-fun CommunityActivityScreen(
-    textToSpeechService: TextToSpeechService,
-    onBackClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        // 顶部栏
-        TopBar("社区活动", onBackClick, textToSpeechService)
-        
-        // 内容区域 - 占位实现
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("社区活动页面 - 待实现")
-        }
-    }
-}
+// CommunityActivityScreen已在CommunityActivityScreen.kt中实现
