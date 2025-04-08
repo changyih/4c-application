@@ -308,7 +308,7 @@ fun FunctionButtonsRow(
         FunctionButton(
             icon = Icons.Default.Person,
             label = "我和自己",
-            backgroundColor = Color(0xFF81C784),
+            backgroundColor = FreshGreen,
             onClick = { 
                 textToSpeechService.speak("我和自己")
                 onMySelfClick()
@@ -322,7 +322,7 @@ fun FunctionButtonsRow(
         FunctionButton(
             icon = Icons.Default.Home,
             label = "我和家人",
-            backgroundColor = Color.Gray,
+            backgroundColor = Gray200,
             onClick = { textToSpeechService.speak("我和家人") },
             modifier = Modifier.weight(1f)
         )
@@ -333,7 +333,7 @@ fun FunctionButtonsRow(
         FunctionButton(
             icon = Icons.Default.People,
             label = "我和社区",
-            backgroundColor = Color.Gray,
+            backgroundColor = Gray200,
             onClick = { textToSpeechService.speak("我和社区") },
             modifier = Modifier.weight(1f)
         )
