@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,41 +40,22 @@ fun CareScreen(
     onServiceClick: () -> Unit = {}
 ) {
     val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
-    val currentDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
+    val currentDate = remember { SimpleDateFormat("yyyy年MM月dd日", Locale.getDefault()).format(Date()) }
+    val dayOfWeek = remember { getDayOfWeek() }
+    
+    // 添加导航状态
+    var showMySelf by remember { mutableStateOf(false) }
+    
+    // 显示"我和自己"页面
+    if (showMySelf) {
+        MySelfScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showMySelf = false }
+        )
+        return
+    }
     
     Scaffold(
-        topBar = {
-            // 顶部状态栏
-            TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "智慧伙伴",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.clickable { textToSpeechService.speak("智慧伙伴") }
-                        )
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = currentTime,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.clickable { textToSpeechService.speak("现在时间是 $currentTime") }
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
-            )
-        },
         bottomBar = {
             // 底部导航栏
             CareBottomNavigationBar(
@@ -95,45 +75,34 @@ fun CareScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 用户信息卡片
+            // 用户问候区域
             item {
-                UserInfoCard(
-                    name = "王阿姨",
-                    date = currentDate,
+                UserGreetingCard(
+                    name = "王伯伯",
+                    date = "$currentDate 星期$dayOfWeek",
                     textToSpeechService = textToSpeechService
                 )
             }
             
-            // 健康数据卡片
+            // 智慧伴侣对话框
             item {
-                HealthDataCard(
-                    bloodPressure = "126/82",
-                    heartRate = "72",
-                    steps = "2305",
-                    bloodOxygen = "96.2",
+                AICompanionCard(
                     textToSpeechService = textToSpeechService
                 )
             }
             
-            // 今日天气
+            // 功能按钮区域
             item {
-                WeatherCard(
-                    textToSpeechService = textToSpeechService
-                )
-            }
-            
-            // 家人联系方式
-            item {
-                FamilyContactsCard(
-                    textToSpeechService = textToSpeechService
-                )
-            }
-            
-            // 社区活动
-            item {
-                CommunityActivitiesCard(
+                FunctionButtonsRow(
                     textToSpeechService = textToSpeechService,
-                    onCommunityClick = onServiceClick
+                    onMySelfClick = { showMySelf = true }
+                )
+            }
+            
+            // 今日安排
+            item {
+                TodayScheduleCard(
+                    textToSpeechService = textToSpeechService
                 )
             }
             
@@ -146,693 +115,390 @@ fun CareScreen(
 }
 
 /**
- * 用户信息卡片
+ * 用户问候卡片
  */
 @Composable
-fun UserInfoCard(
+fun UserGreetingCard(
     name: String,
     date: String,
-    textToSpeechService: TextToSpeechService
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { textToSpeechService.speak("您好，$name") },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "您好，$name",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = "$date 星期${getDayOfWeek()}",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-            }
-            
-            // 用户头像
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2D9E64)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "用户头像",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        
-        // 健康状态提示
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFE8F5E9))
-                .padding(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "健康状态",
-                    tint = Color(0xFF2D9E64),
-                    modifier = Modifier.size(20.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "您的健康状态良好，请继续保持",
-                    fontSize = 14.sp,
-                    color = Color(0xFF2D9E64)
-                )
-            }
-        }
-    }
-}
-
-/**
- * 健康数据卡片
- */
-@Composable
-fun HealthDataCard(
-    bloodPressure: String,
-    heartRate: String,
-    steps: String,
-    bloodOxygen: String,
-    textToSpeechService: TextToSpeechService
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { textToSpeechService.speak("您的健康数据：血压$bloodPressure，心率$heartRate，步数$steps，血氧$bloodOxygen") },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "我的健康",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { textToSpeechService.speak("查看健康中心") }
-                ) {
-                    Text(
-                        text = "健康中心",
-                        fontSize = 14.sp,
-                        color = Color(0xFF2D9E64)
-                    )
-                    
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = "查看更多",
-                        tint = Color(0xFF2D9E64),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 健康数据网格
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 血压
-                HealthDataItem(
-                    value = bloodPressure,
-                    unit = "mmHg",
-                    label = "血压",
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-                
-                // 心率
-                HealthDataItem(
-                    value = heartRate,
-                    unit = "次/分钟",
-                    label = "心率",
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 步数
-                HealthDataItem(
-                    value = steps,
-                    unit = "步/天",
-                    label = "步数",
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-                
-                // 血氧
-                HealthDataItem(
-                    value = bloodOxygen,
-                    unit = "SpO2",
-                    label = "血氧",
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 今日提醒
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "今日提醒",
-                    tint = Color(0xFF2D9E64),
-                    modifier = Modifier.size(20.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "今日提醒",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            }
-        }
-    }
-}
-
-/**
- * 健康数据项
- */
-@Composable
-fun HealthDataItem(
-    value: String,
-    unit: String,
-    label: String,
-    modifier: Modifier = Modifier,
-    textToSpeechService: TextToSpeechService
-) {
-    Column(
-        modifier = modifier.clickable { textToSpeechService.speak("$label：$value $unit") },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-        
-        Text(
-            text = unit,
-            fontSize = 12.sp,
-            color = Color.Gray
-        )
-        
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        Text(
-            text = label,
-            fontSize = 14.sp,
-            color = Color.Black
-        )
-    }
-}
-
-/**
- * 天气卡片
- */
-@Composable
-fun WeatherCard(
-    textToSpeechService: TextToSpeechService
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { textToSpeechService.speak("今日天气：成都，晴，气温17至27度") },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "今日天气",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                
-                Text(
-                    text = "成都市",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 天气信息
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 白天天气
-                WeatherItem(
-                    time = "白天",
-                    icon = Icons.Default.WbSunny,
-                    temperature = "27°",
-                    condition = "晴天",
-                    iconTint = Color(0xFFFF9800),
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-                
-                // 分隔线
-                Divider(
-                    modifier = Modifier
-                        .height(60.dp)
-                        .width(1.dp),
-                    color = Color.LightGray
-                )
-                
-                // 夜间天气
-                WeatherItem(
-                    time = "夜间",
-                    icon = Icons.Default.Bedtime,
-                    temperature = "17°",
-                    condition = "多云",
-                    iconTint = Color(0xFF3F51B5),
-                    modifier = Modifier.weight(1f),
-                    textToSpeechService = textToSpeechService
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 空气质量
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Air,
-                    contentDescription = "空气质量",
-                    tint = Color(0xFF2D9E64),
-                    modifier = Modifier.size(20.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "空气质量：优 AQI 45",
-                    fontSize = 14.sp,
-                    color = Color.Black
-                )
-            }
-        }
-    }
-}
-
-/**
- * 天气项
- */
-@Composable
-fun WeatherItem(
-    time: String,
-    icon: ImageVector,
-    temperature: String,
-    condition: String,
-    iconTint: Color,
-    modifier: Modifier = Modifier,
-    textToSpeechService: TextToSpeechService
-) {
-    Column(
-        modifier = modifier.clickable { textToSpeechService.speak("${time}天气：${condition}，${temperature}") },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = time,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Icon(
-            imageVector = icon,
-            contentDescription = condition,
-            tint = iconTint,
-            modifier = Modifier.size(24.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = temperature,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-        
-        Text(
-            text = condition,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-    }
-}
-
-/**
- * 家人联系方式卡片
- */
-@Composable
-fun FamilyContactsCard(
-    textToSpeechService: TextToSpeechService
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { textToSpeechService.speak("我的家人") },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "我的家人",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { textToSpeechService.speak("查看更多") }
-                ) {
-                    Text(
-                        text = "查看更多",
-                        fontSize = 14.sp,
-                        color = Color(0xFF2D9E64)
-                    )
-                    
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = "查看更多",
-                        tint = Color(0xFF2D9E64),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 家人联系人列表
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(familyContacts) { contact ->
-                    FamilyContactItem(
-                        contact = contact,
-                        textToSpeechService = textToSpeechService
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * 家人联系人项
- */
-@Composable
-fun FamilyContactItem(
-    contact: FamilyContact,
-    textToSpeechService: TextToSpeechService
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { textToSpeechService.speak("${contact.relation}，${contact.name}") }
-    ) {
-        // 联系人头像
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(contact.color),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = contact.name.first().toString(),
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = contact.relation,
-            fontSize = 14.sp,
-            color = Color.Black
-        )
-        
-        Text(
-            text = contact.name,
-            fontSize = 12.sp,
-            color = Color.Gray
-        )
-    }
-}
-
-/**
- * 社区活动卡片
- */
-@Composable
-fun CommunityActivitiesCard(
-    textToSpeechService: TextToSpeechService,
-    onCommunityClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { 
-                textToSpeechService.speak("社区活动")
-                onCommunityClick()
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "社区活动",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { 
-                        textToSpeechService.speak("查看更多")
-                        onCommunityClick()
-                    }
-                ) {
-                    Text(
-                        text = "查看更多",
-                        fontSize = 14.sp,
-                        color = Color(0xFF2D9E64)
-                    )
-                    
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = "查看更多",
-                        tint = Color(0xFF2D9E64),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 社区活动列表
-            communityActivities.forEach { activity ->
-                CommunityActivityItem(
-                    activity = activity,
-                    textToSpeechService = textToSpeechService
-                )
-                
-                if (activity != communityActivities.last()) {
-                    Divider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = Color.LightGray
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * 社区活动项
- */
-@Composable
-fun CommunityActivityItem(
-    activity: CommunityActivity,
     textToSpeechService: TextToSpeechService
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { textToSpeechService.speak("${activity.name}，${activity.time}，${activity.location}") },
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 活动日期
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = activity.date.split("-")[0],
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Text(
-                    text = activity.date.split("-")[1],
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
         Column(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = activity.name,
-                fontSize = 16.sp,
+                text = "您好，$name",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
             
             Spacer(modifier = Modifier.height(4.dp))
             
+            Text(
+                text = date,
+                fontSize = 16.sp,
+                color = Color.Gray
+            )
+        }
+        
+        // 用户头像
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF4CAF50)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "用户头像",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 智慧伴侣对话卡片
+ */
+@Composable
+fun AICompanionCard(
+    textToSpeechService: TextToSpeechService
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E6853)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = "时间",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(14.dp)
-                )
+                // AI头像
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = "智慧伴侣",
+                        tint = Color(0xFF1E6853),
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
                 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column {
+                    Text(
+                        text = "我是您的智慧伴侣",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "今天有什么可以帮您的吗？",
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 交流方式按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // 语音交流按钮
+                Button(
+                    onClick = { textToSpeechService.speak("语音交流") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2A8C6F)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "语音交流",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "语音交流",
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                // 文字交流按钮
+                Button(
+                    onClick = { textToSpeechService.speak("文字交流") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2A8C6F)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = "文字交流",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "文字交流",
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 功能按钮行
+ */
+@Composable
+fun FunctionButtonsRow(
+    textToSpeechService: TextToSpeechService,
+    onMySelfClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // 我和自己
+        FunctionButton(
+            icon = Icons.Default.Person,
+            label = "我和自己",
+            backgroundColor = Color(0xFF81C784),
+            onClick = { 
+                textToSpeechService.speak("我和自己")
+                onMySelfClick()
+            },
+            modifier = Modifier.weight(1f)
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // 我和家人
+        FunctionButton(
+            icon = Icons.Default.Home,
+            label = "我和家人",
+            backgroundColor = Color.Gray,
+            onClick = { textToSpeechService.speak("我和家人") },
+            modifier = Modifier.weight(1f)
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // 我和社区
+        FunctionButton(
+            icon = Icons.Default.People,
+            label = "我和社区",
+            backgroundColor = Color.Gray,
+            onClick = { textToSpeechService.speak("我和社区") },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * 功能按钮
+ */
+@Composable
+fun FunctionButton(
+    icon: ImageVector,
+    label: String,
+    backgroundColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * 今日安排卡片
+ */
+@Composable
+fun TodayScheduleCard(
+    textToSpeechService: TextToSpeechService
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "今日安排",
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "今日安排",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
                 
                 Text(
-                    text = activity.time,
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    text = "全部 >",
+                    fontSize = 14.sp,
+                    color = Color(0xFF1976D2),
+                    modifier = Modifier.clickable { textToSpeechService.speak("查看全部安排") }
                 )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "地点",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(14.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(4.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 安排列表
+            ScheduleItem(
+                time = "08:00",
+                title = "晨间服药",
+                description = "降压药 1片，维生素 1片",
+                textToSpeechService = textToSpeechService
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 12.dp))
+            
+            ScheduleItem(
+                time = "10:30",
+                title = "心脏科复诊",
+                description = "",
+                textToSpeechService = textToSpeechService
+            )
+        }
+    }
+}
+
+/**
+ * 安排项
+ */
+@Composable
+fun ScheduleItem(
+    time: String,
+    title: String,
+    description: String,
+    textToSpeechService: TextToSpeechService
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { textToSpeechService.speak("$time，$title，$description") },
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = time,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+        
+        Spacer(modifier = Modifier.width(24.dp))
+        
+        Column {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            
+            if (description.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
                 
                 Text(
-                    text = activity.location,
-                    fontSize = 12.sp,
+                    text = description,
+                    fontSize = 14.sp,
                     color = Color.Gray
                 )
             }
@@ -874,35 +540,35 @@ fun CareBottomNavigationBar(
                 }
             )
             
-            // 消息
+            // 对话
             BottomNavItem(
-                icon = Icons.Default.Message,
-                label = "消息",
+                icon = Icons.Default.Chat,
+                label = "对话",
                 isSelected = false,
                 onClick = {
-                    textToSpeechService.speak("消息")
+                    textToSpeechService.speak("对话")
                     onMessageClick()
                 }
             )
             
-            // 视频通话
+            // 探索
             BottomNavItem(
-                icon = Icons.Default.Videocam,
-                label = "视频",
+                icon = Icons.Default.Explore,
+                label = "探索",
                 isSelected = false,
                 onClick = {
-                    textToSpeechService.speak("视频通话")
+                    textToSpeechService.speak("探索")
                     onVideoCallClick()
                 }
             )
             
-            // 我的
+            // 设置
             BottomNavItem(
-                icon = Icons.Default.Person,
-                label = "我的",
+                icon = Icons.Default.Settings,
+                label = "设置",
                 isSelected = false,
                 onClick = {
-                    textToSpeechService.speak("我的")
+                    textToSpeechService.speak("设置")
                     onProfileClick()
                 }
             )
@@ -959,46 +625,3 @@ fun getDayOfWeek(): String {
         else -> ""
     }
 }
-
-/**
- * 家人联系人数据类
- */
-data class FamilyContact(
-    val name: String,
-    val relation: String,
-    val color: Color
-)
-
-// 使用CommunityActivityScreen.kt中定义的CommunityActivity数据类
-
-// 家人联系人列表
-val familyContacts = listOf(
-    FamilyContact("李明", "儿子", Color(0xFFE57373)),
-    FamilyContact("张华", "女儿", Color(0xFF64B5F6)),
-    FamilyContact("王芳", "孙女", Color(0xFF81C784)),
-    FamilyContact("赵强", "孙子", Color(0xFFFFB74D))
-)
-
-// 社区活动列表
-val communityActivities = listOf(
-    CommunityActivity(
-        id = "activity1",
-        name = "太极拳教学",
-        description = "由专业太极拳老师教授，适合老年人的太极拳基础动作，增强身体协调性和平衡能力。",
-        date = "05-15",
-        time = "9:00-10:30",
-        location = "社区活动中心",
-        participants = 28,
-        icon = Icons.Default.SportsKabaddi
-    ),
-    CommunityActivity(
-        id = "activity2",
-        name = "健康讲座",
-        description = "邀请社区医生讲解老年人常见疾病预防和健康生活方式，现场提供免费血压测量。",
-        date = "05-18",
-        time = "14:00-15:30",
-        location = "社区会议室",
-        participants = 45,
-        icon = Icons.Default.HealthAndSafety
-    )
-)
