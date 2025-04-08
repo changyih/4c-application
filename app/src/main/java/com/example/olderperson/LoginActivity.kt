@@ -42,8 +42,10 @@ class LoginActivity : ComponentActivity() {
                                 startActivity(Intent(this, MainActivity::class.java))
                                 finish()
                             } else {
-                                // TODO: 跳转到呵护模式界面
-                                Toast.makeText(this, "呵护模式界面开发中", Toast.LENGTH_SHORT).show()
+                                // 跳转到呵护模式界面
+                                val intent = Intent(this, CareActivity::class.java)
+                                startActivity(intent)
+                                finish()
                             }
                         }
                     )
@@ -320,4 +322,4 @@ fun ThirdPartyLoginButton(
             modifier = Modifier.size(28.dp)
         )
     }
-} 
+}
