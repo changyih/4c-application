@@ -60,7 +60,13 @@ dependencies {
     implementation("io.agora.rtc:full-sdk:3.7.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     
-    // 地图相关
+    // 百度地图依赖
+    implementation("com.baidu.lbsyun:BaiduMapSDK_Map:7.5.0")
+    implementation("com.baidu.lbsyun:BaiduMapSDK_Search:7.5.0")
+    implementation("com.baidu.lbsyun:BaiduMapSDK_Util:7.5.0")
+    implementation("com.baidu.lbsyun:BaiduMapSDK_Location:9.3.7")
+    
+    // Google地图依赖（保留以备需要）
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:4.3.0")
     

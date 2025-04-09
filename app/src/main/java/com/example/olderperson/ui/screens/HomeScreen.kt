@@ -21,6 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.google.android.gms.maps.model.LatLng
 import com.example.olderperson.ui.components.LocationMapCard
+import com.example.olderperson.ui.components.MapLocation
+import com.example.olderperson.ui.components.NearbyPoiSearch
+import com.baidu.mapapi.search.core.PoiInfo
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Person
@@ -44,6 +47,8 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.LocalPharmacy
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +62,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -68,6 +74,7 @@ import com.example.olderperson.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import com.baidu.mapapi.model.LatLng as BaiduLatLng
 
 /**
  * 首页界面
@@ -948,6 +955,24 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
     val changchunLocation = LatLng(43.817071, 125.323544)
     var showNearbyFacilities by remember { mutableStateOf(false) }
     var selectedFacilityType by remember { mutableStateOf<FacilityType?>(null) }
+    val context = LocalContext.current
+    
+    // 使用百度地图POI搜索
+    val poiSearch = remember { NearbyPoiSearch(context) }
+    var searchResults by remember { mutableStateOf<List<PoiInfo>>(emptyList()) }
+    
+    // 设置POI搜索监听器
+    DisposableEffect(poiSearch) {
+        poiSearch.setOnPoiSearchResultListener(object : NearbyPoiSearch.OnPoiSearchResultListener {
+            override fun onPoiSearchResult(poiList: List<PoiInfo>) {
+                searchResults = poiList
+            }
+        })
+        
+        onDispose {
+            poiSearch.destroy()
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -993,6 +1018,13 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
                             selectedFacilityType = FacilityType.HOSPITAL
                             showNearbyFacilities = true
                             textToSpeechService.speak("显示附近医疗机构")
+                            
+                            // 使用百度地图搜索附近医院
+                            val baiduLocation = BaiduLatLng(
+                                changchunLocation.latitude, 
+                                changchunLocation.longitude
+                            )
+                            poiSearch.searchNearby(baiduLocation, "医院", 2000)
                         }
                     )
                     
@@ -1005,6 +1037,13 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
                             selectedFacilityType = FacilityType.PHARMACY
                             showNearbyFacilities = true
                             textToSpeechService.speak("显示附近药店")
+                            
+                            // 使用百度地图搜索附近药店
+                            val baiduLocation = BaiduLatLng(
+                                changchunLocation.latitude, 
+                                changchunLocation.longitude
+                            )
+                            poiSearch.searchNearby(baiduLocation, "药店", 2000)
                         }
                     )
                     
@@ -1017,6 +1056,13 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
                             selectedFacilityType = FacilityType.RESTAURANT
                             showNearbyFacilities = true
                             textToSpeechService.speak("显示附近餐厅")
+                            
+                            // 使用百度地图搜索附近餐厅
+                            val baiduLocation = BaiduLatLng(
+                                changchunLocation.latitude, 
+                                changchunLocation.longitude
+                            )
+                            poiSearch.searchNearby(baiduLocation, "餐厅", 2000)
                         }
                     )
                 }
@@ -1029,11 +1075,22 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
-            NearbyFacilitiesList(
-                facilityType = selectedFacilityType,
-                textToSpeechService = textToSpeechService,
-                onClose = { showNearbyFacilities = false }
-            )
+            if (searchResults.isNotEmpty()) {
+                // 使用百度地图搜索结果
+                BaiduPoiResultsList(
+                    poiList = searchResults,
+                    facilityType = selectedFacilityType,
+                    textToSpeechService = textToSpeechService,
+                    onClose = { showNearbyFacilities = false }
+                )
+            } else {
+                // 使用本地数据作为备用
+                NearbyFacilitiesList(
+                    facilityType = selectedFacilityType,
+                    textToSpeechService = textToSpeechService,
+                    onClose = { showNearbyFacilities = false }
+                )
+            }
         }
     }
 }
@@ -1221,6 +1278,149 @@ fun FacilityItem(
         
         Text(
             text = facility.distance,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Primary
+        )
+    }
+}
+
+/**
+ * 百度地图POI结果列表
+ */
+@Composable
+fun BaiduPoiResultsList(
+    poiList: List<PoiInfo>,
+    facilityType: FacilityType?,
+    textToSpeechService: TextToSpeechService,
+    onClose: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "附近${facilityType?.label ?: "设施"}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+                
+                IconButton(
+                    onClick = onClose
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (poiList.isNotEmpty()) {
+                poiList.take(5).forEach { poi ->
+                    BaiduFacilityItem(
+                        poi = poi,
+                        facilityType = facilityType ?: FacilityType.HOSPITAL,
+                        textToSpeechService = textToSpeechService
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            } else {
+                Text(
+                    text = "未找到附近设施",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 百度地图POI结果项
+ */
+@Composable
+fun BaiduFacilityItem(
+    poi: PoiInfo,
+    facilityType: FacilityType,
+    textToSpeechService: TextToSpeechService
+) {
+    // 计算距离，单位转换为公里
+    val distanceInt = poi.distance.toInt()
+    val distanceText = if (distanceInt > 1000) {
+        String.format("%.1f公里", distanceInt / 1000.0)
+    } else {
+        "${distanceInt}米"
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF333333))
+            .clickable { textToSpeechService.speak("${poi.name}，距离${distanceText}，地址：${poi.address}") }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 设施图标
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Primary),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = when(facilityType) {
+                    FacilityType.HOSPITAL -> Icons.Default.LocalHospital
+                    FacilityType.PHARMACY -> Icons.Default.LocalPharmacy
+                    FacilityType.RESTAURANT -> Icons.Default.Restaurant
+                    FacilityType.COMMUNITY_CENTER -> Icons.Default.People
+                },
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = poi.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = poi.address ?: "无详细地址",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Text(
+            text = distanceText,
             style = MaterialTheme.typography.bodyMedium,
             color = Primary
         )

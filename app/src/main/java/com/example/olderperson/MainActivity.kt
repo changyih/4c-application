@@ -3,6 +3,7 @@ package com.example.olderperson
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -13,14 +14,24 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.screens.HomeScreen
@@ -28,6 +39,7 @@ import com.example.olderperson.ui.screens.MessageScreen
 import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.screens.VideoCallScreen
 import com.example.olderperson.ui.theme.OlderPersonTheme
+import androidx.compose.runtime.DisposableEffect
 
 class MainActivity : ComponentActivity() {
     // 视频通话服务
@@ -45,27 +57,48 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "onCreate开始执行")
         
-        // 初始化服务
-        videoCallService = VideoCallService(this)
-        textToSpeechService = TextToSpeechService(this)
-
-        checkPermissions()
-        startServices()
+        try {
+            // 初始化服务
+            videoCallService = VideoCallService(this)
+            textToSpeechService = TextToSpeechService(this)
+            
+            // 检查权限
+            checkPermissions()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "onCreate异常: ${e.message}")
+            e.printStackTrace()
+        }
+        
+        Log.d("MainActivity", "onCreate执行完成")
     }
 
     private fun checkPermissions() {
+        Log.d("MainActivity", "开始检查权限")
+        
         val permissions = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE
         )
-
+        
+        // 筛选出未授权的权限
         val permissionsToRequest = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }.toTypedArray()
-
+        }
+        
+        Log.d("MainActivity", "需要请求的权限: ${permissionsToRequest.joinToString()}")
+        
         if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest)
+            // 请求未授权的权限
+            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        } else {
+            // 已经拥有所有需要的权限
+            Log.d("MainActivity", "已获取所有必要权限")
+            startServices()
         }
     }
 
@@ -76,11 +109,67 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startServices() {
+        Log.d("MainActivity", "开始启动主界面服务")
+        
         setContent {
             OlderPersonTheme {
-                // 直接显示主界面，因为用户已经通过新的登录界面登录了
-                MainContent(videoCallService, textToSpeechService)
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // 使用安全加载模式
+                    Log.d("MainActivity", "开始加载HomeScreen")
+                    
+                    SafeMainContent(
+                        videoCallService = videoCallService, 
+                        textToSpeechService = textToSpeechService
+                    )
+                    
+                    Log.d("MainActivity", "HomeScreen加载完成")
+                }
             }
+        }
+        
+        Log.d("MainActivity", "主界面服务启动完成")
+    }
+
+    @Composable
+    fun SafeMainContent(
+        videoCallService: VideoCallService,
+        textToSpeechService: TextToSpeechService
+    ) {
+        // 使用rememberSaveable保持状态
+        var hasError by remember { mutableStateOf(false) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+        
+        // 设置错误处理器
+        DisposableEffect(Unit) {
+            val handler = Thread.UncaughtExceptionHandler { _, throwable ->
+                Log.e("MainActivity", "捕获到未处理异常: ${throwable.message}")
+                throwable.printStackTrace()
+                hasError = true
+                errorMessage = throwable.message
+            }
+            
+            val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+            Thread.setDefaultUncaughtExceptionHandler(handler)
+            
+            onDispose {
+                Thread.setDefaultUncaughtExceptionHandler(defaultHandler)
+            }
+        }
+        
+        if (hasError) {
+            ErrorScreen(
+                errorMessage = errorMessage ?: "加载界面时发生未知错误",
+                retry = { 
+                    hasError = false
+                    errorMessage = null
+                }
+            )
+        } else {
+            MainContent(videoCallService, textToSpeechService)
         }
     }
 }
@@ -134,6 +223,49 @@ fun MainContent(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ErrorScreen(errorMessage: String, retry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = "错误",
+            tint = Color.Red,
+            modifier = Modifier.size(64.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "出错了",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = errorMessage,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = retry,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text("重试")
         }
     }
 }
