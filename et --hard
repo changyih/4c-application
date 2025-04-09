@@ -1,0 +1,177 @@
+[33mcommit 3ddd73d4266672411efbd0f303a93ccbdbcf7dd3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mservice[m[33m)[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Wed Apr 9 10:30:30 2025 +0800
+
+    Revert "    4/8"
+    
+    This reverts commit aed5d264
+
+[33mcommit da3a9c7b319d0591e6793806a6ea1acba5d79915[m[33m ([m[1;31morigin/service[m[33m)[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 8 21:52:15 2025 +0800
+
+    老年人“我和自己”页面改
+      4/8
+
+[33mcommit 25aafed6be1094728bfb21cb91f1cf3928dfafa8[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 8 21:38:37 2025 +0800
+
+    老年人“我和自己”页面   4/8
+
+[33mcommit aed5d264746a70b654483085b323ec90a246faeb[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 8 13:51:08 2025 +0800
+
+        4/8
+
+[33mcommit d5252b41b83ed45da125848b0e1802c382c62a5d[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Mon Apr 7 22:41:46 2025 +0800
+
+    服务页面‘家政服务‘    4/2
+
+[33mcommit 5c064c99347861520ee96fc47395d6b3710aaf6e[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Mon Apr 7 22:31:07 2025 +0800
+
+    服务页面   4/2
+
+[33mcommit 9594011df43bdfe7cada312f7c995ed1e7edc292[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Wed Apr 2 22:48:57 2025 +0800
+
+    服务页面‘家政服务‘    4/2
+
+[33mcommit 3df0243b6051c7d1f178f0fe8ba10906cceda6cf[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Wed Apr 2 21:49:13 2025 +0800
+
+    服务页面‘紧急求助’和’健康咨询‘    4/2
+
+[33mcommit edbed5943303e56ec90046e8412364ef51275394[m
+Merge: 633710f fcfc326
+Author: linweihuang66 <154396991+linweihuang66@users.noreply.github.com>
+Date:   Tue Apr 1 21:57:21 2025 +0800
+
+    Merge pull request #5 from changyih/log-in
+    
+    log in界面 2
+
+[33mcommit 633710fe3cbd32a5e741aa715e616abb2564628e[m
+Merge: 8879654 e71c43e
+Author: 常艺豪 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 1 21:40:03 2025 +0800
+
+    Merge pull request #4 from changyih/log-in
+    
+    log in界面
+
+[33mcommit 88796544fdde55230c236b0c178dd7cdff331fea[m
+Merge: 09519c6 951807d
+Author: 常艺豪 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 1 21:38:49 2025 +0800
+
+    Merge pull request #3 from changyih/youth
+    
+    首页健康检测页面  4/1
+
+[33mcommit fcfc3262eb0e285c95210c2be84d22a68bd26e7e[m[33m ([m[1;31morigin/log-in[m[33m)[m
+Author: 伟煌 林 <1558190642@qq.com>
+Date:   Tue Apr 1 21:37:47 2025 +0800
+
+    log in界面 2
+
+[33mcommit 951807d26c63611c821745dd3a402df238f0d25b[m[33m ([m[1;31morigin/youth[m[33m)[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 1 21:37:16 2025 +0800
+
+    首页健康检测页面  4/1
+
+[33mcommit e71c43e4290eadd6f8844f6153a2a59776e78b34[m
+Author: 伟煌 林 <1558190642@qq.com>
+Date:   Tue Apr 1 21:37:11 2025 +0800
+
+    log in界面
+
+[33mcommit 09519c6c15378f7532090e1a6138147b3cc13fdc[m
+Merge: 0225104 eccacdd
+Author: 常艺豪 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 1 16:59:27 2025 +0800
+
+    Merge pull request #2 from changyih/youth
+    
+    完善服务页面  4/1
+
+[33mcommit eccacdd06157cf0df06b138f645afef164befd09[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Tue Apr 1 16:57:48 2025 +0800
+
+    完善服务页面  4/1
+
+[33mcommit 0225104f0b9f3ed3692953bb6c3767d881c880fd[m
+Merge: 9f1f001 16bf12f
+Author: 常艺豪 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 23:02:41 2025 +0800
+
+    Merge pull request #1 from changyih/youth
+    
+    Youth
+
+[33mcommit 16bf12f0dfa1fae8ce52d2e146e7a96d917c6222[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 22:28:14 2025 +0800
+
+    初步完成服务页面  3/30
+
+[33mcommit ea3057a667b3084a8c2294daa7ab90cafd9b7238[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 22:05:27 2025 +0800
+
+    首页所有页面  3/30
+
+[33mcommit 77f21f6498aa40be377f7774be1329787e25a585[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 20:44:24 2025 +0800
+
+    页面实现  3/30
+
+[33mcommit f6ebd97154eb4c4d230e67e6cb174e0b42dc0573[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 20:43:04 2025 +0800
+
+    页面实现  3/30
+
+[33mcommit 9c1e1a0c2df17714933bdbc77f09a6c0c24aef6a[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Sun Mar 30 20:41:06 2025 +0800
+
+    页面实现  3/30
+
+[33mcommit 2e4187ef002696ea47406ef5ab6ef839e8376d66[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Fri Mar 28 22:44:15 2025 +0800
+
+    ‘健康服务’页面  3/28
+
+[33mcommit 8d39e374e832199c757023e3a02833049c5b3ab6[m
+Author: 艺豪 常 <changyh9923@mails.jlu.edu.cn>
+Date:   Fri Mar 28 22:24:21 2025 +0800
+
+    修改gradle.xml
+      HomeScreen.kt
+      MainActivity.kt
+      misc.xml
+     实现“我的”和“消息”页面       3/28
+
+[33mcommit 9f1f001295c5a0c69461a7f49f53dd9811dde451[m
+Author: 伟煌 林 <1558190642@qq.com>
+Date:   Fri Mar 28 16:13:50 2025 +0800
+
+    new 2025.3.27
+
+[33mcommit 496f7367a91cb3596bf43675955b08aa99889813[m
+Author: 伟煌 林 <1558190642@qq.com>
+Date:   Wed Mar 26 22:24:52 2025 +0800
+
+    init
