@@ -27,10 +27,12 @@ import java.util.*
 
 @Composable
 fun CareHomeScreen(
-    userName: String = "王伯伯",
+    userName: String,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToFamily: () -> Unit = {},
     onNavigateToCommunity: () -> Unit = {},
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToExplore: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null
 ) {
     Box(
@@ -76,7 +78,10 @@ fun CareHomeScreen(
             }
             
             // 底部导航栏
-            BottomNavigationBar()
+            BottomNavigationBar(
+                onNavigateToChat = onNavigateToChat,
+                onNavigateToExplore = onNavigateToExplore
+            )
         }
     }
 }
@@ -439,7 +444,10 @@ private fun ScheduleItem(
 }
 
 @Composable
-private fun BottomNavigationBar() {
+private fun BottomNavigationBar(
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToExplore: () -> Unit = {}
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -462,13 +470,15 @@ private fun BottomNavigationBar() {
             // 对话按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Chat,
-                label = "对话"
+                label = "对话",
+                onClick = onNavigateToChat
             )
             
             // 探索按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Explore,
-                label = "探索"
+                label = "探索",
+                onClick = onNavigateToExplore
             )
             
             // 设置按钮
@@ -490,8 +500,9 @@ private fun HomeBottomNavItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(8.dp)
             .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
@@ -500,11 +511,12 @@ private fun HomeBottomNavItem(
             modifier = Modifier.size(24.dp)
         )
         
+        Spacer(modifier = Modifier.height(4.dp))
+        
         Text(
             text = label,
-            fontSize = 12.sp,
             color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            textAlign = TextAlign.Center
+            fontSize = 12.sp
         )
     }
 }
