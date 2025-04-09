@@ -1,80 +1,72 @@
 package com.example.olderperson
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.Modifier
 import com.example.olderperson.service.TextToSpeechService
-import com.example.olderperson.service.VideoCallService
-import com.example.olderperson.ui.screens.CareScreen
+import com.example.olderperson.ui.screens.CareHomeScreen
+import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.theme.OlderPersonTheme
 
 /**
  * 呵护模式的入口Activity
  */
 class CareActivity : ComponentActivity() {
-    // 视频通话服务
-    private lateinit var videoCallService: VideoCallService
-    // 文字转语音服务
     private lateinit var textToSpeechService: TextToSpeechService
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions.all { it.value }) {
-            startServices()
-        }
-    }
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 初始化服务
-        videoCallService = VideoCallService(this)
+        // 初始化文字转语音服务
         textToSpeechService = TextToSpeechService(this)
-
-        checkPermissions()
-        startServices()
-    }
-
-    private fun checkPermissions() {
-        val permissions = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO
-        )
-
-        val permissionsToRequest = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }.toTypedArray()
-
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest)
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        videoCallService.release()
-        textToSpeechService.shutdown()
-    }
-
-    private fun startServices() {
+        
         setContent {
             OlderPersonTheme {
-                // 显示呵护模式界面
-                CareScreen(
-                    videoCallService = videoCallService,
-                    textToSpeechService = textToSpeechService,
-                    onVideoCallClick = { /* 视频通话功能 */ },
-                    onProfileClick = { /* 个人资料功能 */ },
-                    onMessageClick = { /* 消息功能 */ },
-                    onServiceClick = { /* 服务功能 */ }
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    CareApp(textToSpeechService)
+                }
             }
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // 释放TTS资源
+        textToSpeechService.shutdown()
+    }
+}
+
+@Composable
+fun CareApp(textToSpeechService: TextToSpeechService) {
+    var currentScreen by remember { mutableStateOf("home") }
+    
+    when (currentScreen) {
+        "home" -> CareHomeScreen(
+            userName = "王伯伯",
+            onNavigateToProfile = { 
+                Log.d("CareActivity", "Navigating to Profile screen")
+                textToSpeechService.speak("进入我和自己页面")
+                currentScreen = "profile" 
+            },
+            onNavigateToFamily = { /* 暂未实现 */ },
+            onNavigateToCommunity = { /* 暂未实现 */ },
+            textToSpeechService = textToSpeechService
+        )
+        "profile" -> ProfileScreen(
+            onBackToHome = { 
+                Log.d("CareActivity", "Navigating back to Home")
+                currentScreen = "home" 
+            },
+            textToSpeechService = textToSpeechService
+        )
     }
 }

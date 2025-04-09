@@ -61,6 +61,7 @@ class LoginActivity : ComponentActivity() {
                     LoginScreen(
                         onLoginSuccess = { isCareMode ->
                             if (isCareMode) {
+                                // 跳转到关爱模式界面
                                 startActivity(Intent(this, MainActivity::class.java))
                                 finish()
                             } else {
@@ -68,7 +69,6 @@ class LoginActivity : ComponentActivity() {
                                 val intent = Intent(this, CareActivity::class.java)
                                 startActivity(intent)
                                 finish()
-               
                             }
                         }
                     )

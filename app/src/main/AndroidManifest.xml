@@ -52,6 +52,11 @@
             android:exported="false"
             android:theme="@style/Theme.OlderPerson" />
             
+        <activity
+            android:name="com.example.olderperson.CareActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OlderPerson" />
+            
     </application>
 
 </manifest>

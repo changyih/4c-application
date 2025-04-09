@@ -9,6 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -61,118 +64,324 @@ fun ProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(Color(0xFFF5F5F5))
         ) {
-        // 顶部工具栏添加返回按钮
+            // 顶部区域
+            ProfileHeader(onBackToHome)
+            
+            // 健康中心卡片
+            HealthCenterCard()
+            
+            // 用药信息卡片
+            MedicationCard()
+        }
+    }
+}
+
+@Composable
+private fun ProfileHeader(onBackToHome: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    ) {
+        // 标题栏
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onBackToHome() }
+            // 返回按钮
+            IconButton(
+                onClick = onBackToHome
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = Color.Black
+                )
+            }
+            
+            Text(
+                text = "我和自己",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
             )
             
-            Spacer(modifier = Modifier.weight(1f))
+            // 用户头像
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF87CEEB))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "用户头像",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.Center)
+                )
+            }
         }
         
-        // 顶部个人信息区域
+        // 副标题
+        Text(
+            text = "关注自我健康和成长",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+        )
+    }
+}
+
+@Composable
+private fun HealthCenterCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(16.dp)
         ) {
-            // 头像
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile Avatar",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Gray),
-                tint = Color.White
+            // 标题和详情入口
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "健康中心",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "健康中心",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "详情",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "查看详情",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 健康数据行 - 第一行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 血压
+                HealthDataItem(
+                    value = "126/82",
+                    label = "血压 (mmHg)",
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // 心率
+                HealthDataItem(
+                    value = "72",
+                    label = "心率 (次/分)",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 健康数据行 - 第二行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 今日步数
+                HealthDataItem(
+                    value = "2305",
+                    label = "今日步数",
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // 睡眠
+                HealthDataItem(
+                    value = "6.2",
+                    label = "睡眠 (小时)",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthDataItem(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            text = value,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2E7D32)
+        )
+        
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+private fun MedicationCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // 标题
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "今日用药",
+                    tint = Color(0xFF2E7D32),
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = "今日用药",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 降压药
+            MedicationItem(
+                name = "降压药",
+                time = "上午 8:00",
+                isCompleted = true
             )
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // 用户名和位置
+            // 钙片
+            MedicationItem(
+                name = "钙片",
+                time = "下午 12:30",
+                isCompleted = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun MedicationItem(
+    name: String,
+    time: String,
+    isCompleted: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 药品图标
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFFFFC107).copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Medication,
+                contentDescription = name,
+                tint = Color(0xFFFFC107),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // 药品信息
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
-                text = "曾教家",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Normal
+                text = name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
             )
             
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Text(
-                    text = "四川 成都",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
-            }
+            Text(
+                text = time,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
         }
-
-        // 统计数据区域
-        Row(
+        
+        // 状态标签
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF8E1)
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            StatItem(count = "03", label = "健康计划")
-            StatItem(
-                count = "01", 
-                label = "服务订单",
-                onClick = {
-                    textToSpeechService.speak("服务订单")
-                    showServiceOrder = true
-                }
-            )
-            StatItem(
-                count = "03", 
-                label = "我的设备",
-                onClick = {
-                    textToSpeechService.speak("我的设备")
-                    showMyDevices = true
-                }
+            Text(
+                text = if (isCompleted) "已完成" else "待服用",
+                color = if (isCompleted) Color(0xFF2E7D32) else Color(0xFFFFA000),
+                fontSize = 12.sp
             )
         }
-
-        // 菜单列表
-        MenuListItem(
-            title = "我的喜欢", 
-            iconTint = Color(0xFFFF5722),
-            onClick = { 
-                textToSpeechService.speak("我的喜欢")
-                showFavorites = true 
-            }
-        )
-        MenuListItem(
-            title = "我的钱包", 
-            onClick = { 
-                textToSpeechService.speak("我的钱包")
-                showWallet = true 
-            }
-        )
-        MenuListItem(title = "修改密码")
-        MenuListItem(
-            title = "帮助",
-            onClick = { 
-                textToSpeechService.speak("帮助")
-                showHelp = true 
-            }
-        )
-    }
     }
 }
 

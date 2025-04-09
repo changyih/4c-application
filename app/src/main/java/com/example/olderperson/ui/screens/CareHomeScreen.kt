@@ -1,0 +1,389 @@
+package com.example.olderperson.ui.screens
+
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.olderperson.service.TextToSpeechService
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Composable
+fun CareHomeScreen(
+    userName: String = "王伯伯",
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToFamily: () -> Unit = {},
+    onNavigateToCommunity: () -> Unit = {},
+    textToSpeechService: TextToSpeechService? = null
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+    ) {
+        // 顶部问候区域
+        TopGreetingSection(userName)
+        
+        // 主要内容区域
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 导航按钮区域
+            item {
+                NavigationButtons(
+                    onNavigateToProfile = {
+                        textToSpeechService?.speak("进入我和自己页面")
+                        onNavigateToProfile()
+                    },
+                    onNavigateToFamily = onNavigateToFamily,
+                    onNavigateToCommunity = onNavigateToCommunity
+                )
+            }
+            
+            // 今日安排
+            item {
+                TodayScheduleCard()
+            }
+            
+            // 底部间距
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopGreetingSection(userName: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "您好，$userName",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Text(
+                    text = getCurrentDate(),
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            // 用户头像
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF87CEEB))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "用户头像",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.Center)
+                )
+            }
+        }
+
+        // 智能助手对话框
+        AssistantChatBox()
+    }
+}
+
+@Composable
+private fun AssistantChatBox() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2E7D32)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 机器人图标
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Android,
+                        contentDescription = "智能助手",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = "我是您的智能伙伴",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Text(
+                text = "今天有什么可以帮您的吗？",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 语音交流按钮
+                CommunicationButton(
+                    icon = Icons.Default.Mic,
+                    text = "语音交流",
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 文字交流按钮
+                CommunicationButton(
+                    icon = Icons.Default.Keyboard,
+                    text = "文字交流",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommunicationButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavigationButtons(
+    onNavigateToProfile: () -> Unit,
+    onNavigateToFamily: () -> Unit,
+    onNavigateToCommunity: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        NavigationButton(
+            icon = Icons.Default.Person,
+            text = "我和自己",
+            onClick = {
+                // 添加日志确认点击
+                Log.d("CareHomeScreen", "我和自己按钮被点击")
+                onNavigateToProfile()
+            }
+        )
+        NavigationButton(
+            icon = Icons.Default.Home,
+            text = "我和家人",
+            onClick = onNavigateToFamily
+        )
+        NavigationButton(
+            icon = Icons.Default.People,
+            text = "我和社区",
+            onClick = onNavigateToCommunity
+        )
+    }
+}
+
+@Composable
+private fun NavigationButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .clickable { 
+                    onClick() 
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color(0xFF87CEEB),
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun TodayScheduleCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "今日安排",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 晨间服药
+            ScheduleItem(
+                time = "08:00",
+                title = "晨间服药",
+                description = "降压药 1片，维生素 1片"
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 心脏科复诊
+            ScheduleItem(
+                time = "10:30",
+                title = "心脏科复诊",
+                description = "市第一人民医院"
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScheduleItem(
+    time: String,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = time,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF87CEEB)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+            
+            Text(
+                text = description,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+private fun getCurrentDate(): String {
+    val dateFormat = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINESE)
+    return dateFormat.format(Date())
+} 
