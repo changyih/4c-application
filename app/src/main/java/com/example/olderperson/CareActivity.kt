@@ -166,7 +166,16 @@ fun CareApp(
                 textToSpeechService.speak("进入我和自己页面")
                 currentScreen = "profile" 
             },
-
+            onNavigateToFamily = { 
+                Log.d("CareActivity", "Navigating to Family screen")
+                textToSpeechService.speak("进入我和家人页面")
+                currentScreen = "family" 
+            },
+            onNavigateToCommunity = { 
+                Log.d("CareActivity", "Navigating to Community screen")
+                textToSpeechService.speak("进入我和社区页面")
+                currentScreen = "community" 
+            },
             onNavigateToChat = {
                 Log.d("CareActivity", "Navigating to Chat screen")
                 textToSpeechService.speak("进入智慧伙伴对话页面")
@@ -178,22 +187,11 @@ fun CareApp(
                 Log.d("CareActivity", "Navigating to Explore screen")
                 textToSpeechService.speak("进入探索页面")
                 currentScreen = "explore"
-
-            onNavigateToFamily = { 
-                Log.d("CareActivity", "Navigating to Family screen")
-                textToSpeechService.speak("进入我和家人页面")
-                currentScreen = "family" 
-            },
-            onNavigateToCommunity = { 
-                Log.d("CareActivity", "Navigating to Community screen")
-                textToSpeechService.speak("进入我和社区页面")
-                currentScreen = "community" 
             },
             onNavigateToSettings = {
                 Log.d("CareActivity", "Navigating to Settings screen")
                 textToSpeechService.speak("进入设置页面")
                 currentScreen = "settings"
-
             },
             textToSpeechService = textToSpeechService
         )
@@ -204,20 +202,6 @@ fun CareApp(
             },
             textToSpeechService = textToSpeechService
         )
-
-        "chat" -> ChatScreen(
-            onBackClick = {
-                Log.d("CareActivity", "Navigating back to Home")
-                currentScreen = "home"
-            },
-            textToSpeechService = textToSpeechService,
-            speechRecognitionService = speechRecognitionService,
-            onRequestPermission = onRequestPermission
-        )
-        "explore" -> ExploreScreen(
-            onBackClick = {
-                Log.d("CareActivity", "Navigating back to Home"),
-
         "family" -> FamilyScreen(
             onBackToHome = {
                 Log.d("CareActivity", "Navigating back to Home from Family")
@@ -232,10 +216,25 @@ fun CareApp(
             },
             textToSpeechService = textToSpeechService
         )
+        "chat" -> ChatScreen(
+            onBackClick = {
+                Log.d("CareActivity", "Navigating back to Home")
+                currentScreen = "home"
+            },
+            textToSpeechService = textToSpeechService,
+            speechRecognitionService = speechRecognitionService,
+            onRequestPermission = onRequestPermission
+        )
+        "explore" -> ExploreScreen(
+            onBackClick = {
+                Log.d("CareActivity", "Navigating back to Home")
+                currentScreen = "home"
+            },
+            textToSpeechService = textToSpeechService
+        )
         "settings" -> SettingsScreen(
             onBackToHome = {
                 Log.d("CareActivity", "Navigating back to Home from Settings")
-
                 currentScreen = "home"
             },
             textToSpeechService = textToSpeechService

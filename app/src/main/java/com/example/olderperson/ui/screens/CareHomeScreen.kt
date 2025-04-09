@@ -83,13 +83,10 @@ fun CareHomeScreen(
             
             // 底部导航栏
             BottomNavigationBar(
-
-                onNavigateToChat = onNavigateToChat,
-                onNavigateToExplore = onNavigateToExplore
-
-                currentTab = "首页",
+                onHomeClick = { /* 当前在首页，无需导航 */ },
+                onChatClick = onNavigateToChat,
+                onExploreClick = onNavigateToExplore,
                 onSettingsClick = onNavigateToSettings
-
             )
         }
     }
@@ -454,21 +451,15 @@ private fun ScheduleItem(
 
 @Composable
 private fun BottomNavigationBar(
-
-    onNavigateToChat: () -> Unit = {},
-    onNavigateToExplore: () -> Unit = {}
-
-    currentTab: String = "首页",
-    onHomeClick: () -> Unit = {},
-    onChatClick: () -> Unit = {},
-    onExploreClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
-
+    onHomeClick: () -> Unit,
+    onChatClick: () -> Unit,
+    onExploreClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(70.dp), // 增大高度
         color = Color.White,
         shadowElevation = 8.dp
     ) {
@@ -481,7 +472,7 @@ private fun BottomNavigationBar(
             HomeBottomNavItem(
                 icon = Icons.Outlined.Home,
                 label = "首页",
-                isSelected = currentTab == "首页",
+                isSelected = true,
                 onClick = onHomeClick
             )
             
@@ -489,31 +480,23 @@ private fun BottomNavigationBar(
             HomeBottomNavItem(
                 icon = Icons.Outlined.Chat,
                 label = "对话",
-
-                onClick = onNavigateToChat
-
-                isSelected = currentTab == "对话",
+                isSelected = false,
                 onClick = onChatClick
-
             )
             
             // 探索按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Explore,
                 label = "探索",
-
-                onClick = onNavigateToExplore
-
-                isSelected = currentTab == "探索",
+                isSelected = false,
                 onClick = onExploreClick
-
             )
             
             // 设置按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Settings,
                 label = "设置",
-                isSelected = currentTab == "设置",
+                isSelected = false,
                 onClick = onSettingsClick
             )
         }
