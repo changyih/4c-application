@@ -37,6 +37,7 @@ class CareActivity : ComponentActivity() {
             }
         }
     }
+
     
     override fun onDestroy() {
         super.onDestroy()
