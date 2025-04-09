@@ -83,13 +83,9 @@ fun CareHomeScreen(
             
             // 底部导航栏
             BottomNavigationBar(
-
                 onNavigateToChat = onNavigateToChat,
-                onNavigateToExplore = onNavigateToExplore
-
-                currentTab = "首页",
-                onSettingsClick = onNavigateToSettings
-
+                onNavigateToExplore = onNavigateToExplore,
+                onNavigateToSettings = onNavigateToSettings
             )
         }
     }
@@ -452,18 +448,12 @@ private fun ScheduleItem(
     }
 }
 
+// 底部导航栏
 @Composable
-private fun BottomNavigationBar(
-
+fun BottomNavigationBar(
     onNavigateToChat: () -> Unit = {},
-    onNavigateToExplore: () -> Unit = {}
-
-    currentTab: String = "首页",
-    onHomeClick: () -> Unit = {},
-    onChatClick: () -> Unit = {},
-    onExploreClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
-
+    onNavigateToExplore: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier
@@ -481,51 +471,43 @@ private fun BottomNavigationBar(
             HomeBottomNavItem(
                 icon = Icons.Outlined.Home,
                 label = "首页",
-                isSelected = currentTab == "首页",
-                onClick = onHomeClick
+                isSelected = true,
+                onClick = {}
             )
             
-            // 对话按钮
+            // 聊天按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Chat,
-                label = "对话",
-
+                label = "聊天",
+                isSelected = false,
                 onClick = onNavigateToChat
-
-                isSelected = currentTab == "对话",
-                onClick = onChatClick
-
             )
             
             // 探索按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Explore,
                 label = "探索",
-
+                isSelected = false,
                 onClick = onNavigateToExplore
-
-                isSelected = currentTab == "探索",
-                onClick = onExploreClick
-
             )
             
             // 设置按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Settings,
                 label = "设置",
-                isSelected = currentTab == "设置",
-                onClick = onSettingsClick
+                isSelected = false,
+                onClick = onNavigateToSettings
             )
         }
     }
 }
 
 @Composable
-private fun HomeBottomNavItem(
+fun HomeBottomNavItem(
     icon: ImageVector,
     label: String,
-    isSelected: Boolean = false,
-    onClick: () -> Unit = {}
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -545,8 +527,8 @@ private fun HomeBottomNavItem(
         
         Text(
             text = label,
-            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            fontSize = 12.sp
+            fontSize = 12.sp,
+            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray
         )
     }
 }
