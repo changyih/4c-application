@@ -341,10 +341,10 @@ fun BottomNavigationBar(
             
             // 消息按钮
             BottomNavItem(
-                text = "消息",
+                text = "亲情关注",
                 isSelected = false,
                 onClick = { 
-                    textToSpeechService.speak("消息")
+                    textToSpeechService.speak("亲情关注")
                     onMessageClick()
                 }
             )

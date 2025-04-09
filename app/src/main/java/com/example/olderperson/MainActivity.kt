@@ -38,6 +38,7 @@ import com.example.olderperson.ui.screens.HomeScreen
 import com.example.olderperson.ui.screens.MessageScreen
 import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.screens.VideoCallScreen
+import com.example.olderperson.ui.screens.FamilyCareScreen
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
 
@@ -214,7 +215,7 @@ fun MainContent(
                 onBackToHome = { currentSection = NavSection.HOME },
                 textToSpeechService = textToSpeechService
             )
-            NavSection.MESSAGE -> MessageScreen(
+            NavSection.MESSAGE -> FamilyCareScreen(
                 onBackToHome = { currentSection = NavSection.HOME }
             )
             else -> Box(modifier = Modifier.fillMaxSize()) {
