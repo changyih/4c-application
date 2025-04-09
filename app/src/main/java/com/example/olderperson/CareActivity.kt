@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.ui.screens.CareHomeScreen
+import com.example.olderperson.ui.screens.CommunityScreen
+import com.example.olderperson.ui.screens.FamilyScreen
 import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.theme.OlderPersonTheme
 
@@ -58,14 +60,36 @@ fun CareApp(textToSpeechService: TextToSpeechService) {
                 textToSpeechService.speak("进入我和自己页面")
                 currentScreen = "profile" 
             },
-            onNavigateToFamily = { /* 暂未实现 */ },
-            onNavigateToCommunity = { /* 暂未实现 */ },
+            onNavigateToFamily = { 
+                Log.d("CareActivity", "Navigating to Family screen")
+                textToSpeechService.speak("进入我和家人页面")
+                currentScreen = "family" 
+            },
+            onNavigateToCommunity = { 
+                Log.d("CareActivity", "Navigating to Community screen")
+                textToSpeechService.speak("进入我和社区页面")
+                currentScreen = "community" 
+            },
             textToSpeechService = textToSpeechService
         )
         "profile" -> ProfileScreen(
             onBackToHome = { 
                 Log.d("CareActivity", "Navigating back to Home")
                 currentScreen = "home" 
+            },
+            textToSpeechService = textToSpeechService
+        )
+        "family" -> FamilyScreen(
+            onBackToHome = {
+                Log.d("CareActivity", "Navigating back to Home from Family")
+                currentScreen = "home"
+            },
+            textToSpeechService = textToSpeechService
+        )
+        "community" -> CommunityScreen(
+            onBackToHome = {
+                Log.d("CareActivity", "Navigating back to Home from Community")
+                currentScreen = "home"
             },
             textToSpeechService = textToSpeechService
         )
