@@ -27,11 +27,16 @@ import java.util.*
 
 @Composable
 fun CareHomeScreen(
-    userName: String = "王伯伯",
+    userName: String,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToFamily: () -> Unit = {},
     onNavigateToCommunity: () -> Unit = {},
+
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToExplore: () -> Unit = {},
+
     onNavigateToSettings: () -> Unit = {},
+
     textToSpeechService: TextToSpeechService? = null
 ) {
     Box(
@@ -78,8 +83,13 @@ fun CareHomeScreen(
             
             // 底部导航栏
             BottomNavigationBar(
+
+                onNavigateToChat = onNavigateToChat,
+                onNavigateToExplore = onNavigateToExplore
+
                 currentTab = "首页",
                 onSettingsClick = onNavigateToSettings
+
             )
         }
     }
@@ -444,11 +454,16 @@ private fun ScheduleItem(
 
 @Composable
 private fun BottomNavigationBar(
+
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToExplore: () -> Unit = {}
+
     currentTab: String = "首页",
     onHomeClick: () -> Unit = {},
     onChatClick: () -> Unit = {},
     onExploreClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
+
 ) {
     Surface(
         modifier = Modifier
@@ -474,16 +489,24 @@ private fun BottomNavigationBar(
             HomeBottomNavItem(
                 icon = Icons.Outlined.Chat,
                 label = "对话",
+
+                onClick = onNavigateToChat
+
                 isSelected = currentTab == "对话",
                 onClick = onChatClick
+
             )
             
             // 探索按钮
             HomeBottomNavItem(
                 icon = Icons.Outlined.Explore,
                 label = "探索",
+
+                onClick = onNavigateToExplore
+
                 isSelected = currentTab == "探索",
                 onClick = onExploreClick
+
             )
             
             // 设置按钮
@@ -507,8 +530,9 @@ private fun HomeBottomNavItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(8.dp)
             .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
@@ -517,11 +541,12 @@ private fun HomeBottomNavItem(
             modifier = Modifier.size(24.dp)
         )
         
+        Spacer(modifier = Modifier.height(4.dp))
+        
         Text(
             text = label,
-            fontSize = 12.sp,
             color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            textAlign = TextAlign.Center
+            fontSize = 12.sp
         )
     }
 }
