@@ -14,6 +14,7 @@ import com.example.olderperson.ui.screens.CareHomeScreen
 import com.example.olderperson.ui.screens.CommunityScreen
 import com.example.olderperson.ui.screens.FamilyScreen
 import com.example.olderperson.ui.screens.ProfileScreen
+import com.example.olderperson.ui.screens.SettingsScreen
 import com.example.olderperson.ui.theme.OlderPersonTheme
 
 /**
@@ -70,6 +71,11 @@ fun CareApp(textToSpeechService: TextToSpeechService) {
                 textToSpeechService.speak("进入我和社区页面")
                 currentScreen = "community" 
             },
+            onNavigateToSettings = {
+                Log.d("CareActivity", "Navigating to Settings screen")
+                textToSpeechService.speak("进入设置页面")
+                currentScreen = "settings"
+            },
             textToSpeechService = textToSpeechService
         )
         "profile" -> ProfileScreen(
@@ -89,6 +95,13 @@ fun CareApp(textToSpeechService: TextToSpeechService) {
         "community" -> CommunityScreen(
             onBackToHome = {
                 Log.d("CareActivity", "Navigating back to Home from Community")
+                currentScreen = "home"
+            },
+            textToSpeechService = textToSpeechService
+        )
+        "settings" -> SettingsScreen(
+            onBackToHome = {
+                Log.d("CareActivity", "Navigating back to Home from Settings")
                 currentScreen = "home"
             },
             textToSpeechService = textToSpeechService
