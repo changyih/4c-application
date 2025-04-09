@@ -9,13 +9,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
@@ -30,42 +33,50 @@ fun CareHomeScreen(
     onNavigateToCommunity: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // 顶部问候区域
-        TopGreetingSection(userName)
-        
-        // 主要内容区域
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // 导航按钮区域
-            item {
-                NavigationButtons(
-                    onNavigateToProfile = {
-                        textToSpeechService?.speak("进入我和自己页面")
-                        onNavigateToProfile()
-                    },
-                    onNavigateToFamily = onNavigateToFamily,
-                    onNavigateToCommunity = onNavigateToCommunity
-                )
+            // 顶部问候区域
+            TopGreetingSection(userName)
+            
+            // 主要内容区域
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 导航按钮区域
+                item {
+                    NavigationButtons(
+                        onNavigateToProfile = {
+                            textToSpeechService?.speak("进入我和自己页面")
+                            onNavigateToProfile()
+                        },
+                        onNavigateToFamily = onNavigateToFamily,
+                        onNavigateToCommunity = onNavigateToCommunity
+                    )
+                }
+                
+                // 今日安排
+                item {
+                    TodayScheduleCard()
+                }
+                
+                // 底部间距
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
             
-            // 今日安排
-            item {
-                TodayScheduleCard()
-            }
-            
-            // 底部间距
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            // 底部导航栏
+            BottomNavigationBar()
         }
     }
 }
@@ -200,7 +211,7 @@ private fun AssistantChatBox() {
 
 @Composable
 private fun CommunicationButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     modifier: Modifier = Modifier
 ) {
@@ -272,7 +283,7 @@ private fun NavigationButtons(
 
 @Composable
 private fun NavigationButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     onClick: () -> Unit
 ) {
@@ -319,12 +330,52 @@ private fun TodayScheduleCard() {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "今日安排",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+            // 标题和查看全部
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 标题图标和文字
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarToday,
+                        contentDescription = "今日安排",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "今日安排",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                
+                // 查看全部
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { /* 查看全部 */ }
+                ) {
+                    Text(
+                        text = "全部",
+                        fontSize = 14.sp,
+                        color = Color(0xFF2E7D32)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "查看全部",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -335,7 +386,11 @@ private fun TodayScheduleCard() {
                 description = "降压药 1片，维生素 1片"
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Divider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = Color(0xFFEEEEEE),
+                thickness = 1.dp
+            )
             
             // 心脏科复诊
             ScheduleItem(
@@ -380,6 +435,77 @@ private fun ScheduleItem(
                 color = Color.Gray
             )
         }
+    }
+}
+
+@Composable
+private fun BottomNavigationBar() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp),
+        color = Color.White,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 首页按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Home,
+                label = "首页",
+                isSelected = true
+            )
+            
+            // 对话按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Chat,
+                label = "对话"
+            )
+            
+            // 探索按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Explore,
+                label = "探索"
+            )
+            
+            // 设置按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Settings,
+                label = "设置"
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeBottomNavItem(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(8.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
