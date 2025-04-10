@@ -32,13 +32,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.example.olderperson.service.AlibabaQianwenService
+import com.example.olderperson.service.SpeechRecognitionService
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.service.VideoCallService
-import com.example.olderperson.ui.screens.HomeScreen
-import com.example.olderperson.ui.screens.MessageScreen
-import com.example.olderperson.ui.screens.ProfileScreen
-import com.example.olderperson.ui.screens.VideoCallScreen
-import com.example.olderperson.ui.screens.FamilyCareScreen
+import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
 
@@ -47,6 +45,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var videoCallService: VideoCallService
     // 文字转语音服务
     private lateinit var textToSpeechService: TextToSpeechService
+    // 语音识别服务
+    private lateinit var speechRecognitionService: SpeechRecognitionService
+    // 通义千问服务
+    private lateinit var alibabaQianwenService: AlibabaQianwenService
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -64,6 +66,8 @@ class MainActivity : ComponentActivity() {
             // 初始化服务
             videoCallService = VideoCallService(this)
             textToSpeechService = TextToSpeechService(this)
+            speechRecognitionService = SpeechRecognitionService(this)
+            alibabaQianwenService = AlibabaQianwenService(this)
             
             // 检查权限
             checkPermissions()
@@ -83,7 +87,8 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA
         )
         
         // 筛选出未授权的权限
@@ -107,6 +112,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         videoCallService.release()
         textToSpeechService.shutdown()
+        speechRecognitionService.shutdown()
     }
 
     private fun startServices() {
@@ -124,7 +130,8 @@ class MainActivity : ComponentActivity() {
                     
                     SafeMainContent(
                         videoCallService = videoCallService, 
-                        textToSpeechService = textToSpeechService
+                        textToSpeechService = textToSpeechService,
+                        speechRecognitionService = speechRecognitionService
                     )
                     
                     Log.d("MainActivity", "HomeScreen加载完成")
@@ -138,7 +145,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun SafeMainContent(
         videoCallService: VideoCallService,
-        textToSpeechService: TextToSpeechService
+        textToSpeechService: TextToSpeechService,
+        speechRecognitionService: SpeechRecognitionService
     ) {
         // 使用rememberSaveable保持状态
         var hasError by remember { mutableStateOf(false) }
@@ -170,7 +178,11 @@ class MainActivity : ComponentActivity() {
                 }
             )
         } else {
-            MainContent(videoCallService, textToSpeechService)
+            MainContent(
+                videoCallService = videoCallService, 
+                textToSpeechService = textToSpeechService,
+                speechRecognitionService = speechRecognitionService
+            )
         }
     }
 }
@@ -183,10 +195,15 @@ enum class NavSection {
 @Composable
 fun MainContent(
     videoCallService: VideoCallService,
-    textToSpeechService: TextToSpeechService
+    textToSpeechService: TextToSpeechService,
+    speechRecognitionService: SpeechRecognitionService
 ) {
     var currentSection by remember { mutableStateOf(NavSection.HOME) }
     var showVideoCall by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    
+    // 记住在UI中需要的服务实例
+    val speechService = remember { speechRecognitionService }
 
     // 处理返回键
     BackHandler(enabled = currentSection != NavSection.HOME || showVideoCall) {
@@ -215,8 +232,13 @@ fun MainContent(
                 onBackToHome = { currentSection = NavSection.HOME },
                 textToSpeechService = textToSpeechService
             )
-            NavSection.MESSAGE -> FamilyCareScreen(
-                onBackToHome = { currentSection = NavSection.HOME }
+            NavSection.MESSAGE -> ChatScreen(
+                onBackClick = { currentSection = NavSection.HOME },
+                textToSpeechService = textToSpeechService,
+                speechRecognitionService = speechService,
+                onRequestPermission = {
+                    // 权限已经在MainActivity中请求过了
+                }
             )
             else -> Box(modifier = Modifier.fillMaxSize()) {
                 Text(
