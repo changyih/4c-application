@@ -29,9 +29,38 @@ import com.example.olderperson.SoundSettings
 @Composable
 fun SettingsScreen(
     onBackToHome: () -> Unit,
+    onLogout: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null
 ) {
     val scrollState = rememberScrollState()
+    
+    // 确认退出对话框状态
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    // 退出登录确认对话框
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("退出登录") },
+            text = { Text("确定要退出当前账号吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        textToSpeechService?.speak("退出登录")
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
     
     Scaffold(
         topBar = {
@@ -125,7 +154,8 @@ fun SettingsScreen(
                 title = "退出登录",
                 description = "退出当前账号",
                 onClick = {
-                    textToSpeechService?.speak("退出登录")
+                    textToSpeechService?.speak("确认退出登录")
+                    showLogoutDialog = true
                 },
                 tintColor = Color.Red
             )

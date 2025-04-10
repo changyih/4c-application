@@ -25,7 +25,7 @@ import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.screens.CareHomeScreen
 import com.example.olderperson.ui.screens.CommunityScreen
 import com.example.olderperson.ui.screens.FamilyScreen
-import com.example.olderperson.ui.screens.ProfileScreen
+import com.example.olderperson.ui.screens.SelfScreen
 import com.example.olderperson.ui.screens.SettingsScreen
 
 import com.example.olderperson.ui.theme.OlderPersonTheme
@@ -37,6 +37,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import android.content.Intent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 // 定义DataStore
 val Context.dataStore by preferencesDataStore(name = "settings")
@@ -200,6 +203,25 @@ class CareActivity : ComponentActivity() {
                             ) {
                                 showPermissionDialog = true
                             }
+                        },
+                        onLogout = {
+                            // 处理退出登录逻辑
+                            Log.d(TAG, "Logging out")
+                            
+                            // 使用lifecycleScope启动协程
+                            lifecycleScope.launch {
+                                // 在协程内调用suspend函数
+                                dataStore.edit { preferences ->
+                                    // 可以清除所有保存的偏好设置，或者只清除登录状态
+                                }
+                                
+                                // 返回到登录界面
+                                val intent = Intent(this@CareActivity, LoginActivity::class.java)
+                                // 清除任务栈，防止用户按返回键回到当前界面
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
                         }
                     )
                 }
@@ -245,7 +267,8 @@ class CareActivity : ComponentActivity() {
 fun CareApp(
     textToSpeechService: TextToSpeechService,
     speechRecognitionService: SpeechRecognitionService,
-    onRequestPermission: () -> Unit = {}
+    onRequestPermission: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf("home") }
     
@@ -253,9 +276,9 @@ fun CareApp(
         "home" -> CareHomeScreen(
             userName = "王伯伯",
             onNavigateToProfile = { 
-                Log.d("CareActivity", "Navigating to Profile screen")
+                Log.d("CareActivity", "Navigating to Self screen")
                 textToSpeechService.speak("进入我和自己页面")
-                currentScreen = "profile" 
+                currentScreen = "self" 
             },
             onNavigateToFamily = { 
                 Log.d("CareActivity", "Navigating to Family screen")
@@ -286,7 +309,7 @@ fun CareApp(
             },
             textToSpeechService = textToSpeechService
         )
-        "profile" -> ProfileScreen(
+        "self" -> SelfScreen(
             onBackToHome = { 
                 Log.d("CareActivity", "Navigating back to Home")
                 currentScreen = "home" 
@@ -327,6 +350,10 @@ fun CareApp(
             onBackToHome = {
                 Log.d("CareActivity", "Navigating back to Home from Settings")
                 currentScreen = "home"
+            },
+            onLogout = {
+                Log.d("CareActivity", "Logging out")
+                onLogout()
             },
             textToSpeechService = textToSpeechService
         )
