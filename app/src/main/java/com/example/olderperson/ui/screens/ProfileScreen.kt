@@ -1,5 +1,6 @@
 package com.example.olderperson.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,23 +17,68 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
+import com.example.olderperson.LoginActivity
+import com.example.olderperson.data.UserManager
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.ui.theme.FontSizeConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
     onBackToHome: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null
 ) {
+    val context = LocalContext.current
     var showWallet by remember { mutableStateOf(false) }
     var showFavorites by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var showServiceOrder by remember { mutableStateOf(false) }
     var showMyDevices by remember { mutableStateOf(false) }
+    
+    // 显示确认对话框状态
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    // 获取当前用户数据
+    val currentUser = remember { UserManager.getCurrentUser() }
+    
+    // 退出登录确认对话框
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("确认退出登录") },
+            text = { Text("您确定要退出登录吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        // 退出登录，清除用户数据
+                        CoroutineScope(Dispatchers.Main).launch {
+                            UserManager.clearCurrentUser(context)
+                            // 跳转到登录界面
+                            val intent = Intent(context, LoginActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            context.startActivity(intent)
+                        }
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
     
     if (showWallet) {
         WalletScreen(
@@ -85,6 +131,20 @@ fun ProfileScreen(
                 )
                 
                 Spacer(modifier = Modifier.weight(1f))
+                
+                // 添加退出登录按钮
+                TextButton(
+                    onClick = {
+                        textToSpeechService?.speak("退出登录")
+                        showLogoutDialog = true
+                    }
+                ) {
+                    Text(
+                        text = "退出登录",
+                        color = Color.White,
+                        fontSize = FontSizeConfig.scaledSp(14).sp
+                    )
+                }
             }
             
             // 顶部个人信息区域
@@ -109,7 +169,7 @@ fun ProfileScreen(
                 
                 // 用户名和位置
                 Text(
-                    text = "曾教家",
+                    text = currentUser?.name ?: "游客",
                     color = Color.White,
                     fontSize = FontSizeConfig.scaledSp(18).sp,
                     fontWeight = FontWeight.Normal
@@ -120,7 +180,7 @@ fun ProfileScreen(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
-                        text = "四川 成都",
+                        text = currentUser?.location ?: "未知位置",
                         color = Color.Gray,
                         fontSize = FontSizeConfig.scaledSp(12).sp
                     )
@@ -134,9 +194,12 @@ fun ProfileScreen(
                     .padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                StatItem(count = "03", label = "健康计划")
                 StatItem(
-                    count = "01", 
+                    count = currentUser?.healthPlans?.toString() ?: "0", 
+                    label = "健康计划"
+                )
+                StatItem(
+                    count = currentUser?.serviceOrders?.toString() ?: "0", 
                     label = "服务订单",
                     onClick = {
                         textToSpeechService?.speak("服务订单")
@@ -144,7 +207,7 @@ fun ProfileScreen(
                     }
                 )
                 StatItem(
-                    count = "03", 
+                    count = currentUser?.devices?.toString() ?: "0", 
                     label = "我的设备",
                     onClick = {
                         textToSpeechService?.speak("我的设备")
