@@ -3,9 +3,10 @@ package com.example.olderperson.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -14,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -22,514 +22,534 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
+import com.example.olderperson.ui.theme.FontSizeConfig
+import com.example.olderperson.SoundSettings
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBackToHome: () -> Unit = {},
+    onBackToHome: () -> Unit,
     textToSpeechService: TextToSpeechService? = null
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
+    val scrollState = rememberScrollState()
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "设置",
+                        fontSize = FontSizeConfig.scaledSp(20).sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        textToSpeechService?.speak("返回首页")
+                        onBackToHome()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(scrollState)
         ) {
-            // 顶部标题栏 - 大字体，明确返回按钮
-            SettingsHeader(onBackToHome)
+            // 设置分组标题
+            SettingsSectionTitle(title = "显示与辅助", icon = Icons.Outlined.Visibility)
             
-            // 主要内容区域 - 间距大，选项少
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp) // 增大间距
-            ) {
-                // 显示设置卡片
-                item {
-                    DisplaySettingsCard()
-                }
-                
-                // 声音设置卡片
-                item {
-                    SoundSettingsCard()
-                }
-                
-                // 通知设置卡片
-                item {
-                    NotificationSettingsCard()
-                }
-                
-                // 帮助与支持卡片
-                item {
-                    HelpSupportCard()
-                }
-                
-                // 紧急联系人
-                item {
-                    EmergencyContactCard()
-                }
-                
-                // 退出登录按钮 - 大按钮，明确文字
-                item {
-                    LogoutButton()
-                }
-                
-                // 底部间距
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
+            // 字体大小设置
+            FontSizeSettings(textToSpeechService = textToSpeechService)
             
-            // 简化的底部导航栏 - 大图标
-            BottomNavigationBar(onHomeClick = onBackToHome)
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 声音设置
+            SoundSettings(textToSpeechService = textToSpeechService)
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 设置分组标题
+            SettingsSectionTitle(title = "个人信息", icon = Icons.Outlined.Person)
+            
+            // 账号与安全
+            SettingsItem(
+                icon = Icons.Outlined.Security,
+                title = "账号与安全",
+                description = "账号信息、隐私设置",
+                onClick = {
+                    textToSpeechService?.speak("账号与安全")
+                }
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 紧急联系人
+            SettingsItem(
+                icon = Icons.Outlined.ContactPhone,
+                title = "紧急联系人",
+                description = "设置紧急情况下的联系人",
+                onClick = {
+                    textToSpeechService?.speak("紧急联系人")
+                }
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 设置分组标题
+            SettingsSectionTitle(title = "系统", icon = Icons.Outlined.Settings)
+            
+            // 关于我们
+            SettingsItem(
+                icon = Icons.Outlined.Info,
+                title = "关于我们",
+                description = "版本信息、使用条款",
+                onClick = {
+                    textToSpeechService?.speak("关于我们")
+                }
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 退出登录
+            SettingsItem(
+                icon = Icons.Outlined.Logout,
+                title = "退出登录",
+                description = "退出当前账号",
+                onClick = {
+                    textToSpeechService?.speak("退出登录")
+                },
+                tintColor = Color.Red
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun SettingsHeader(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(16.dp)
-    ) {
+fun FontSizeSettings(textToSpeechService: TextToSpeechService? = null) {
+    var currentFontSize by remember { mutableStateOf(FontSizeConfig.fontSize.value) }
+    val fontSizeOptions = listOf(
+        Pair("小", 0.8f),
+        Pair("标准", 1.0f),
+        Pair("大", 1.2f),
+        Pair("特大", 1.4f)
+    )
+    
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // 字体大小标题和说明
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 明确且大的返回按钮
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.size(48.dp) // 增大点击区域
+            // 图标
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "返回",
-                    tint = Color.Black,
-                    modifier = Modifier.size(32.dp) // 增大图标
+                    imageVector = Icons.Outlined.FormatSize,
+                    contentDescription = null,
+                    tint = Color(0xFF2E7D32),
+                    modifier = Modifier.size(24.dp)
                 )
             }
             
-            // 大标题
-            Text(
-                text = "设置",
-                fontSize = 20.sp, // 修改为20sp与其他页面一致
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // 文字说明
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "字体大小",
+                    fontSize = FontSizeConfig.scaledSp(16).sp,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Text(
+                    text = "调整应用界面字体大小",
+                    fontSize = FontSizeConfig.scaledSp(14).sp,
+                    color = Color.Gray
+                )
+            }
+        }
+        
+        // 字体大小选择卡片
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF5F5F5)
             )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // 当前预览文本
+                Text(
+                    text = "这是字体大小预览",
+                    fontSize = (16 * currentFontSize).sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                // 字体大小选项
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    fontSizeOptions.forEach { (label, size) ->
+                        FontSizeOption(
+                            label = label,
+                            isSelected = currentFontSize == size,
+                            onClick = {
+                                currentFontSize = size
+                                FontSizeConfig.setFontSize(size)
+                                textToSpeechService?.speak("已选择${label}字体")
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun LargeSettingItem(
+fun FontSizeOption(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isSelected) Color(0xFF2E7D32) else Color.White
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Aa",
+                color = if (isSelected) Color.White else Color.Gray,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = label,
+            fontSize = FontSizeConfig.scaledSp(14).sp,
+            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray
+        )
+    }
+}
+
+@Composable
+fun SettingsSectionTitle(title: String, icon: ImageVector) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color(0xFF2E7D32)
+        )
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Text(
+            text = title,
+            fontSize = FontSizeConfig.scaledSp(18).sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2E7D32)
+        )
+    }
+}
+
+@Composable
+fun SettingsItem(
     icon: ImageVector,
     title: String,
-    showToggle: Boolean = false,
-    isToggled: Boolean = false,
-    onToggleChange: ((Boolean) -> Unit)? = null,
-    onClick: (() -> Unit)? = null
+    description: String,
+    onClick: () -> Unit,
+    tintColor: Color = Color(0xFF2E7D32)
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick ?: {})
-            .padding(vertical = 16.dp), // 增大垂直间距
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 更大的图标
+        // 图标
         Box(
             modifier = Modifier
-                .size(60.dp) // 增大尺寸
-                .clip(RoundedCornerShape(12.dp))
+                .size(40.dp)
+                .clip(CircleShape)
                 .background(Color(0xFFE8F5E9)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = title,
-                tint = Color(0xFF2E7D32),
-                modifier = Modifier.size(36.dp) // 增大图标
+                contentDescription = null,
+                tint = tintColor,
+                modifier = Modifier.size(24.dp)
             )
         }
         
-        Spacer(modifier = Modifier.width(20.dp)) // 增大间距
+        Spacer(modifier = Modifier.width(16.dp))
         
-        // 更大的文字
-        Text(
-            text = title,
-            fontSize = 18.sp, // 修改为18sp与其他页面一致
-            fontWeight = FontWeight.Medium,
-            color = Color.Black,
-            modifier = Modifier.weight(1f)
-        )
+        // 文字说明
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = FontSizeConfig.scaledSp(16).sp,
+                fontWeight = FontWeight.Medium,
+                color = if (tintColor == Color.Red) tintColor else Color.Black
+            )
+            
+            Text(
+                text = description,
+                fontSize = FontSizeConfig.scaledSp(14).sp,
+                color = Color.Gray
+            )
+        }
         
-        // 更大的开关
-        if (showToggle) {
-            Switch(
-                checked = isToggled,
-                onCheckedChange = onToggleChange,
-                modifier = Modifier.scale(1.3f), // 放大开关
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF2E7D32),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color.LightGray
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun DisplaySettingsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // 增加阴影使卡片更突出
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 标题
-            Text(
-                text = "显示设置",
-                fontSize = 20.sp, // 保持20sp
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 字体大小
-            LargeSettingItem(
-                icon = Icons.Default.FormatSize,
-                title = "字体大小",
-                onClick = { /* 打开简化的字体大小设置 */ }
-            )
-            
-            Divider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = Color(0xFFEEEEEE),
-                thickness = 2.dp // 加粗分隔线
-            )
-            
-            // 屏幕亮度
-            LargeSettingItem(
-                icon = Icons.Default.BrightnessHigh,
-                title = "屏幕亮度",
-                onClick = { /* 打开简化的亮度调节 */ }
-            )
-        }
-    }
-}
-
-@Composable
-private fun SoundSettingsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 标题
-            Text(
-                text = "声音设置",
-                fontSize = 20.sp, // 保持20sp
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 语音朗读
-            LargeSettingItem(
-                icon = Icons.Default.VolumeUp,
-                title = "语音朗读",
-                showToggle = true,
-                isToggled = true,
-                onToggleChange = { /* 切换语音朗读 */ }
-            )
-            
-            Divider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = Color(0xFFEEEEEE),
-                thickness = 2.dp
-            )
-            
-            // 按键音效
-            LargeSettingItem(
-                icon = Icons.Default.TouchApp,
-                title = "按键音效",
-                showToggle = true,
-                isToggled = false,
-                onToggleChange = { /* 切换按键音效 */ }
-            )
-        }
-    }
-}
-
-@Composable
-private fun NotificationSettingsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 标题
-            Text(
-                text = "通知设置",
-                fontSize = 20.sp, // 保持20sp
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 通知开关 - 单一选项
-            LargeSettingItem(
-                icon = Icons.Default.Notifications,
-                title = "接收通知",
-                showToggle = true,
-                isToggled = true,
-                onToggleChange = { /* 切换通知设置 */ }
-            )
-        }
-    }
-}
-
-@Composable
-private fun HelpSupportCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 标题
-            Text(
-                text = "帮助与支持",
-                fontSize = 20.sp, // 保持20sp
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 使用帮助
-            LargeSettingItem(
-                icon = Icons.Default.Help,
-                title = "使用帮助",
-                onClick = { /* 打开使用帮助 */ }
-            )
-            
-            Divider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = Color(0xFFEEEEEE),
-                thickness = 2.dp
-            )
-            
-            // 联系客服
-            LargeSettingItem(
-                icon = Icons.Default.Call,
-                title = "联系客服",
-                onClick = { /* 拨打客服电话 */ }
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmergencyContactCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 标题
-            Text(
-                text = "紧急联系人",
-                fontSize = 20.sp, // 保持20sp
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 紧急联系人列表 - 显示已设置的联系人
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 联系人图标
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE57373)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "联系人",
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // 联系人信息
-                Column {
-                    Text(
-                        text = "小明 (儿子)",
-                        fontSize = 18.sp, // 修改为18sp
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black
-                    )
-                    
-                    Text(
-                        text = "138****6789",
-                        fontSize = 16.sp, // 修改为16sp
-                        color = Color.Gray
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 添加/修改按钮
-            Button(
-                onClick = { /* 添加或修改紧急联系人 */ },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2E7D32)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "编辑",
-                    tint = Color.White
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "修改联系人",
-                    fontSize = 16.sp, // 修改为16sp
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LogoutButton() {
-    Button(
-        onClick = { /* 退出登录 */ },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp), // 增大按钮高度
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFE57373)
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+        // 箭头图标
         Icon(
-            imageVector = Icons.Default.ExitToApp,
-            contentDescription = "退出登录",
-            tint = Color.White,
-            modifier = Modifier.size(28.dp) // 增大图标
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Text(
-            text = "退出登录",
-            color = Color.White,
-            fontSize = 18.sp // 修改为18sp
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "查看详情",
+            tint = Color.Gray
         )
     }
 }
 
 @Composable
-private fun BottomNavigationBar(onHomeClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp), // 增大高度
-        color = Color.White,
-        shadowElevation = 8.dp
-    ) {
+fun SoundSettings(textToSpeechService: TextToSpeechService? = null) {
+    var voiceModeEnabled by remember { mutableStateOf(SoundSettings.voiceEnabled.value) }
+    var volume by remember { mutableStateOf(SoundSettings.volume.value) }
+    
+    // 监听全局设置变化
+    LaunchedEffect(SoundSettings.voiceEnabled.value) {
+        voiceModeEnabled = SoundSettings.voiceEnabled.value
+    }
+    
+    LaunchedEffect(SoundSettings.volume.value) {
+        volume = SoundSettings.volume.value
+    }
+    
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // 声音设置标题和说明
         Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 首页按钮
-            SettingsBottomNavItem(
-                icon = Icons.Outlined.Home,
-                label = "首页",
-                isSelected = false,
-                onClick = onHomeClick
-            )
+            // 图标
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.VolumeUp,
+                    contentDescription = null,
+                    tint = Color(0xFF2E7D32),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             
-            // 对话按钮
-            SettingsBottomNavItem(
-                icon = Icons.Outlined.Chat,
-                label = "对话",
-                isSelected = false
-            )
+            Spacer(modifier = Modifier.width(16.dp))
             
-            // 探索按钮
-            SettingsBottomNavItem(
-                icon = Icons.Outlined.Explore,
-                label = "探索",
-                isSelected = false
-            )
-            
-            // 设置按钮
-            SettingsBottomNavItem(
-                icon = Icons.Outlined.Settings,
-                label = "设置",
-                isSelected = true
-            )
+            // 文字说明
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "声音设置",
+                    fontSize = FontSizeConfig.scaledSp(16).sp,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Text(
+                    text = "调整语音播报与提示音",
+                    fontSize = FontSizeConfig.scaledSp(14).sp,
+                    color = Color.Gray
+                )
+            }
         }
-    }
-}
-
-@Composable
-private fun SettingsBottomNavItem(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit = {}
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(8.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            modifier = Modifier.size(32.dp) // 增大图标
-        )
         
-        Text(
-            text = label,
-            fontSize = 14.sp, // 修改为14sp
-            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            textAlign = TextAlign.Center
-        )
+        // 声音设置卡片
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF5F5F5)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // 语音模式开关
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "语音播报",
+                            fontSize = FontSizeConfig.scaledSp(16).sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (voiceModeEnabled) "已开启" else "已关闭",
+                            fontSize = FontSizeConfig.scaledSp(14).sp,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    Switch(
+                        checked = voiceModeEnabled,
+                        onCheckedChange = { 
+                            voiceModeEnabled = it
+                            SoundSettings.setVoiceEnabled(it)
+                            if (it) {
+                                textToSpeechService?.speak("语音播报已开启")
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color(0xFF2E7D32),
+                            checkedTrackColor = Color(0xFFAED581)
+                        )
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 音量调节
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "音量",
+                            fontSize = FontSizeConfig.scaledSp(16).sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = "${(volume * 100).toInt()}%",
+                            fontSize = FontSizeConfig.scaledSp(14).sp,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 音量低图标
+                        Icon(
+                            imageVector = Icons.Outlined.VolumeMute,
+                            contentDescription = "音量低",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        
+                        // 音量滑块
+                        Slider(
+                            value = volume,
+                            onValueChange = { 
+                                volume = it
+                                SoundSettings.setVolume(it)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF2E7D32),
+                                activeTrackColor = Color(0xFFAED581)
+                            )
+                        )
+                        
+                        // 音量高图标
+                        Icon(
+                            imageVector = Icons.Outlined.VolumeUp,
+                            contentDescription = "音量高",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                    // 测试按钮
+                    Button(
+                        onClick = { 
+                            if (voiceModeEnabled) {
+                                textToSpeechService?.speak("这是语音播报测试，当前音量为${(volume * 100).toInt()}%") 
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2E7D32)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "测试",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "测试",
+                            fontSize = FontSizeConfig.scaledSp(14).sp
+                        )
+                    }
+                }
+            }
+        }
     }
 } 

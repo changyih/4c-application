@@ -29,6 +29,39 @@ import com.example.olderperson.ui.screens.ProfileScreen
 import com.example.olderperson.ui.screens.SettingsScreen
 
 import com.example.olderperson.ui.theme.OlderPersonTheme
+import com.example.olderperson.ui.theme.FontSizeConfig
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import android.content.Context
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+
+// 定义DataStore
+val Context.dataStore by preferencesDataStore(name = "settings")
+private val FONT_SIZE_KEY = floatPreferencesKey("font_size")
+private val VOICE_ENABLED_KEY = booleanPreferencesKey("voice_enabled")
+private val VOICE_VOLUME_KEY = floatPreferencesKey("voice_volume")
+
+// 全局声音设置
+object SoundSettings {
+    // 语音播报开关
+    private val _voiceEnabled = mutableStateOf(true)
+    val voiceEnabled = _voiceEnabled
+    
+    fun setVoiceEnabled(enabled: Boolean) {
+        _voiceEnabled.value = enabled
+    }
+    
+    // 语音音量
+    private val _volume = mutableStateOf(0.7f)
+    val volume = _volume
+    
+    fun setVolume(value: Float) {
+        _volume.value = value
+    }
+}
 
 /**
  * 呵护模式的入口Activity
@@ -64,6 +97,64 @@ class CareActivity : ComponentActivity() {
         speechRecognitionService = SpeechRecognitionService(this)
         
         setContent {
+            // 从DataStore加载字体大小设置
+            LaunchedEffect(Unit) {
+                // 尝试从存储中读取字体大小
+                val savedFontSize = dataStore.data
+                    .map { preferences ->
+                        preferences[FONT_SIZE_KEY] ?: 1.0f // 默认为1.0
+                    }
+                    .first()
+                
+                // 应用保存的字体大小
+                FontSizeConfig.setFontSize(savedFontSize)
+                
+                // 尝试从存储中读取语音设置
+                val savedVoiceEnabled = dataStore.data
+                    .map { preferences ->
+                        preferences[VOICE_ENABLED_KEY] ?: true // 默认为开启
+                    }
+                    .first()
+                SoundSettings.setVoiceEnabled(savedVoiceEnabled)
+                
+                // 尝试从存储中读取音量设置
+                val savedVolume = dataStore.data
+                    .map { preferences ->
+                        preferences[VOICE_VOLUME_KEY] ?: 0.7f // 默认为70%
+                    }
+                    .first()
+                SoundSettings.setVolume(savedVolume)
+                
+                // 根据保存的设置调整TTS服务
+                textToSpeechService.setEnabled(savedVoiceEnabled)
+                textToSpeechService.setVolume(savedVolume)
+            }
+            
+            // 监听字体大小变化并保存
+            LaunchedEffect(FontSizeConfig.fontSize.value) {
+                dataStore.edit { preferences ->
+                    preferences[FONT_SIZE_KEY] = FontSizeConfig.fontSize.value
+                }
+            }
+            
+            // 监听语音开关变化并保存
+            LaunchedEffect(SoundSettings.voiceEnabled.value) {
+                dataStore.edit { preferences ->
+                    preferences[VOICE_ENABLED_KEY] = SoundSettings.voiceEnabled.value
+                }
+                // 更新TTS服务状态
+                textToSpeechService.setEnabled(SoundSettings.voiceEnabled.value)
+            }
+            
+            // 监听音量变化并保存
+            LaunchedEffect(SoundSettings.volume.value) {
+                dataStore.edit { preferences ->
+                    preferences[VOICE_VOLUME_KEY] = SoundSettings.volume.value
+                }
+                // 更新TTS服务音量
+                textToSpeechService.setVolume(SoundSettings.volume.value)
+            }
+            
             OlderPersonTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
