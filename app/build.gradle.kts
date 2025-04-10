@@ -52,6 +52,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core:1.6.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
     
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
     // 添加 Material Design 和 ConstraintLayout 依赖
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

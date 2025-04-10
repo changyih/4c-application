@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
+import com.example.olderperson.ui.theme.FontSizeConfig
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -110,14 +111,14 @@ private fun TopGreetingSection(userName: String) {
             ) {
                 Text(
                     text = "您好，$userName",
-                    fontSize = 24.sp,
+                    fontSize = FontSizeConfig.scaledSp(24).sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
                 
                 Text(
                     text = getCurrentDate(),
-                    fontSize = 14.sp,
+                    fontSize = FontSizeConfig.scaledSp(14).sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -184,7 +185,7 @@ private fun AssistantChatBox() {
                 Text(
                     text = "我是您的智能伙伴",
                     color = Color.White,
-                    fontSize = 16.sp,
+                    fontSize = FontSizeConfig.scaledSp(16).sp,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -192,7 +193,7 @@ private fun AssistantChatBox() {
             Text(
                 text = "今天有什么可以帮您的吗？",
                 color = Color.White.copy(alpha = 0.8f),
-                fontSize = 14.sp,
+                fontSize = FontSizeConfig.scaledSp(14).sp,
                 modifier = Modifier.padding(top = 8.dp)
             )
 
@@ -252,7 +253,7 @@ private fun CommunicationButton(
             Text(
                 text = text,
                 color = Color.White,
-                fontSize = 14.sp
+                fontSize = FontSizeConfig.scaledSp(14).sp
             )
         }
     }
@@ -325,7 +326,7 @@ private fun NavigationButton(
         
         Text(
             text = text,
-            fontSize = 14.sp,
+            fontSize = FontSizeConfig.scaledSp(14).sp,
             color = Color.Black
         )
     }
@@ -362,7 +363,7 @@ private fun TodayScheduleCard() {
                     
                     Text(
                         text = "今日安排",
-                        fontSize = 18.sp,
+                        fontSize = FontSizeConfig.scaledSp(18).sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
@@ -375,7 +376,7 @@ private fun TodayScheduleCard() {
                 ) {
                     Text(
                         text = "全部",
-                        fontSize = 14.sp,
+                        fontSize = FontSizeConfig.scaledSp(14).sp,
                         color = Color(0xFF2E7D32)
                     )
                     
@@ -425,7 +426,7 @@ private fun ScheduleItem(
     ) {
         Text(
             text = time,
-            fontSize = 16.sp,
+            fontSize = FontSizeConfig.scaledSp(16).sp,
             fontWeight = FontWeight.Medium,
             color = Color(0xFF87CEEB)
         )
@@ -435,14 +436,14 @@ private fun ScheduleItem(
         Column {
             Text(
                 text = title,
-                fontSize = 16.sp,
+                fontSize = FontSizeConfig.scaledSp(16).sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black
             )
             
             Text(
                 text = description,
-                fontSize = 14.sp,
+                fontSize = FontSizeConfig.scaledSp(14).sp,
                 color = Color.Gray
             )
         }
@@ -529,7 +530,7 @@ private fun HomeBottomNavItem(
         Text(
             text = label,
             color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
-            fontSize = 12.sp
+            fontSize = FontSizeConfig.scaledSp(12).sp
         )
     }
 }
