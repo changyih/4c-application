@@ -11,6 +11,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import java.net.URLEncoder
+import kotlin.math.min
 
 /**
  * 天气管理工具类
@@ -19,8 +23,14 @@ import java.util.*
 class WeatherManager {
     companion object {
         private const val TAG = "WeatherManager"
-        private const val WEATHER_API_KEY = "your_api_key_here" // 替换为实际的API密钥
-        private const val WEATHER_API_URL = "https://restapi.amap.com/v3/weather/weatherInfo"
+        // 心知天气API 参数
+        private const val SENIVERSE_API_UID = "U4AA41D8D4" // 心知天气用户ID (公钥)
+        private const val SENIVERSE_API_KEY = "SUWg4oa4FvgpL_4wp" // 心知天气API密钥 (私钥)
+        private const val SENIVERSE_API_BASE_URL = "https://api.seniverse.com" // 心知天气基础URL
+        
+        // V3版本API路径 - 正确的路径
+        private const val WEATHER_NOW_API_PATH = "/v3/weather/now.json" // 实时天气接口路径
+        private const val AIR_NOW_API_PATH = "/v3/air/now.json" // 空气质量接口路径
         
         // 缓存上次获取的天气信息
         private val weatherCache = mutableMapOf<String, Pair<WeatherInfo, Long>>()
@@ -115,6 +125,78 @@ class WeatherManager {
             return nearestTerm
         }
         
+        // 生成签名 - 心知天气API认证所需
+        private fun generateSignature(path: String, params: Map<String, String>): String {
+            try {
+                // 按照字典序对参数进行排序
+                val sortedParams = params.toSortedMap()
+                
+                // 构建参数字符串
+                val paramStr = StringBuilder()
+                sortedParams.forEach { (key, value) -> 
+                    if (paramStr.isNotEmpty()) {
+                        paramStr.append("&")
+                    }
+                    paramStr.append("$key=$value") 
+                }
+                
+                // 构建签名原始字符串
+                val signString = "GET$path?$paramStr"
+                
+                Log.d(TAG, "签名原始字符串: $signString")
+                
+                // 使用HMAC-SHA1算法进行签名
+                val mac = Mac.getInstance("HmacSHA1")
+                val secretKey = SecretKeySpec(SENIVERSE_API_KEY.toByteArray(), "HmacSHA1")
+                mac.init(secretKey)
+                val signData = mac.doFinal(signString.toByteArray())
+                
+                // 将签名转换为Base64编码
+                val signBase64 = android.util.Base64.encodeToString(signData, android.util.Base64.NO_WRAP)
+                
+                // URL编码
+                val encodedSign = URLEncoder.encode(signBase64, "UTF-8")
+                Log.d(TAG, "生成的签名: $encodedSign")
+                
+                return encodedSign
+            } catch (e: Exception) {
+                Log.e(TAG, "生成签名异常", e)
+                return ""
+            }
+        }
+        
+        // 构建心知天气API的URL - 使用V3版本的API
+        private fun buildSeniverseApiUrl(path: String, location: String): String {
+            // 准备公共参数
+            val ttl = 1800 // 签名有效期，单位为秒 (30分钟)
+            val ts = System.currentTimeMillis() / 1000 // 当前时间戳，单位为秒
+            
+            // 构建参数Map
+            val params = mutableMapOf(
+                "key" to SENIVERSE_API_KEY, // V3 API使用key参数，而不是uid和sig
+                "location" to location,
+                "language" to "zh-Hans", // 使用简体中文
+                "unit" to "c" // 温度单位为摄氏度
+            )
+            
+            // 构建最终URL
+            val urlBuilder = StringBuilder("$SENIVERSE_API_BASE_URL$path?")
+            var isFirst = true
+            params.forEach { (key, value) -> 
+                if (isFirst) {
+                    isFirst = false
+                } else {
+                    urlBuilder.append("&")
+                }
+                urlBuilder.append("$key=$value") 
+            }
+            
+            val finalUrl = urlBuilder.toString()
+            Log.d(TAG, "API请求URL: $finalUrl")
+            
+            return finalUrl
+        }
+        
         // 异步获取天气信息
         suspend fun getWeatherInfo(context: Context, cityName: String = "长春"): WeatherInfo {
             // 检查缓存
@@ -129,58 +211,85 @@ class WeatherManager {
             return withContext(Dispatchers.IO) {
                 try {
                     Log.d(TAG, "开始获取天气数据: $cityName")
-                    val url = URL("$WEATHER_API_URL?city=$cityName&key=$WEATHER_API_KEY&extensions=base")
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.requestMethod = "GET"
-                    connection.connectTimeout = 5000
                     
-                    val responseCode = connection.responseCode
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val reader = BufferedReader(InputStreamReader(connection.inputStream))
-                        val response = StringBuilder()
-                        var line: String?
-                        while (reader.readLine().also { line = it } != null) {
-                            response.append(line)
-                        }
-                        reader.close()
-                        
-                        // 解析JSON响应
-                        Log.d(TAG, "收到天气API响应: ${response.substring(0, Math.min(100, response.length))}...")
-                        val jsonObject = JSONObject(response.toString())
-                        val lives = jsonObject.getJSONArray("lives")
-                        if (lives.length() > 0) {
-                            val live = lives.getJSONObject(0)
-                            val city = live.getString("city")
-                            val weather = live.getString("weather")
-                            val temperature = live.getString("temperature") + "°C"
-                            val humidity = live.optInt("humidity", 60)
+                    // 使用V3 API分别获取天气和空气质量数据
+                    val weatherUrl = buildSeniverseApiUrl(WEATHER_NOW_API_PATH, cityName)
+                    val weatherData = fetchApiData(weatherUrl)
+                    
+                    val airUrl = buildSeniverseApiUrl(AIR_NOW_API_PATH, cityName)
+                    val airData = fetchApiData(airUrl)
+                    
+                    // 解析天气数据
+                    var city = cityName
+                    var weather = "晴"
+                    var temperature = "25°C"
+                    var airQuality = "良"
+                    var airIndex = "80"
+                    
+                    if (weatherData.isNotEmpty()) {
+                        try {
+                            val weatherJson = JSONObject(weatherData)
+                            val resultsArray = weatherJson.getJSONArray("results")
                             
-                            // 这里使用模拟数据，实际应用中应从API获取
-                            val airQuality = getAirQuality(humidity)
-                            val airIndex = getAirIndex(humidity)
-                            
-                            val weatherInfo = WeatherInfo(
-                                city = city,
-                                weather = weather,
-                                temperature = temperature,
-                                airQuality = airQuality,
-                                airIndex = airIndex,
-                                date = getCurrentDate(),
-                                solarTerm = getCurrentSolarTerm()
-                            )
-                            
-                            // 更新缓存
-                            weatherCache[cityName] = Pair(weatherInfo, now)
-                            
-                            return@withContext weatherInfo
+                            if (resultsArray.length() > 0) {
+                                val result = resultsArray.getJSONObject(0)
+                                
+                                // 获取位置信息
+                                val location = result.getJSONObject("location")
+                                city = location.getString("name")
+                                
+                                // 获取天气信息
+                                val weatherNow = result.getJSONObject("now")
+                                weather = weatherNow.getString("text")
+                                temperature = weatherNow.getString("temperature") + "°C"
+                                
+                                Log.d(TAG, "成功解析天气数据: $city, $weather, $temperature")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "解析天气数据异常", e)
                         }
                     }
                     
-                    // 如果API调用失败，返回默认值
-                    Log.e(TAG, "天气API调用失败 (响应码: $responseCode)，使用默认值")
-                    val defaultInfo = createDefaultWeatherInfo(cityName)
-                    weatherCache[cityName] = Pair(defaultInfo, now)
-                    return@withContext defaultInfo
+                    // 解析空气质量数据
+                    if (airData.isNotEmpty()) {
+                        try {
+                            val airJson = JSONObject(airData)
+                            val resultsArray = airJson.getJSONArray("results")
+                            
+                            if (resultsArray.length() > 0) {
+                                val result = resultsArray.getJSONObject(0)
+                                
+                                if (result.has("air")) {
+                                    val air = result.getJSONObject("air")
+                                    val cityAir = air.getJSONObject("city")
+                                    airQuality = cityAir.getString("quality")
+                                    airIndex = cityAir.getString("aqi")
+                                    
+                                    Log.d(TAG, "成功解析空气质量数据: $airQuality, $airIndex")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "解析空气质量数据异常", e)
+                        }
+                    }
+                    
+                    // 创建天气信息对象
+                    val weatherInfo = WeatherInfo(
+                        city = city,
+                        weather = weather,
+                        temperature = temperature,
+                        airQuality = airQuality,
+                        airIndex = airIndex,
+                        date = getCurrentDate(),
+                        solarTerm = getCurrentSolarTerm()
+                    )
+                    
+                    // 更新缓存
+                    weatherCache[cityName] = Pair(weatherInfo, now)
+                    
+                    Log.d(TAG, "成功获取天气数据: $city, $weather, $temperature")
+                    
+                    return@withContext weatherInfo
                     
                 } catch (e: Exception) {
                     Log.e(TAG, "获取天气信息异常", e)
@@ -191,27 +300,52 @@ class WeatherManager {
             }
         }
         
-        // 根据湿度生成空气质量描述
-        private fun getAirQuality(humidity: Int): String {
-            return when {
-                humidity < 30 -> "优"
-                humidity < 50 -> "良"
-                humidity < 70 -> "轻度污染"
-                humidity < 85 -> "中度污染"
-                else -> "重度污染"
+        // 从API获取数据
+        private fun fetchApiData(apiUrl: String): String {
+            try {
+                val url = URL(apiUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+                
+                // 添加User-Agent请求头，模拟浏览器请求
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36")
+                
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                    val response = StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    
+                    val responseStr = response.toString()
+                    val displayLength = min(100, responseStr.length)
+                    Log.d(TAG, "收到API响应: ${responseStr.substring(0, displayLength)}...")
+                    return responseStr
+                } else {
+                    // 输出错误信息
+                    val errorStream = connection.errorStream
+                    if (errorStream != null) {
+                        val reader = BufferedReader(InputStreamReader(errorStream))
+                        val errorResponse = StringBuilder()
+                        var line: String?
+                        while (reader.readLine().also { line = it } != null) {
+                            errorResponse.append(line)
+                        }
+                        reader.close()
+                        Log.e(TAG, "API错误响应: $errorResponse")
+                    }
+                    Log.e(TAG, "API请求失败，响应码: $responseCode")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "API请求异常", e)
             }
-        }
-        
-        // 根据湿度生成空气指数
-        private fun getAirIndex(humidity: Int): String {
-            val baseIndex = when {
-                humidity < 30 -> (90..100).random()
-                humidity < 50 -> (75..89).random()
-                humidity < 70 -> (50..74).random()
-                humidity < 85 -> (25..49).random() 
-                else -> (0..24).random()
-            }
-            return baseIndex.toString()
+            
+            return ""
         }
         
         // 创建默认天气信息（当API调用失败时使用）

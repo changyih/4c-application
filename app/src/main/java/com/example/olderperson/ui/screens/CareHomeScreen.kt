@@ -29,6 +29,15 @@ import com.example.olderperson.utils.WeatherManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.BrightnessLow
+import androidx.compose.material.icons.filled.Grain
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Air
 
 @Composable
 fun CareHomeScreen(
@@ -53,7 +62,7 @@ fun CareHomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // 顶部问候区域
-            TopGreetingSection(userName)
+            TopGreetingSection(userName, textToSpeechService)
             
             // 主要内容区域
             LazyColumn(
@@ -98,7 +107,7 @@ fun CareHomeScreen(
 }
 
 @Composable
-private fun TopGreetingSection(userName: String) {
+private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpeechService? = null) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -147,7 +156,7 @@ private fun TopGreetingSection(userName: String) {
         }
 
         // 智能助手对话框
-        AssistantChatBox()
+        AssistantChatBox(textToSpeechService)
         
         // 交流按钮区域
         Row(
@@ -160,21 +169,23 @@ private fun TopGreetingSection(userName: String) {
             CommunicationButton(
                 icon = Icons.Default.Mic,
                 text = "语音交流",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { textToSpeechService?.speak("语音交流") }
             )
 
             // 文字交流按钮
             CommunicationButton(
                 icon = Icons.Default.Keyboard,
                 text = "文字交流",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { textToSpeechService?.speak("文字交流") }
             )
         }
     }
 }
 
 @Composable
-private fun AssistantChatBox() {
+private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     var weatherInfo by remember { mutableStateOf<WeatherManager.Companion.WeatherInfo?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -183,7 +194,15 @@ private fun AssistantChatBox() {
     // 获取天气信息
     LaunchedEffect(currentCity) {
         coroutineScope.launch {
-            weatherInfo = WeatherManager.getWeatherInfo(context, currentCity)
+            try {
+                val info = WeatherManager.getWeatherInfo(context, currentCity)
+                weatherInfo = info
+                
+                // 添加日志输出，确认API调用成功
+                Log.d("CareHomeScreen", "天气数据获取成功: ${info.city}, ${info.weather}, ${info.temperature}, 空气质量:${info.airQuality}, 指数:${info.airIndex}")
+            } catch (e: Exception) {
+                Log.e("CareHomeScreen", "天气数据获取失败", e)
+            }
         }
     }
 
@@ -195,8 +214,17 @@ private fun AssistantChatBox() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
+                // 如果天气信息已加载，播报详细信息
+                weatherInfo?.let { info ->
+                    speakWeatherInfo(info, textToSpeechService)
+                } ?: run {
+                    // 如果尚未加载，播报加载中提示
+                    textToSpeechService?.speak("正在获取天气信息，请稍候")
+                }
+                
                 // 城市切换逻辑
                 coroutineScope.launch {
+                    val oldCity = currentCity
                     if (currentCity == "长春") {
                         currentCity = "北京"
                     } else if (currentCity == "北京") {
@@ -206,6 +234,11 @@ private fun AssistantChatBox() {
                     } else {
                         currentCity = "长春"
                     }
+                    
+                    // 播报切换城市的语音提示
+                    textToSpeechService?.speak("正在切换到${currentCity}天气")
+                    
+                    Log.d("CareHomeScreen", "城市切换: $oldCity -> $currentCity")
                 }
             },
         shape = RoundedCornerShape(16.dp),
@@ -425,12 +458,17 @@ private fun AssistantChatBox() {
 private fun getWeatherIcon(weather: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when {
         weather.contains("晴") -> Icons.Default.WbSunny
-        weather.contains("云") -> Icons.Default.Cloud
+        weather.contains("多云") || weather.contains("部分多云") -> Icons.Default.Cloud
         weather.contains("阴") -> Icons.Default.Cloud
-        weather.contains("雨") -> Icons.Default.Grain
-        weather.contains("雪") -> Icons.Default.AcUnit
+        weather.contains("小雨") || weather.contains("中雨") || weather.contains("大雨") -> Icons.Default.Grain
+        weather.contains("暴雨") || weather.contains("雷阵雨") -> Icons.Default.Thunderstorm
+        weather.contains("雪") || weather.contains("小雪") || weather.contains("中雪") || weather.contains("大雪") -> Icons.Default.AcUnit
         weather.contains("雾") || weather.contains("霾") -> Icons.Default.CloudQueue
         weather.contains("风") || weather.contains("飓风") -> Icons.Default.Air
+        weather.contains("沙尘") || weather.contains("扬沙") -> Icons.Default.BrightnessLow
+        weather.contains("雷") || weather.contains("闪电") -> Icons.Default.ElectricBolt
+        weather.contains("冰雹") -> Icons.Default.Grain
+        weather.contains("雨夹雪") -> Icons.Default.AcUnit
         else -> Icons.Default.WbSunny // 默认晴天图标
     }
 }
@@ -720,10 +758,11 @@ private fun getCurrentDate(): String {
 private fun CommunicationButton(
     icon: ImageVector,
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White.copy(alpha = 0.2f)
@@ -751,5 +790,22 @@ private fun CommunicationButton(
                 fontSize = FontSizeConfig.scaledSp(14).sp
             )
         }
+    }
+}
+
+// 播报完整天气信息
+fun speakWeatherInfo(info: WeatherManager.Companion.WeatherInfo, tts: TextToSpeechService?) {
+    tts?.let {
+        val weatherText = """
+            ${info.city}今天天气${info.weather}，
+            气温${info.temperature}，
+            空气质量${info.airQuality}，
+            空气指数${info.airIndex}，
+            今天是${info.date}，
+            ${info.solarTerm}节气期间。
+        """.trimIndent()
+        
+        it.speak(weatherText)
+        Log.d("CareHomeScreen", "播报天气信息: $weatherText")
     }
 } 
