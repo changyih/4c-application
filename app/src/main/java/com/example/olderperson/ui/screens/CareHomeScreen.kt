@@ -17,12 +17,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.ui.theme.FontSizeConfig
+import com.example.olderperson.ui.theme.Primary
+import com.example.olderperson.utils.WeatherManager
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -144,118 +148,290 @@ private fun TopGreetingSection(userName: String) {
 
         // 智能助手对话框
         AssistantChatBox()
+        
+        // 交流按钮区域
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 语音交流按钮
+            CommunicationButton(
+                icon = Icons.Default.Mic,
+                text = "语音交流",
+                modifier = Modifier.weight(1f)
+            )
+
+            // 文字交流按钮
+            CommunicationButton(
+                icon = Icons.Default.Keyboard,
+                text = "文字交流",
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
 private fun AssistantChatBox() {
+    var weatherInfo by remember { mutableStateOf<WeatherManager.Companion.WeatherInfo?>(null) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var currentCity by remember { mutableStateOf("长春") }
+    
+    // 获取天气信息
+    LaunchedEffect(currentCity) {
+        coroutineScope.launch {
+            weatherInfo = WeatherManager.getWeatherInfo(context, currentCity)
+        }
+    }
+
+    // 当天更新时间
+    val updateTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable {
+                // 城市切换逻辑
+                coroutineScope.launch {
+                    if (currentCity == "长春") {
+                        currentCity = "北京"
+                    } else if (currentCity == "北京") {
+                        currentCity = "上海"
+                    } else if (currentCity == "上海") {
+                        currentCity = "广州"
+                    } else {
+                        currentCity = "长春"
+                    }
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2E7D32)
-        )
+            containerColor = Primary
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+        if (weatherInfo == null) {
+            // 加载中状态
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // 机器人图标
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    CircularProgressIndicator(color = Color.White)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "正在获取天气信息...",
+                        color = Color.White
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // 顶部城市和时间信息
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 城市名称
+                    Text(
+                        text = weatherInfo?.city ?: "长春",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    
+                    // 更新时间
+                    Text(
+                        text = "更新: $updateTime",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+                
+                // 中间日期和节气
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = weatherInfo?.date ?: "-",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.FilterVintage,
+                            contentDescription = "节气",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = weatherInfo?.solarTerm ?: "-",
+                            fontSize = 14.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 天气信息主体
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 左侧温度信息
+                    Row(
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        // 温度图标
+                        Icon(
+                            imageVector = Icons.Default.Thermostat,
+                            contentDescription = "温度",
+                            modifier = Modifier.size(28.dp),
+                            tint = Color.White
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // 温度值
+                        Text(
+                            text = weatherInfo?.temperature?.replace("°C", "") ?: "-",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        
+                        Text(
+                            text = "°C",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                    
+                    // 右侧天气图标
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // 天气图标
+                        Icon(
+                            imageVector = getWeatherIcon(weatherInfo?.weather ?: "晴"),
+                            contentDescription = weatherInfo?.weather ?: "天气",
+                            modifier = Modifier.size(48.dp),
+                            tint = Color.White
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        // 天气描述
+                        Text(
+                            text = weatherInfo?.weather ?: "-",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 下方空气质量信息
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 空气质量图标
                     Icon(
-                        imageVector = Icons.Default.Android,
-                        contentDescription = "智能助手",
+                        imageVector = Icons.Default.Air,
+                        contentDescription = "空气质量",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
+                    
+                    // 空气质量指数
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "指数",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = weatherInfo?.airIndex ?: "-",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // 空气质量
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "质量",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = weatherInfo?.airQuality ?: "-",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
+                
+                // 提示文本(点击切换城市)
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "我是您的智能伙伴",
-                    color = Color.White,
-                    fontSize = FontSizeConfig.scaledSp(16).sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Text(
-                text = "今天有什么可以帮您的吗？",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = FontSizeConfig.scaledSp(14).sp,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 语音交流按钮
-                CommunicationButton(
-                    icon = Icons.Default.Mic,
-                    text = "语音交流",
-                    modifier = Modifier.weight(1f)
-                )
-
-                // 文字交流按钮
-                CommunicationButton(
-                    icon = Icons.Default.Keyboard,
-                    text = "文字交流",
-                    modifier = Modifier.weight(1f)
+                    text = "点击切换城市",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
         }
     }
 }
 
-@Composable
-private fun CommunicationButton(
-    icon: ImageVector,
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = FontSizeConfig.scaledSp(14).sp
-            )
-        }
+// 根据天气描述获取对应的图标
+private fun getWeatherIcon(weather: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when {
+        weather.contains("晴") -> Icons.Default.WbSunny
+        weather.contains("云") -> Icons.Default.Cloud
+        weather.contains("阴") -> Icons.Default.Cloud
+        weather.contains("雨") -> Icons.Default.Grain
+        weather.contains("雪") -> Icons.Default.AcUnit
+        weather.contains("雾") || weather.contains("霾") -> Icons.Default.CloudQueue
+        weather.contains("风") || weather.contains("飓风") -> Icons.Default.Air
+        else -> Icons.Default.WbSunny // 默认晴天图标
     }
 }
 
@@ -538,4 +714,42 @@ private fun HomeBottomNavItem(
 private fun getCurrentDate(): String {
     val dateFormat = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINESE)
     return dateFormat.format(Date())
+}
+
+@Composable
+private fun CommunicationButton(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = FontSizeConfig.scaledSp(14).sp
+            )
+        }
+    }
 } 
