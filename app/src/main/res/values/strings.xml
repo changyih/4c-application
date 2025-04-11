@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">长辈关爱</string>
+    <string name="app_name">慧龄</string>
     <string name="voice_button">语音</string>
     <string name="emergency_button">紧急求助</string>
     <string name="emergency_active">紧急状态已激活</string>

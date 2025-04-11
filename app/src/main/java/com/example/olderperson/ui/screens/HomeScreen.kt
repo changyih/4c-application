@@ -2153,7 +2153,7 @@ fun HealthServiceTab() {
                 ) {
                     Column {
                         Text(
-                            text = "颐年铂金会员",
+                            text = "慧龄铂金会员",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold

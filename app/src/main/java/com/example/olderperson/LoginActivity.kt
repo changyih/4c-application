@@ -174,7 +174,7 @@ class LoginActivity : ComponentActivity() {
             
             // 应用标题和副标题
             Text(
-                text = "颐年",
+                text = "慧龄",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )

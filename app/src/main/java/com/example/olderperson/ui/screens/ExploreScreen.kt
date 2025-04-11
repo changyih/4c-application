@@ -25,6 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.AndroidView
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.net.Uri
+import androidx.compose.ui.platform.LocalFocusManager
 import com.example.olderperson.service.TextToSpeechService
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +47,11 @@ fun ExploreScreen(
     var dialogTitle by remember { mutableStateOf("") }
     var dialogContent by remember { mutableStateOf("") }
     var showDevelopingDialog by remember { mutableStateOf(false) }
+    
+    // 添加百度搜索相关状态
+    var showSearchResults by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
     
     Scaffold(
         topBar = {
@@ -109,7 +119,9 @@ fun ExploreScreen(
                             IconButton(onClick = {
                                 if (searchText.isNotEmpty()) {
                                     textToSpeechService?.speak("正在搜索${searchText}")
-                                    showDevelopingDialog = true
+                                    searchQuery = searchText
+                                    showSearchResults = true
+                                    focusManager.clearFocus()
                                 }
                             }) {
                                 Icon(
@@ -131,150 +143,212 @@ fun ExploreScreen(
                         onSearch = {
                             if (searchText.isNotEmpty()) {
                                 textToSpeechService?.speak("正在搜索${searchText}")
-                                showDevelopingDialog = true
+                                searchQuery = searchText
+                                showSearchResults = true
+                                focusManager.clearFocus()
                             }
                         }
                     )
                 )
             }
             
-            // 健康资讯
-            item {
-                SectionHeader(
-                    title = "健康资讯",
-                    icon = Icons.Outlined.Favorite,
-                    onMore = { showDevelopingDialog = true }
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    shadowElevation = 2.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+            // 显示百度搜索结果
+            if (showSearchResults) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        // 春季养生饮食指南
-                        InfoItem(
-                            iconBackgroundColor = Color(0xFFE8F5E9),
-                            icon = Icons.Outlined.Restaurant,
-                            title = "春季养生饮食指南",
-                            description = "适合老年人的滋补食谱",
-                            onClick = {
-                                textToSpeechService?.speak("春季养生饮食指南")
-                                dialogTitle = "春季养生饮食指南"
-                                dialogContent = "1. 多吃应季蔬菜：春季应选择新鲜的绿叶蔬菜，如菠菜、油菜和春笋等。\n\n" +
-                                        "2. 适量进食温性食物：如葱、生姜、韭菜等，帮助调节体内阳气。\n\n" +
-                                        "3. 控制咸味食物摄入：减少盐的摄入，有助于预防高血压。\n\n" +
-                                        "4. 多喝温水：每天至少饮用1500毫升水，保持身体水分。\n\n" +
-                                        "5. 少吃辛辣刺激食物：避免辛辣及油炸食物，防止燥热。"
-                                showContentDialog = true
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // 搜索结果页面标题栏
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "搜索结果: $searchQuery",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                
+                                IconButton(onClick = { showSearchResults = false }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "关闭搜索结果"
+                                    )
+                                }
                             }
-                        )
-                        
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
-                        
-                        // 适合春季的健身活动
-                        InfoItem(
-                            iconBackgroundColor = Color(0xFFE8F5E9),
-                            icon = Icons.Outlined.DirectionsRun,
-                            title = "适合春季的健身活动",
-                            description = "缓解关节疼痛的运动方法",
-                            onClick = {
-                                textToSpeechService?.speak("适合春季的健身活动")
-                                dialogTitle = "适合春季的健身活动"
-                                dialogContent = "1. 太极拳：柔和的动作有助于增强平衡感和关节灵活性，非常适合老年人。\n\n" +
-                                        "2. 散步：每天30分钟的散步可以改善心肺功能，最好在公园等空气清新的地方进行。\n\n" +
-                                        "3. 伸展运动：每天进行简单的伸展，可以缓解肌肉僵硬和关节疼痛。\n\n" +
-                                        "4. 水中运动：如果条件允许，水中行走或简单的水中体操对关节压力小。\n\n" +
-                                        "5. 八段锦：传统养生功法，动作简单易学，有助于调节气血。"
-                                showContentDialog = true
-                            }
-                        )
-                        
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
-                        
-                        // 老年人认知健康指南
-                        InfoItem(
-                            iconBackgroundColor = Color(0xFFE8F5E9),
-                            icon = Icons.Outlined.Psychology,
-                            title = "老年人认知健康指南",
-                            description = "保持大脑活力的方法与技巧",
-                            onClick = {
-                                textToSpeechService?.speak("老年人认知健康指南")
-                                dialogTitle = "老年人认知健康指南"
-                                dialogContent = "1. 定期进行思维活动：如阅读、填字游戏、围棋等，都能激活大脑神经。\n\n" +
-                                        "2. 保持社交活动：与亲友聊天、参加社区活动，减少孤独感。\n\n" +
-                                        "3. 充足的睡眠：保证每晚7-8小时的优质睡眠，有助于大脑休息和记忆巩固。\n\n" +
-                                        "4. 均衡饮食：多摄入富含抗氧化物的食物，如深色水果和蔬菜。\n\n" +
-                                        "5. 学习新技能：尝试学习新的知识或技能，如绘画、书法或使用智能手机等。"
-                                showContentDialog = true
-                            }
-                        )
+                            
+                            Divider()
+                            
+                            // 百度搜索结果WebView
+                            AndroidView(
+                                modifier = Modifier.fillMaxSize(),
+                                factory = { context ->
+                                    WebView(context).apply {
+                                        settings.javaScriptEnabled = true
+                                        settings.loadWithOverviewMode = true
+                                        settings.useWideViewPort = true
+                                        settings.setSupportZoom(true)
+                                        settings.textZoom = 120 // 增大文字以适应老年人
+                                        webViewClient = WebViewClient()
+                                        
+                                        // 构建百度搜索URL
+                                        val encodedQuery = Uri.encode(searchQuery)
+                                        val baiduSearchUrl = "https://m.baidu.com/s?word=$encodedQuery&sa=tp_wise&tn=baidu"
+                                        loadUrl(baiduSearchUrl)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                // 健康资讯
+                item {
+                    SectionHeader(
+                        title = "健康资讯",
+                        icon = Icons.Outlined.Favorite,
+                        onMore = { showDevelopingDialog = true }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            // 春季养生饮食指南
+                            InfoItem(
+                                iconBackgroundColor = Color(0xFFE8F5E9),
+                                icon = Icons.Outlined.Restaurant,
+                                title = "春季养生饮食指南",
+                                description = "适合老年人的滋补食谱",
+                                onClick = {
+                                    textToSpeechService?.speak("春季养生饮食指南")
+                                    dialogTitle = "春季养生饮食指南"
+                                    dialogContent = "1. 多吃应季蔬菜：春季应选择新鲜的绿叶蔬菜，如菠菜、油菜和春笋等。\n\n" +
+                                            "2. 适量进食温性食物：如葱、生姜、韭菜等，帮助调节体内阳气。\n\n" +
+                                            "3. 控制咸味食物摄入：减少盐的摄入，有助于预防高血压。\n\n" +
+                                            "4. 多喝温水：每天至少饮用1500毫升水，保持身体水分。\n\n" +
+                                            "5. 少吃辛辣刺激食物：避免辛辣及油炸食物，防止燥热。"
+                                    showContentDialog = true
+                                }
+                            )
+                            
+                            Divider(modifier = Modifier.padding(vertical = 12.dp))
+                            
+                            // 适合春季的健身活动
+                            InfoItem(
+                                iconBackgroundColor = Color(0xFFE8F5E9),
+                                icon = Icons.Outlined.DirectionsRun,
+                                title = "适合春季的健身活动",
+                                description = "缓解关节疼痛的运动方法",
+                                onClick = {
+                                    textToSpeechService?.speak("适合春季的健身活动")
+                                    dialogTitle = "适合春季的健身活动"
+                                    dialogContent = "1. 太极拳：柔和的动作有助于增强平衡感和关节灵活性，非常适合老年人。\n\n" +
+                                            "2. 散步：每天30分钟的散步可以改善心肺功能，最好在公园等空气清新的地方进行。\n\n" +
+                                            "3. 伸展运动：每天进行简单的伸展，可以缓解肌肉僵硬和关节疼痛。\n\n" +
+                                            "4. 水中运动：如果条件允许，水中行走或简单的水中体操对关节压力小。\n\n" +
+                                            "5. 八段锦：传统养生功法，动作简单易学，有助于调节气血。"
+                                    showContentDialog = true
+                                }
+                            )
+                            
+                            Divider(modifier = Modifier.padding(vertical = 12.dp))
+                            
+                            // 老年人认知健康指南
+                            InfoItem(
+                                iconBackgroundColor = Color(0xFFE8F5E9),
+                                icon = Icons.Outlined.Psychology,
+                                title = "老年人认知健康指南",
+                                description = "保持大脑活力的方法与技巧",
+                                onClick = {
+                                    textToSpeechService?.speak("老年人认知健康指南")
+                                    dialogTitle = "老年人认知健康指南"
+                                    dialogContent = "1. 定期进行思维活动：如阅读、填字游戏、围棋等，都能激活大脑神经。\n\n" +
+                                            "2. 保持社交活动：与亲友聊天、参加社区活动，减少孤独感。\n\n" +
+                                            "3. 充足的睡眠：保证每晚7-8小时的优质睡眠，有助于大脑休息和记忆巩固。\n\n" +
+                                            "4. 均衡饮食：多摄入富含抗氧化物的食物，如深色水果和蔬菜。\n\n" +
+                                            "5. 学习新技能：尝试学习新的知识或技能，如绘画、书法或使用智能手机等。"
+                                    showContentDialog = true
+                                }
+                            )
 
-                        // 在健康资讯部分添加新的内容
-                        InfoItem(
-                            iconBackgroundColor = Color(0xFFE8F5E9),
-                            icon = Icons.Outlined.MonitorHeart,
-                            title = "血压管理指南",
-                            description = "日常血压监测与管理方法",
-                            onClick = {
-                                textToSpeechService?.speak("血压管理指南")
-                                dialogTitle = "血压管理指南"
-                                dialogContent = "科学管理血压的要点：\n\n" +
-                                        "1. 定时测量：每天固定时间测量血压，建议早晚各一次。\n\n" +
-                                        "2. 合理用药：按医嘱服用降压药，不要随意更改剂量。\n\n" +
-                                        "3. 饮食控制：\n" +
-                                        "   - 控制盐分摄入，每日不超过6克\n" +
-                                        "   - 多吃蔬菜水果\n" +
-                                        "   - 限制高脂肪食物\n\n" +
-                                        "4. 生活方式：\n" +
-                                        "   - 规律作息\n" +
-                                        "   - 适度运动\n" +
-                                        "   - 保持心情愉悦\n\n" +
-                                        "5. 注意事项：\n" +
-                                        "   - 避免剧烈运动\n" +
-                                        "   - 保持良好心态\n" +
-                                        "   - 定期复查"
-                                showContentDialog = true
-                            }
-                        )
+                            // 在健康资讯部分添加新的内容
+                            InfoItem(
+                                iconBackgroundColor = Color(0xFFE8F5E9),
+                                icon = Icons.Outlined.MonitorHeart,
+                                title = "血压管理指南",
+                                description = "日常血压监测与管理方法",
+                                onClick = {
+                                    textToSpeechService?.speak("血压管理指南")
+                                    dialogTitle = "血压管理指南"
+                                    dialogContent = "科学管理血压的要点：\n\n" +
+                                            "1. 定时测量：每天固定时间测量血压，建议早晚各一次。\n\n" +
+                                            "2. 合理用药：按医嘱服用降压药，不要随意更改剂量。\n\n" +
+                                            "3. 饮食控制：\n" +
+                                            "   - 控制盐分摄入，每日不超过6克\n" +
+                                            "   - 多吃蔬菜水果\n" +
+                                            "   - 限制高脂肪食物\n\n" +
+                                            "4. 生活方式：\n" +
+                                            "   - 规律作息\n" +
+                                            "   - 适度运动\n" +
+                                            "   - 保持心情愉悦\n\n" +
+                                            "5. 注意事项：\n" +
+                                            "   - 避免剧烈运动\n" +
+                                            "   - 保持良好心态\n" +
+                                            "   - 定期复查"
+                                    showContentDialog = true
+                                }
+                            )
 
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                            Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-                        InfoItem(
-                            iconBackgroundColor = Color(0xFFE8F5E9),
-                            icon = Icons.Outlined.Medication,
-                            title = "常见用药指南",
-                            description = "老年人用药注意事项",
-                            onClick = {
-                                textToSpeechService?.speak("常见用药指南")
-                                dialogTitle = "常见用药指南"
-                                dialogContent = "安全用药须知：\n\n" +
-                                        "1. 用药原则：\n" +
-                                        "   - 遵医嘱用药\n" +
-                                        "   - 不随意加减剂量\n" +
-                                        "   - 按时服用药物\n\n" +
-                                        "2. 注意事项：\n" +
-                                        "   - 检查药品有效期\n" +
-                                        "   - 注意药品储存条件\n" +
-                                        "   - 记录服药时间\n\n" +
-                                        "3. 用药禁忌：\n" +
-                                        "   - 避免自行配药\n" +
-                                        "   - 不要同时服用性质相近的药物\n" +
-                                        "   - 注意药物相互作用\n\n" +
-                                        "4. 常见问题：\n" +
-                                        "   - 如出现不适及时就医\n" +
-                                        "   - 定期复查，调整用药\n\n" +
-                                        "5. 用药记录：\n" +
-                                        "   - 建议保存处方\n" +
-                                        "   - 记录服药反应"
-                                showContentDialog = true
-                            }
-                        )
+                            InfoItem(
+                                iconBackgroundColor = Color(0xFFE8F5E9),
+                                icon = Icons.Outlined.Medication,
+                                title = "常见用药指南",
+                                description = "老年人用药注意事项",
+                                onClick = {
+                                    textToSpeechService?.speak("常见用药指南")
+                                    dialogTitle = "常见用药指南"
+                                    dialogContent = "安全用药须知：\n\n" +
+                                            "1. 用药原则：\n" +
+                                            "   - 遵医嘱用药\n" +
+                                            "   - 不随意加减剂量\n" +
+                                            "   - 按时服用药物\n\n" +
+                                            "2. 注意事项：\n" +
+                                            "   - 检查药品有效期\n" +
+                                            "   - 注意药品储存条件\n" +
+                                            "   - 记录服药时间\n\n" +
+                                            "3. 用药禁忌：\n" +
+                                            "   - 避免自行配药\n" +
+                                            "   - 不要同时服用性质相近的药物\n" +
+                                            "   - 注意药物相互作用\n\n" +
+                                            "4. 常见问题：\n" +
+                                            "   - 如出现不适及时就医\n" +
+                                            "   - 定期复查，调整用药\n\n" +
+                                            "5. 用药记录：\n" +
+                                            "   - 建议保存处方\n" +
+                                            "   - 记录服药反应"
+                                    showContentDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -488,26 +562,60 @@ fun ExploreScreen(
             }
         }
         
-        // 内容详情对话框
-        if (showContentDialog) {
-            ContentDialog(
-                title = dialogTitle,
-                content = dialogContent,
-                onDismiss = { 
-                    showContentDialog = false 
-                },
-                textToSpeechService = textToSpeechService
+        // 显示开发中对话框
+        if (showDevelopingDialog) {
+            AlertDialog(
+                onDismissRequest = { showDevelopingDialog = false },
+                title = { Text("功能开发中") },
+                text = { Text("此功能正在开发中，敬请期待！") },
+                confirmButton = {
+                    Button(onClick = { showDevelopingDialog = false }) {
+                        Text("确定")
+                    }
+                }
             )
         }
         
-        // 功能开发中对话框
-        if (showDevelopingDialog) {
-            DevelopingFeatureDialog(
-                onDismiss = { 
-                    showDevelopingDialog = false 
-                },
-                textToSpeechService = textToSpeechService
-            )
+        // 显示内容详情对话框
+        if (showContentDialog) {
+            Dialog(onDismissRequest = { showContentDialog = false }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = dialogTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = dialogContent,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Button(
+                                onClick = { showContentDialog = false }
+                            ) {
+                                Text("关闭")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
