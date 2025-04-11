@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.olderperson"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -72,6 +72,17 @@ dependencies {
     // Google地图依赖（保留以备需要）
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:4.3.0")
+    
+    // 阿里云通义千问SDK相关依赖
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.alibaba.fastjson2:fastjson2:2.0.43")
+    
+    // 添加Coil图片加载库依赖
+    implementation("io.coil-kt:coil:2.5.0") 
+    implementation("io.coil-kt:coil-compose:2.5.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
