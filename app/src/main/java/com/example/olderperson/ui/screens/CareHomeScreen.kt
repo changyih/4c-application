@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -301,17 +302,31 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     if (showHealthDialog) {
         AlertDialog(
             onDismissRequest = { showHealthDialog = false },
+            containerColor = Color.Transparent,
+            titleContentColor = Color.White,
+            textContentColor = Color.White,
             title = { 
                 Text(
                     text = "添加健康情况",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 ) 
             },
             text = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFF5D8AA8),
+                                    Color(0xFF4682B4),
+                                    Color(0xFF36648B)
+                                )
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
                         .padding(8.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
@@ -319,8 +334,8 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                     Text(
                         text = "请填写您的健康信息，帮助我们为您提供更精准的养生建议",
                         fontSize = 16.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 24.dp)
                     )
                     
                     // 年龄输入
@@ -328,27 +343,28 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         text = "年龄",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     OutlinedTextField(
                         value = age,
                         onValueChange = { age = it },
-                        placeholder = { Text("请输入您的年龄", fontSize = 16.sp) },
+                        placeholder = { Text("请输入您的年龄", fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
                         textStyle = TextStyle(fontSize = 18.sp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Primary,
-                            focusedContainerColor = Color(0xFFF8F8F8),
-                            unfocusedContainerColor = Color(0xFFF0F0F0),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.DarkGray
-                        )
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                            cursorColor = Color.White,
+                            focusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.5f),
+                            unfocusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
                     
                     // 性别选择
@@ -356,38 +372,40 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         text = "性别",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (gender == "男") Primary.copy(alpha = 0.1f) else Color.Transparent)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (gender == "男") Color.White.copy(alpha = 0.2f) else Color(0xFF4682B4).copy(alpha = 0.3f))
                                 .border(
                                     width = 1.dp,
-                                    color = if (gender == "男") Primary else Color.Gray,
-                                    shape = RoundedCornerShape(8.dp)
+                                    color = Color.White.copy(alpha = if (gender == "男") 0.9f else 0.5f),
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                                 .clickable { gender = "男" }
-                                .padding(vertical = 12.dp, horizontal = 16.dp)
+                                .padding(top = 16.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
                         ) {
                             RadioButton(
                                 selected = gender == "男",
                                 onClick = { gender = "男" },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = Primary
+                                    selectedColor = Color.White,
+                                    unselectedColor = Color.White.copy(alpha = 0.7f)
                                 )
                             )
                             Text(
                                 text = "男",
                                 fontSize = 18.sp,
+                                color = Color.White,
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
@@ -398,26 +416,28 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (gender == "女") Primary.copy(alpha = 0.1f) else Color.Transparent)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (gender == "女") Color.White.copy(alpha = 0.2f) else Color(0xFF4682B4).copy(alpha = 0.3f))
                                 .border(
                                     width = 1.dp,
-                                    color = if (gender == "女") Primary else Color.Gray,
-                                    shape = RoundedCornerShape(8.dp)
+                                    color = Color.White.copy(alpha = if (gender == "女") 0.9f else 0.5f),
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                                 .clickable { gender = "女" }
-                                .padding(vertical = 12.dp, horizontal = 16.dp)
+                                .padding(top = 16.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
                         ) {
                             RadioButton(
                                 selected = gender == "女",
                                 onClick = { gender = "女" },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = Primary
+                                    selectedColor = Color.White,
+                                    unselectedColor = Color.White.copy(alpha = 0.7f)
                                 )
                             )
                             Text(
                                 text = "女",
                                 fontSize = 18.sp,
+                                color = Color.White,
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
@@ -428,25 +448,26 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         text = "疾病史（选填）",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     OutlinedTextField(
                         value = medicalHistory,
                         onValueChange = { medicalHistory = it },
-                        placeholder = { Text("例如：高血压、糖尿病等", fontSize = 16.sp) },
+                        placeholder = { Text("例如：高血压、糖尿病等", fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f)) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
                         textStyle = TextStyle(fontSize = 18.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Primary,
-                            focusedContainerColor = Color(0xFFF8F8F8),
-                            unfocusedContainerColor = Color(0xFFF0F0F0),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.DarkGray
-                        )
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                            cursorColor = Color.White,
+                            focusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.5f),
+                            unfocusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
                     
                     // 忌口输入
@@ -454,25 +475,26 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         text = "忌口（选填）",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     OutlinedTextField(
                         value = dietaryRestrictions,
                         onValueChange = { dietaryRestrictions = it },
-                        placeholder = { Text("例如：海鲜、辛辣食物等", fontSize = 16.sp) },
+                        placeholder = { Text("例如：海鲜、辛辣食物等", fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f)) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
                         textStyle = TextStyle(fontSize = 18.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Primary,
-                            focusedContainerColor = Color(0xFFF8F8F8),
-                            unfocusedContainerColor = Color(0xFFF0F0F0),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.DarkGray
-                        )
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                            cursorColor = Color.White,
+                            focusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.5f),
+                            unfocusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
                     
                     // 过敏情况输入
@@ -480,80 +502,85 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         text = "过敏情况（选填）",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     OutlinedTextField(
                         value = allergies,
                         onValueChange = { allergies = it },
-                        placeholder = { Text("例如：花粉、药物等", fontSize = 16.sp) },
+                        placeholder = { Text("例如：花粉、药物等", fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f)) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                            .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
                         textStyle = TextStyle(fontSize = 18.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Primary,
-                            focusedContainerColor = Color(0xFFF8F8F8),
-                            unfocusedContainerColor = Color(0xFFF0F0F0),
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.DarkGray
-                        )
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                            cursorColor = Color.White,
+                            focusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.5f),
+                            unfocusedContainerColor = Color(0xFF4682B4).copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
+                
+                    // 按钮区域
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // 取消按钮
+                        Button(
+                            onClick = { showHealthDialog = false },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Text(
+                                text = "取消",
+                                fontSize = 18.sp,
+                                color = Color.White
+                            )
+                        }
+                        
+                        // 确认按钮
+                        Button(
+                            onClick = {
+                                // 保存健康信息并朗读确认信息
+                                val confirmText = "已保存您的健康信息。年龄：$age，性别：$gender" +
+                                        (if (medicalHistory.isNotEmpty()) "，疾病史：$medicalHistory" else "") +
+                                        (if (dietaryRestrictions.isNotEmpty()) "，忌口：$dietaryRestrictions" else "") +
+                                        (if (allergies.isNotEmpty()) "，过敏情况：$allergies" else "")
+                                textToSpeechService?.speak(confirmText)
+                                // TODO: 保存健康信息到数据库或SharedPreferences
+                                showHealthDialog = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = "确认",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF4682B4)
+                            )
+                        }
+                    }
                 }
             },
-            confirmButton = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // 取消按钮
-                    Button(
-                        onClick = { showHealthDialog = false },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.LightGray
-                        )
-                    ) {
-                        Text(
-                            text = "取消",
-                            fontSize = 18.sp,
-                            color = Color.Black
-                        )
-                    }
-                    
-                    // 确认按钮
-                    Button(
-                        onClick = {
-                            // 保存健康信息并朗读确认信息
-                            val confirmText = "已保存您的健康信息。年龄：$age，性别：$gender" +
-                                    (if (medicalHistory.isNotEmpty()) "，疾病史：$medicalHistory" else "") +
-                                    (if (dietaryRestrictions.isNotEmpty()) "，忌口：$dietaryRestrictions" else "") +
-                                    (if (allergies.isNotEmpty()) "，过敏情况：$allergies" else "")
-                            textToSpeechService?.speak(confirmText)
-                            // TODO: 保存健康信息到数据库或SharedPreferences
-                            showHealthDialog = false
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary
-                        )
-                    ) {
-                        Text(
-                            text = "确认",
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-            }
+            confirmButton = { },
+            shape = RoundedCornerShape(24.dp)
         )
     }
     
@@ -575,7 +602,7 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Primary
+            containerColor = Color(0xFFE86A58)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -861,67 +888,126 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     if (showWellnessPlanDialog) {
         AlertDialog(
             onDismissRequest = { showWellnessPlanDialog = false },
+            containerColor = Color.Transparent,
+            titleContentColor = Color.White,
+            textContentColor = Color.White,
             title = { 
                 Text(
                     text = "个性化养生方案",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             },
             text = {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 400.dp)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFF5D8AA8),
+                                    Color(0xFF4682B4),
+                                    Color(0xFF36648B)
+                                )
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(16.dp)
                 ) {
                     if (isLoading) {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            CircularProgressIndicator(color = Primary)
-                            Spacer(modifier = Modifier.height(16.dp))
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 text = "正在生成养生方案...",
-                                fontSize = 16.sp,
-                                color = Color.Gray
+                                fontSize = 18.sp,
+                                color = Color.White
                             )
                         }
                     } else {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(max = 400.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
                             Text(
                                 text = wellnessPlanContent,
                                 fontSize = 16.sp,
-                                lineHeight = 24.sp
+                                lineHeight = 24.sp,
+                                color = Color.White
                             )
+                            
+                            // 按钮区域
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // 朗读按钮
+                                Button(
+                                    onClick = { textToSpeechService?.speak(wellnessPlanContent) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.White.copy(alpha = 0.2f)
+                                    )
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.VolumeUp, 
+                                            contentDescription = "朗读", 
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "朗读",
+                                            fontSize = 18.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                                
+                                // 关闭按钮
+                                Button(
+                                    onClick = { showWellnessPlanDialog = false },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.White
+                                    )
+                                ) {
+                                    Text(
+                                        text = "关闭",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF4682B4)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             },
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        textToSpeechService?.speak(wellnessPlanContent)
-                        showWellnessPlanDialog = false 
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Primary
-                    )
-                ) {
-                    Text(
-                        text = if (isLoading) "请稍候" else "朗读并关闭",
-                        fontSize = 18.sp
-                    )
-                }
-            }
+            confirmButton = { },
+            shape = RoundedCornerShape(24.dp)
         )
     }
 }
@@ -1361,30 +1447,30 @@ private fun buildPromptForQianwen(
 
 饮食建议：
 根据节气、温度、空气质量及用户体质，推荐今日食材（标注寒热属性），避免与疾病或过敏相关的禁忌食物（如高血压患者减少高盐食物）。
-若空气质量差，增加清肺润燥的食疗方案（如参考《黄帝内经》“天人相应”理论）。
+若空气质量差，增加清肺润燥的食疗方案（如参考《黄帝内经》"天人相应"理论）。
 运动与作息：
 根据天气温度和健康状况，推荐适合的运动类型与时长（如高温天建议室内拉伸，低温天推荐温补性活动）。
-结合节气调整作息（如冬至后“早卧晚起”，夏季“夜卧早起”）。
+结合节气调整作息（如冬至后"早卧晚起"，夏季"夜卧早起"）。
 若用户有慢性病（如关节炎），需避免特定动作（如剧烈跳跃）。
 中医调理与防护：
 针对用户体质（如阳虚/阴虚），提供穴位按摩、茶饮或艾灸建议。
 若空气质量差，建议室内净化措施（如使用加湿器、选择开窗时段）。
-结合节气重点（如“芒种防暑湿”“冬至补肾”）说明调理方法。
+结合节气重点（如"芒种防暑湿""冬至补肾"）说明调理方法。
 预警与禁忌：
 根据疾病史，列出今日需警惕的症状或风险（如高温天中暑预警、心脏病患者避免暴晒）。
 若推荐药物或补品，标注每日安全用量及与现有药物的相互作用（参考《中国药典》）。
 格式要求：
 
 分点清晰，用标题分隔饮食、运动、中医调理等模块。
-语言通俗，必要时解释专业术语（如“痰湿体质”）。
+语言通俗，必要时解释专业术语（如"痰湿体质"）。
 关键建议引用权威来源（如《黄帝内经》或知识库模板）。
-给出具体操作描述（如“每天按压足三里穴3分钟”）。
+给出具体操作描述（如"每天按压足三里穴3分钟"）。
 补充说明：
 
 若用户未提供生活习惯，默认饮食无特殊要求，运动强度为低至中等（适合老年人或慢性病患者）。
-若用户有应酬或特殊事件（如饮酒），请补充“应酬防护”模块（参考知识库“【应酬防护】模板”）。
+若用户有应酬或特殊事件（如饮酒），请补充"应酬防护"模块（参考知识库"【应酬防护】模板"）。
 需特别标注儿童/孕妇/老年人的安全边界（如运动强度、补品选择）。
-请确保方案科学严谨，无伪养生内容（参考知识库“4步揪出伪科学”原则），并包含以下模块：
+请确保方案科学严谨，无伪养生内容（参考知识库"4步揪出伪科学"原则），并包含以下模块：
 
 今日健康重点（核心需求+节气提示）
 饮食建议（食材、禁忌、食谱示例）
