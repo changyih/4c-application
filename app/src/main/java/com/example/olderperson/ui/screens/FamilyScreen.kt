@@ -788,12 +788,20 @@ private fun FamilyPhotoAlbumCard() {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Photo,
-                        contentDescription = "家庭相册",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF87CEEB).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Photo,
+                            contentDescription = "家庭相册",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
@@ -808,41 +816,30 @@ private fun FamilyPhotoAlbumCard() {
                 // 全部按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { /* 查看全部 */ }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { /* 查看全部 */ }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "全部",
                         fontSize = 14.sp,
-                        color = Color(0xFF2E7D32)
+                        color = Color(0xFF4682B4)
                     )
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "全部",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFF4682B4),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 相册预览
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // 第一行照片
-                GridRow()
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // 第二行照片
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                GridRow()
-            }
+            // 相册预览 - 改进布局为更现代的网格
+            PhotoGrid()
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -851,7 +848,7 @@ private fun FamilyPhotoAlbumCard() {
                 onClick = { /* 添加照片 */ },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2E7D32)
+                    containerColor = Color(0xFF4682B4)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -859,15 +856,15 @@ private fun FamilyPhotoAlbumCard() {
                     imageVector = Icons.Default.Add,
                     contentDescription = "添加",
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 
                 Text(
                     text = "添加照片",
                     color = Color.White,
-                    fontSize = 14.sp
+                    fontSize = 15.sp
                 )
             }
         }
@@ -875,30 +872,75 @@ private fun FamilyPhotoAlbumCard() {
 }
 
 @Composable
-private fun GridRow() {
-    Row(
+private fun PhotoGrid() {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        repeat(3) {
-            ImagePlaceholder()
+        // 第一行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE0F7FA),
+                icon = Icons.Default.Landscape,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFF3E5F5),
+                icon = Icons.Default.People,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFFF3E0),
+                icon = Icons.Default.Cake,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        // 第二行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE8F5E9),
+                icon = Icons.Default.Park,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFE1F5FE),
+                icon = Icons.Default.House,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFCE4EC),
+                icon = Icons.Default.EmojiEvents,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun ImagePlaceholder() {
+private fun PhotoItem(
+    color: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
-            .size(110.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.LightGray),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color)
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Image,
-            contentDescription = "图片",
-            tint = Color.Gray,
+            imageVector = icon,
+            contentDescription = "照片",
+            tint = Color(0xFF4682B4),
             modifier = Modifier.size(32.dp)
         )
     }
