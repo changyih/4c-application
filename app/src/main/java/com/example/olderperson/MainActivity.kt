@@ -240,6 +240,9 @@ fun MainContent(
                     // 权限已经在MainActivity中请求过了
                 }
             )
+            NavSection.SELF_CHECK -> HealthPlanScreen(
+                textToSpeechService = textToSpeechService
+            )
             else -> Box(modifier = Modifier.fillMaxSize()) {
                 Text(
                     text = "开发中...",

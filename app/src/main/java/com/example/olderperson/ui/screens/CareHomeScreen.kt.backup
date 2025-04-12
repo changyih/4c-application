@@ -1,0 +1,1061 @@
+package com.example.olderperson.ui.screens
+
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.olderperson.service.TextToSpeechService
+import com.example.olderperson.ui.theme.FontSizeConfig
+import com.example.olderperson.ui.theme.Primary
+import com.example.olderperson.utils.WeatherManager
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.BrightnessLow
+import androidx.compose.material.icons.filled.Grain
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.TextStyle
+import com.example.olderperson.service.AlibabaQianwenService
+import com.example.olderperson.service.SpeechRecognitionAdapter
+
+@Composable
+fun CareHomeScreen(
+    userName: String,
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToFamily: () -> Unit = {},
+    onNavigateToCommunity: () -> Unit = {},
+
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToExplore: () -> Unit = {},
+
+    onNavigateToSettings: () -> Unit = {},
+
+    textToSpeechService: TextToSpeechService? = null,
+    speechRecognitionAdapter: SpeechRecognitionAdapter? = null
+) {
+    // 天气信息状态
+    var weatherInfo by remember { mutableStateOf<WeatherManager.Companion.WeatherInfo?>(null) }
+    var currentCity by remember { mutableStateOf("长春") }
+    var showCityDialog by remember { mutableStateOf(false) }
+    var showButtons by remember { mutableStateOf(false) }
+    
+    // 健康信息状态
+    var showHealthDialog by remember { mutableStateOf(false) }
+    var age by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("男") }
+    var medicalHistory by remember { mutableStateOf("") }
+    var dietaryRestrictions by remember { mutableStateOf("") }
+    var allergies by remember { mutableStateOf("") }
+    
+    // 养生方案状态
+    var showWellnessPlanDialog by remember { mutableStateOf(false) }
+    var wellnessPlanContent by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    
+    // 语音识别状态
+    val isListening by speechRecognitionAdapter?.isListening?.collectAsState(false) ?: remember { mutableStateOf(false) }
+    val recognizedText by speechRecognitionAdapter?.recognizedText?.collectAsState("") ?: remember { mutableStateOf("") }
+    var activeInputField by remember { mutableStateOf("") }
+    
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 获取通义千问服务实例
+    val qianwenService = remember { AlibabaQianwenService(context) }
+    
+    // 配置语音识别完成回调
+    LaunchedEffect(speechRecognitionAdapter) {
+        speechRecognitionAdapter?.setOnRecognitionFinishedListener { result ->
+            // 根据当前活动的输入字段，将识别结果填入对应的输入框
+            when (activeInputField) {
+                "age" -> age = result.replace("[^0-9]".toRegex(), "")
+                "medicalHistory" -> medicalHistory = result
+                "dietaryRestrictions" -> dietaryRestrictions = result
+                "allergies" -> allergies = result
+            }
+            
+            // 播放确认提示
+            textToSpeechService?.speak("已识别：$result")
+            
+            // 重置状态
+            activeInputField = ""
+        }
+    }
+    
+    // 监听语音识别状态变化
+    LaunchedEffect(isListening) {
+        Log.d("CareHomeScreen", "语音识别状态变化: isListening = $isListening, activeInputField = $activeInputField")
+    }
+    
+    // 监听语音识别结果
+    LaunchedEffect(recognizedText) {
+        if (recognizedText.isNotEmpty() && activeInputField.isNotEmpty()) {
+            Log.d("CareHomeScreen", "收到语音识别结果: $recognizedText, 当前输入字段: $activeInputField")
+        }
+    }
+    
+    // 获取天气信息
+    LaunchedEffect(currentCity) {
+        coroutineScope.launch {
+            try {
+                val info = WeatherManager.getWeatherInfo(context, currentCity)
+                weatherInfo = info
+                Log.d("CareHomeScreen", "天气数据获取成功: ${info.city}, ${info.weather}, ${info.temperature}")
+            } catch (e: Exception) {
+                Log.e("CareHomeScreen", "天气数据获取失败", e)
+            }
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // 顶部问候区域
+            TopGreetingSection(userName, textToSpeechService, speechRecognitionAdapter)
+            
+            // 主要内容区域
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 导航按钮区域
+                item {
+                    NavigationButtons(
+                        onNavigateToProfile = {
+                            textToSpeechService?.speak("进入我和自己页面")
+                            onNavigateToProfile()
+                        },
+                        onNavigateToFamily = onNavigateToFamily,
+                        onNavigateToCommunity = onNavigateToCommunity
+                    )
+                }
+                
+                // 今日安排
+                item {
+                    TodayScheduleCard()
+                }
+                
+                // 底部间距
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+            
+            // 底部导航栏
+            BottomNavigationBar(
+                onHomeClick = { /* 当前在首页，无需导航 */ },
+                onChatClick = onNavigateToChat,
+                onExploreClick = onNavigateToExplore,
+                onSettingsClick = onNavigateToSettings
+            )
+        }
+        
+        // 显示对话框
+        
+        // 城市选择对话框
+        if (showCityDialog) {
+            AlertDialog(
+                onDismissRequest = { showCityDialog = false },
+                title = { Text("选择城市") },
+                text = {
+                    Column {
+                        val cityList = listOf("长春", "北京", "上海", "广州")
+                        cityList.forEach { city ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (city != currentCity) {
+                                            currentCity = city
+                                            // 播报切换城市的语音提示
+                                            textToSpeechService?.speak("正在切换到${city}天气")
+                                            Log.d("CareHomeScreen", "城市切换: ${weatherInfo?.city} -> $city")
+                                        }
+                                        showCityDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationCity,
+                                    contentDescription = null,
+                                    tint = if (city == currentCity) Primary else Color.Gray
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = city,
+                                    fontSize = 16.sp,
+                                    fontWeight = if (city == currentCity) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (city == currentCity) Primary else Color.Black
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showCityDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+        
+        // 健康情况对话框
+        if (showHealthDialog) {
+            AlertDialog(
+                onDismissRequest = { showHealthDialog = false },
+                title = { 
+                    Text(
+                        text = "添加健康情况",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // 健康情况内容
+                        // ... 保留原有代码，包含年龄、性别、疾病史、忌口和过敏情况输入 ...
+                        
+                        // 显示当前识别结果
+                        if (isListening && recognizedText.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Primary.copy(alpha = 0.1f))
+                                    .padding(8.dp)
+                            ) {
+                                Text(
+                                    text = "正在识别: $recognizedText",
+                                    fontSize = 16.sp,
+                                    color = Primary
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // 取消按钮
+                        Button(
+                            onClick = { showHealthDialog = false },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.LightGray
+                            )
+                        ) {
+                            Text(
+                                text = "取消",
+                                fontSize = 18.sp,
+                                color = Color.Black
+                            )
+                        }
+                        
+                        // 确认按钮
+                        Button(
+                            onClick = {
+                                // 保存健康信息并朗读确认信息
+                                val confirmText = "已保存您的健康信息。年龄：$age，性别：$gender" +
+                                        (if (medicalHistory.isNotEmpty()) "，疾病史：$medicalHistory" else "") +
+                                        (if (dietaryRestrictions.isNotEmpty()) "，忌口：$dietaryRestrictions" else "") +
+                                        (if (allergies.isNotEmpty()) "，过敏情况：$allergies" else "")
+                                textToSpeechService?.speak(confirmText)
+                                // TODO: 保存健康信息到数据库或SharedPreferences
+                                showHealthDialog = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Primary
+                            )
+                        ) {
+                            Text(
+                                text = "确认",
+                                fontSize = 18.sp
+                            )
+                        }
+                    }
+                }
+            )
+        }
+        
+        // 养生方案对话框
+        if (showWellnessPlanDialog) {
+            AlertDialog(
+                onDismissRequest = { showWellnessPlanDialog = false },
+                title = { 
+                    Text(
+                        text = "养生方案",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Primary,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .align(Alignment.CenterHorizontally)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "正在生成养生方案，请稍候...",
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            Text(
+                                text = wellnessPlanContent,
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showWellnessPlanDialog = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Primary
+                        )
+                    ) {
+                        Text(
+                            text = "关闭",
+                            fontSize = 18.sp
+                        )
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpeechService?, speechRecognitionAdapter: SpeechRecognitionAdapter?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "您好，$userName",
+                    fontSize = FontSizeConfig.scaledSp(24).sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                
+                Text(
+                    text = getCurrentDate(),
+                    fontSize = FontSizeConfig.scaledSp(14).sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            // 用户头像
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF87CEEB))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "用户头像",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.Center)
+                )
+            }
+        }
+
+        // 智能助手对话框
+        AssistantChatBox(textToSpeechService, speechRecognitionAdapter)
+        
+        // 交流按钮区域
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 语音交流按钮
+            CommunicationButton(
+                icon = Icons.Default.Mic,
+                text = "语音交流",
+                modifier = Modifier.weight(1f),
+                onClick = { textToSpeechService?.speak("语音交流") }
+            )
+
+            // 文字交流按钮
+            CommunicationButton(
+                icon = Icons.Default.Keyboard,
+                text = "文字交流",
+                modifier = Modifier.weight(1f),
+                onClick = { textToSpeechService?.speak("文字交流") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssistantChatBox(textToSpeechService: TextToSpeechService?, speechRecognitionAdapter: SpeechRecognitionAdapter?) {
+    // 在初始化时检查服务
+    LaunchedEffect(Unit) {
+        Log.d("CareHomeScreen", "AssistantChatBox 初始化")
+        if (speechRecognitionAdapter == null) {
+            Log.e("CareHomeScreen", "警告: speechRecognitionAdapter 为空!")
+        } else {
+            Log.d("CareHomeScreen", "speechRecognitionAdapter 可用")
+            
+            // 设置识别完成监听器
+            speechRecognitionAdapter.setOnRecognitionFinishedListener { result ->
+                // 根据当前活动的输入字段，将识别结果填入对应的输入框
+                when (activeInputField) {
+                    "age" -> age = result.replace("[^0-9]".toRegex(), "")
+                    "medicalHistory" -> medicalHistory = result
+                    "dietaryRestrictions" -> dietaryRestrictions = result
+                    "allergies" -> allergies = result
+                }
+                
+                // 播放确认提示
+                textToSpeechService?.speak("已识别：$result")
+                
+                // 重置状态
+                activeInputField = ""
+            }
+        }
+        
+        if (textToSpeechService == null) {
+            Log.e("CareHomeScreen", "警告: textToSpeechService 为空!")
+        } else {
+            Log.d("CareHomeScreen", "textToSpeechService 可用")
+        }
+    }
+    
+    var weatherInfo by remember { mutableStateOf<WeatherManager.Companion.WeatherInfo?>(null) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var currentCity by remember { mutableStateOf("长春") }
+    
+    // 新增：健康信息状态
+    var age by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("男") }
+    var medicalHistory by remember { mutableStateOf("") }
+    var dietaryRestrictions by remember { mutableStateOf("") }
+    var allergies by remember { mutableStateOf("") }
+    
+    // 新增：语音识别状态监听
+    val isListening by speechRecognitionAdapter?.isListening?.collectAsState(false) ?: remember { mutableStateOf(false) }
+    val recognizedText by speechRecognitionAdapter?.recognizedText?.collectAsState("") ?: remember { mutableStateOf("") }
+    
+    // 新增：当前激活的输入字段
+    var activeInputField by remember { mutableStateOf("") }
+}
+
+@Composable
+private fun NavigationButtons(
+    onNavigateToProfile: () -> Unit,
+    onNavigateToFamily: () -> Unit,
+    onNavigateToCommunity: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        NavigationButton(
+            icon = Icons.Default.Person,
+            text = "我和自己",
+            onClick = {
+                // 添加日志确认点击
+                Log.d("CareHomeScreen", "我和自己按钮被点击")
+                onNavigateToProfile()
+            }
+        )
+        NavigationButton(
+            icon = Icons.Default.Home,
+            text = "我和家人",
+            onClick = onNavigateToFamily
+        )
+        NavigationButton(
+            icon = Icons.Default.People,
+            text = "我和社区",
+            onClick = onNavigateToCommunity
+        )
+    }
+}
+
+@Composable
+private fun NavigationButton(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .clickable { 
+                    onClick() 
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color(0xFF87CEEB),
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = text,
+            fontSize = FontSizeConfig.scaledSp(14).sp,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun TodayScheduleCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // 标题和查看全部
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 标题图标和文字
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarToday,
+                        contentDescription = "今日安排",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "今日安排",
+                        fontSize = FontSizeConfig.scaledSp(18).sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                
+                // 查看全部
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { /* 查看全部 */ }
+                ) {
+                    Text(
+                        text = "全部",
+                        fontSize = FontSizeConfig.scaledSp(14).sp,
+                        color = Color(0xFF2E7D32)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "查看全部",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 晨间服药
+            ScheduleItem(
+                time = "08:00",
+                title = "晨间服药",
+                description = "降压药 1片，维生素 1片"
+            )
+            
+            Divider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = Color(0xFFEEEEEE),
+                thickness = 1.dp
+            )
+            
+            // 心脏科复诊
+            ScheduleItem(
+                time = "10:30",
+                title = "心脏科复诊",
+                description = "市第一人民医院"
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScheduleItem(
+    time: String,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = time,
+            fontSize = FontSizeConfig.scaledSp(16).sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF87CEEB)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
+            Text(
+                text = title,
+                fontSize = FontSizeConfig.scaledSp(16).sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+            
+            Text(
+                text = description,
+                fontSize = FontSizeConfig.scaledSp(14).sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigationBar(
+    onHomeClick: () -> Unit,
+    onChatClick: () -> Unit,
+    onExploreClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(70.dp), // 增大高度
+        color = Color.White,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 首页按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Home,
+                label = "首页",
+                isSelected = true,
+                onClick = onHomeClick
+            )
+            
+            // 对话按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Chat,
+                label = "对话",
+                isSelected = false,
+                onClick = onChatClick
+            )
+            
+            // 探索按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Explore,
+                label = "探索",
+                isSelected = false,
+                onClick = onExploreClick
+            )
+            
+            // 设置按钮
+            HomeBottomNavItem(
+                icon = Icons.Outlined.Settings,
+                label = "设置",
+                isSelected = false,
+                onClick = onSettingsClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeBottomNavItem(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = label,
+            color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
+            fontSize = FontSizeConfig.scaledSp(12).sp
+        )
+    }
+}
+
+private fun getCurrentDate(): String {
+    val dateFormat = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINESE)
+    return dateFormat.format(Date())
+}
+
+@Composable
+private fun CommunicationButton(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = FontSizeConfig.scaledSp(14).sp
+            )
+        }
+    }
+}
+
+// 播报完整天气信息
+fun speakWeatherInfo(info: WeatherManager.Companion.WeatherInfo, tts: TextToSpeechService?) {
+    tts?.let {
+        val weatherText = """
+            ${info.city}今天天气${info.weather}，
+            气温${info.temperature}，
+            空气质量${info.airQuality}，
+            空气指数${info.airIndex}，
+            今天是${info.date}，
+            ${info.solarTerm}节气期间。
+        """.trimIndent()
+        
+        it.speak(weatherText)
+        Log.d("CareHomeScreen", "播报天气信息: $weatherText")
+    }
+}
+
+// 添加本地养生方案生成函数
+private fun generateLocalWellnessPlan(
+    age: String,
+    gender: String,
+    medicalHistory: String,
+    dietaryRestrictions: String,
+    allergies: String,
+    weatherInfo: WeatherManager.Companion.WeatherInfo?
+): String {
+    val ageInt = age.toIntOrNull() ?: 65
+    val weather = weatherInfo?.weather ?: "晴"
+    val temperature = weatherInfo?.temperature?.replace("°C", "")?.toIntOrNull() ?: 25
+    val airQuality = weatherInfo?.airQuality ?: "良"
+    val city = weatherInfo?.city ?: "长春"
+    val solarTerm = weatherInfo?.solarTerm ?: ""
+    
+    val sb = StringBuilder()
+    
+    // 添加标题和个性化问候
+    sb.append("【个性化养生方案】\n\n")
+    sb.append("尊敬的${if (gender == "男") "先生" else "女士"}，以下是根据您的个人情况和今天的天气为您定制的养生建议：\n\n")
+    
+    // 天气相关建议
+    sb.append("【天气调养建议】\n")
+    
+    when {
+        weather.contains("雨") -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 雨天空气湿度较大，注意保持室内通风，预防风湿病和关节炎症状加重。\n")
+            sb.append("• 出门请携带雨具，穿防滑鞋，避免因路滑而跌倒。\n")
+        }
+        weather.contains("雪") -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 雪天温度低，注意保暖，特别是颈部、腰部和关节处，预防寒气入侵。\n")
+            sb.append("• 减少外出，若必须外出，请穿防滑鞋，注意路面结冰情况。\n")
+        }
+        weather.contains("风") -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 风天外出注意保暖，尤其是头部和颈部，预防受风寒。\n")
+            sb.append("• 风大时减少户外活动，以免灰尘和花粉对呼吸道造成刺激。\n")
+        }
+        temperature > 30 -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 高温天气请避免在室外高温环境中长时间活动，预防中暑。\n")
+            sb.append("• 多喝水，每天不少于1500ml，及时补充水分和电解质。\n")
+            sb.append("• 可适当食用清热解暑的食物，如绿豆汤、西瓜等。\n")
+        }
+        temperature < 5 -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 低温天气注意保暖，尤其是头部、颈部和腰部，穿着宽松保暖的衣物。\n")
+            sb.append("• 增加热量摄入，可适当食用生姜、大枣等温性食物。\n")
+        }
+        else -> {
+            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
+            sb.append("• 天气适宜，可进行适度的户外活动，如散步、太极拳等。\n")
+            sb.append("• 注意早晚温差，随时增减衣物，预防感冒。\n")
+        }
+    }
+    
+    // 空气质量建议
+    if (airQuality.contains("优")) {
+        sb.append("• 空气质量优良，适合进行户外活动，建议晨练或傍晚散步15-30分钟。\n")
+    } else if (airQuality.contains("良")) {
+        sb.append("• 空气质量良好，适合进行户外活动，但时间不宜过长，建议控制在1小时以内。\n")
+    } else {
+        sb.append("• 空气质量${airQuality}，建议减少户外活动，外出佩戴口罩，回家后及时清洁面部和鼻腔。\n")
+    }
+    
+    // 饮食建议
+    sb.append("\n【饮食调养建议】\n")
+    
+    // 根据节气提供饮食建议
+    if (solarTerm.isNotEmpty()) {
+        when {
+            solarTerm.contains("立春") || solarTerm.contains("雨水") || solarTerm.contains("惊蛰") -> {
+                sb.append("• 春季养生宜温补阳气，可多食用葱、姜、蒜等辛温食物。\n")
+                sb.append("• 早春时节肝气渐长，宜食用菠菜、荠菜等春季时令蔬菜。\n")
+            }
+            solarTerm.contains("春分") || solarTerm.contains("清明") || solarTerm.contains("谷雨") -> {
+                sb.append("• 仲春时节阳气上升，宜食清淡，多吃绿色蔬菜和水果。\n")
+                sb.append("• 可适量食用山药、枸杞等滋补肝肾的食物。\n")
+            }
+            solarTerm.contains("立夏") || solarTerm.contains("小满") || solarTerm.contains("芒种") -> {
+                sb.append("• 初夏饮食宜清淡，可多食用绿豆、苦瓜等清热食物。\n")
+                sb.append("• 注意补充水分，可饮用菊花茶、绿茶等清热解暑的饮品。\n")
+            }
+            solarTerm.contains("夏至") || solarTerm.contains("小暑") || solarTerm.contains("大暑") -> {
+                sb.append("• 盛夏饮食宜清热解暑，可多食用西瓜、黄瓜等生津止渴的食物。\n")
+                sb.append("• 适当食用红豆、薏仁等利水渗湿的食物。\n")
+            }
+            solarTerm.contains("立秋") || solarTerm.contains("处暑") || solarTerm.contains("白露") -> {
+                sb.append("• 初秋养生宜润燥，可多食用梨、银耳等滋阴润肺的食物。\n")
+                sb.append("• 适当食用芝麻、蜂蜜等养阴润燥的食物。\n")
+            }
+            solarTerm.contains("秋分") || solarTerm.contains("寒露") || solarTerm.contains("霜降") -> {
+                sb.append("• 深秋时节燥气当令，宜食用滋阴润肺食物，如百合、银耳等。\n")
+                sb.append("• 可适量食用山药、莲子等健脾益肺的食物。\n")
+            }
+            solarTerm.contains("立冬") || solarTerm.contains("小雪") || solarTerm.contains("大雪") -> {
+                sb.append("• 初冬养生宜温补阳气，可适量食用羊肉、核桃等温补食物。\n")
+                sb.append("• 多食用当季蔬菜，如白萝卜、白菜等。\n")
+            }
+            solarTerm.contains("冬至") || solarTerm.contains("小寒") || solarTerm.contains("大寒") -> {
+                sb.append("• 深冬时节寒气盛行，宜温补肾阳，可适量食用羊肉、狗肉等温补食物。\n")
+                sb.append("• 多食用黑豆、黑芝麻等黑色食物，有助于补肾。\n")
+            }
+            else -> {
+                sb.append("• 应季饮食，多吃时令蔬果，保持饮食均衡。\n")
+                sb.append("• 注意少盐少油，多吃新鲜蔬菜和水果。\n")
+            }
+        }
+    } else {
+        sb.append("• 应季饮食，多吃时令蔬果，保持饮食均衡。\n")
+        sb.append("• 注意少盐少油，多吃新鲜蔬菜和水果。\n")
+    }
+    
+    // 根据医疗史提供建议
+    if (medicalHistory.isNotEmpty()) {
+        if (medicalHistory.contains("高血压")) {
+            sb.append("• 高血压人群建议限制钠盐摄入，每日食盐摄入量控制在5克以内。\n")
+            sb.append("• 多食用芹菜、菠菜等富含钾的食物，有助于降压。\n")
+        }
+        if (medicalHistory.contains("糖尿病")) {
+            sb.append("• 糖尿病人群建议控制碳水化合物摄入，少食多餐，避免食用精制糖和高糖食物。\n")
+            sb.append("• 可适量食用苦瓜、黄瓜等降糖食物。\n")
+        }
+        if (medicalHistory.contains("心脏")) {
+            sb.append("• 心脏病患者建议低盐低脂饮食，避免食用油炸、高脂肪食物。\n")
+            sb.append("• 适量食用鱼类、坚果等富含不饱和脂肪酸的食物。\n")
+        }
+    }
+    
+    // 根据忌口提供建议
+    if (dietaryRestrictions.isNotEmpty()) {
+        sb.append("• 根据您的饮食忌口（${dietaryRestrictions}），请避免食用这些食物，可选择其他替代品。\n")
+    }
+    
+    // 根据过敏情况提供建议
+    if (allergies.isNotEmpty()) {
+        sb.append("• 您有${allergies}过敏情况，请特别注意避免接触相关过敏原。\n")
+    }
+    
+    // 运动建议
+    sb.append("\n【运动调养建议】\n")
+    
+    // 根据年龄提供运动建议
+    if (ageInt < 60) {
+        sb.append("• 可进行中等强度有氧运动，如快走、慢跑、游泳等，每次30-40分钟，每周3-5次。\n")
+        sb.append("• 适当进行力量训练，如哑铃、弹力带等，增强肌肉力量和骨密度。\n")
+    } else if (ageInt < 70) {
+        sb.append("• 建议进行低强度有氧运动，如散步、太极拳、健身操等，每次20-30分钟，每天1次。\n")
+        sb.append("• 进行适度的肌肉力量训练，如轻度哑铃、弹力带等，每周2-3次。\n")
+    } else {
+        sb.append("• 建议进行轻柔的活动，如散步、太极拳、八段锦等，每次15-20分钟，每天1-2次。\n")
+        sb.append("• 注重平衡性训练，预防跌倒，可进行简单的站立平衡训练。\n")
+    }
+    
+    // 天气特殊情况的运动建议
+    if (weather.contains("雨") || weather.contains("雪")) {
+        sb.append("• 今天天气不适宜户外运动，可在室内进行适度活动，如八段锦、站桩等。\n")
+    } else if (temperature > 30) {
+        sb.append("• 高温天气应避免在中午前后户外运动，建议在清晨或傍晚进行，注意补充水分。\n")
+    } else if (temperature < 5) {
+        sb.append("• 低温天气外出运动前应充分热身，注意保暖，运动强度不宜过大。\n")
+    }
+    
+    // 根据医疗史调整运动建议
+    if (medicalHistory.isNotEmpty()) {
+        if (medicalHistory.contains("高血压") || medicalHistory.contains("心脏")) {
+            sb.append("• 有高血压或心脏病史，运动时应避免剧烈活动，控制心率不超过(220-年龄)×60%。\n")
+            sb.append("• 运动前后测量血压，如有不适立即停止。\n")
+        }
+        if (medicalHistory.contains("关节炎") || medicalHistory.contains("骨质")) {
+            sb.append("• 有关节问题，建议选择低冲击运动，如游泳、太极等，避免跑跳等剧烈活动。\n")
+        }
+    }
+    
+    // 作息建议
+    sb.append("\n【作息调养建议】\n")
+    sb.append("• 保持规律作息，建议晚上10点前入睡，早晨6-7点起床。\n")
+    sb.append("• 午休20-30分钟，有助于恢复精力，但不宜时间过长。\n")
+    
+    // 根据天气调整作息
+    if (weather.contains("雨") || weather.contains("阴")) {
+        sb.append("• 阴雨天气容易引起情绪低落，可适当增加室内照明，多听轻松愉快的音乐。\n")
+    }
+    
+    // 结语
+    sb.append("\n请记住，养生贵在坚持，希望您保持健康愉快的生活！\n")
+    sb.append("如有不适，请及时咨询医生。")
+    
+    return sb.toString()
+} 
