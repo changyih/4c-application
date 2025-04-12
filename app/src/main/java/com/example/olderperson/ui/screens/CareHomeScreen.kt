@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.foundation.border
 import androidx.compose.ui.text.TextStyle
-import com.example.olderperson.service.AlibabaQianwenService
 
 @Composable
 fun CareHomeScreen(
@@ -209,18 +208,6 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     
     // 新增：健康情况对话框状态
     var showHealthDialog by remember { mutableStateOf(false) }
-    
-    // 新增：养生方案对话框状态
-    var showWellnessPlanDialog by remember { mutableStateOf(false) }
-    
-    // 新增：养生方案内容
-    var wellnessPlanContent by remember { mutableStateOf("") }
-    
-    // 新增：加载中状态
-    var isLoading by remember { mutableStateOf(false) }
-    
-    // 新增：获取通义千问服务实例
-    val qianwenService = remember { AlibabaQianwenService(context) }
     
     // 新增：健康信息状态
     var age by remember { mutableStateOf("") }
@@ -820,34 +807,8 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                                 icon = Icons.Default.Favorite,
                                 text = "生成养生方案",
                                 onClick = {
-                                    textToSpeechService?.speak("正在为您生成养生方案")
-                                    // 显示养生方案对话框并开始加载
-                                    isLoading = true
-                                    showWellnessPlanDialog = true
-                                    
-                                    // 使用本地生成的养生方案
-                                    coroutineScope.launch {
-                                        try {
-                                            // 短暂延迟模拟生成过程
-                                            kotlinx.coroutines.delay(1000)
-                                            
-                                            // 本地生成养生方案内容
-                                            wellnessPlanContent = generateLocalWellnessPlan(
-                                                age = age,
-                                                gender = gender,
-                                                medicalHistory = medicalHistory,
-                                                dietaryRestrictions = dietaryRestrictions,
-                                                allergies = allergies,
-                                                weatherInfo = weatherInfo
-                                            )
-                                            isLoading = false
-                                        } catch (e: Exception) {
-                                            // 异常处理
-                                            Log.e("CareHomeScreen", "生成养生方案失败", e)
-                                            wellnessPlanContent = "抱歉，生成养生方案时遇到问题。请稍后再试。"
-                                            isLoading = false
-                                        }
-                                    }
+                                    textToSpeechService?.speak("生成养生方案")
+                                    // TODO: 实现生成养生方案功能
                                 }
                             )
                         }
@@ -855,74 +816,6 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                 }
             }
         }
-    }
-
-    // 新增：养生方案对话框
-    if (showWellnessPlanDialog) {
-        AlertDialog(
-            onDismissRequest = { showWellnessPlanDialog = false },
-            title = { 
-                Text(
-                    text = "个性化养生方案",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp)
-                ) {
-                    if (isLoading) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(color = Primary)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "正在生成养生方案...",
-                                fontSize = 16.sp,
-                                color = Color.Gray
-                            )
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Text(
-                                text = wellnessPlanContent,
-                                fontSize = 16.sp,
-                                lineHeight = 24.sp
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        textToSpeechService?.speak(wellnessPlanContent)
-                        showWellnessPlanDialog = false 
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Primary
-                    )
-                ) {
-                    Text(
-                        text = if (isLoading) "请稍候" else "朗读并关闭",
-                        fontSize = 18.sp
-                    )
-                }
-            }
-        )
     }
 }
 
@@ -1318,198 +1211,4 @@ fun speakWeatherInfo(info: WeatherManager.Companion.WeatherInfo, tts: TextToSpee
         it.speak(weatherText)
         Log.d("CareHomeScreen", "播报天气信息: $weatherText")
     }
-}
-
-// 添加本地养生方案生成函数
-private fun generateLocalWellnessPlan(
-    age: String,
-    gender: String,
-    medicalHistory: String,
-    dietaryRestrictions: String,
-    allergies: String,
-    weatherInfo: WeatherManager.Companion.WeatherInfo?
-): String {
-    val ageInt = age.toIntOrNull() ?: 65
-    val weather = weatherInfo?.weather ?: "晴"
-    val temperature = weatherInfo?.temperature?.replace("°C", "")?.toIntOrNull() ?: 25
-    val airQuality = weatherInfo?.airQuality ?: "良"
-    val city = weatherInfo?.city ?: "长春"
-    val solarTerm = weatherInfo?.solarTerm ?: ""
-    
-    val sb = StringBuilder()
-    
-    // 添加标题和个性化问候
-    sb.append("【个性化养生方案】\n\n")
-    sb.append("尊敬的${if (gender == "男") "先生" else "女士"}，以下是根据您的个人情况和今天的天气为您定制的养生建议：\n\n")
-    
-    // 天气相关建议
-    sb.append("【天气调养建议】\n")
-    
-    when {
-        weather.contains("雨") -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 雨天空气湿度较大，注意保持室内通风，预防风湿病和关节炎症状加重。\n")
-            sb.append("• 出门请携带雨具，穿防滑鞋，避免因路滑而跌倒。\n")
-        }
-        weather.contains("雪") -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 雪天温度低，注意保暖，特别是颈部、腰部和关节处，预防寒气入侵。\n")
-            sb.append("• 减少外出，若必须外出，请穿防滑鞋，注意路面结冰情况。\n")
-        }
-        weather.contains("风") -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 风天外出注意保暖，尤其是头部和颈部，预防受风寒。\n")
-            sb.append("• 风大时减少户外活动，以免灰尘和花粉对呼吸道造成刺激。\n")
-        }
-        temperature > 30 -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 高温天气请避免在室外高温环境中长时间活动，预防中暑。\n")
-            sb.append("• 多喝水，每天不少于1500ml，及时补充水分和电解质。\n")
-            sb.append("• 可适当食用清热解暑的食物，如绿豆汤、西瓜等。\n")
-        }
-        temperature < 5 -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 低温天气注意保暖，尤其是头部、颈部和腰部，穿着宽松保暖的衣物。\n")
-            sb.append("• 增加热量摄入，可适当食用生姜、大枣等温性食物。\n")
-        }
-        else -> {
-            sb.append("• 今天${city}天气${weather}，气温${weatherInfo?.temperature}，空气质量${airQuality}。\n")
-            sb.append("• 天气适宜，可进行适度的户外活动，如散步、太极拳等。\n")
-            sb.append("• 注意早晚温差，随时增减衣物，预防感冒。\n")
-        }
-    }
-    
-    // 空气质量建议
-    if (airQuality.contains("优")) {
-        sb.append("• 空气质量优良，适合进行户外活动，建议晨练或傍晚散步15-30分钟。\n")
-    } else if (airQuality.contains("良")) {
-        sb.append("• 空气质量良好，适合进行户外活动，但时间不宜过长，建议控制在1小时以内。\n")
-    } else {
-        sb.append("• 空气质量${airQuality}，建议减少户外活动，外出佩戴口罩，回家后及时清洁面部和鼻腔。\n")
-    }
-    
-    // 饮食建议
-    sb.append("\n【饮食调养建议】\n")
-    
-    // 根据节气提供饮食建议
-    if (solarTerm.isNotEmpty()) {
-        when {
-            solarTerm.contains("立春") || solarTerm.contains("雨水") || solarTerm.contains("惊蛰") -> {
-                sb.append("• 春季养生宜温补阳气，可多食用葱、姜、蒜等辛温食物。\n")
-                sb.append("• 早春时节肝气渐长，宜食用菠菜、荠菜等春季时令蔬菜。\n")
-            }
-            solarTerm.contains("春分") || solarTerm.contains("清明") || solarTerm.contains("谷雨") -> {
-                sb.append("• 仲春时节阳气上升，宜食清淡，多吃绿色蔬菜和水果。\n")
-                sb.append("• 可适量食用山药、枸杞等滋补肝肾的食物。\n")
-            }
-            solarTerm.contains("立夏") || solarTerm.contains("小满") || solarTerm.contains("芒种") -> {
-                sb.append("• 初夏饮食宜清淡，可多食用绿豆、苦瓜等清热食物。\n")
-                sb.append("• 注意补充水分，可饮用菊花茶、绿茶等清热解暑的饮品。\n")
-            }
-            solarTerm.contains("夏至") || solarTerm.contains("小暑") || solarTerm.contains("大暑") -> {
-                sb.append("• 盛夏饮食宜清热解暑，可多食用西瓜、黄瓜等生津止渴的食物。\n")
-                sb.append("• 适当食用红豆、薏仁等利水渗湿的食物。\n")
-            }
-            solarTerm.contains("立秋") || solarTerm.contains("处暑") || solarTerm.contains("白露") -> {
-                sb.append("• 初秋养生宜润燥，可多食用梨、银耳等滋阴润肺的食物。\n")
-                sb.append("• 适当食用芝麻、蜂蜜等养阴润燥的食物。\n")
-            }
-            solarTerm.contains("秋分") || solarTerm.contains("寒露") || solarTerm.contains("霜降") -> {
-                sb.append("• 深秋时节燥气当令，宜食用滋阴润肺食物，如百合、银耳等。\n")
-                sb.append("• 可适量食用山药、莲子等健脾益肺的食物。\n")
-            }
-            solarTerm.contains("立冬") || solarTerm.contains("小雪") || solarTerm.contains("大雪") -> {
-                sb.append("• 初冬养生宜温补阳气，可适量食用羊肉、核桃等温补食物。\n")
-                sb.append("• 多食用当季蔬菜，如白萝卜、白菜等。\n")
-            }
-            solarTerm.contains("冬至") || solarTerm.contains("小寒") || solarTerm.contains("大寒") -> {
-                sb.append("• 深冬时节寒气盛行，宜温补肾阳，可适量食用羊肉、狗肉等温补食物。\n")
-                sb.append("• 多食用黑豆、黑芝麻等黑色食物，有助于补肾。\n")
-            }
-            else -> {
-                sb.append("• 应季饮食，多吃时令蔬果，保持饮食均衡。\n")
-                sb.append("• 注意少盐少油，多吃新鲜蔬菜和水果。\n")
-            }
-        }
-    } else {
-        sb.append("• 应季饮食，多吃时令蔬果，保持饮食均衡。\n")
-        sb.append("• 注意少盐少油，多吃新鲜蔬菜和水果。\n")
-    }
-    
-    // 根据医疗史提供建议
-    if (medicalHistory.isNotEmpty()) {
-        if (medicalHistory.contains("高血压")) {
-            sb.append("• 高血压人群建议限制钠盐摄入，每日食盐摄入量控制在5克以内。\n")
-            sb.append("• 多食用芹菜、菠菜等富含钾的食物，有助于降压。\n")
-        }
-        if (medicalHistory.contains("糖尿病")) {
-            sb.append("• 糖尿病人群建议控制碳水化合物摄入，少食多餐，避免食用精制糖和高糖食物。\n")
-            sb.append("• 可适量食用苦瓜、黄瓜等降糖食物。\n")
-        }
-        if (medicalHistory.contains("心脏")) {
-            sb.append("• 心脏病患者建议低盐低脂饮食，避免食用油炸、高脂肪食物。\n")
-            sb.append("• 适量食用鱼类、坚果等富含不饱和脂肪酸的食物。\n")
-        }
-    }
-    
-    // 根据忌口提供建议
-    if (dietaryRestrictions.isNotEmpty()) {
-        sb.append("• 根据您的饮食忌口（${dietaryRestrictions}），请避免食用这些食物，可选择其他替代品。\n")
-    }
-    
-    // 根据过敏情况提供建议
-    if (allergies.isNotEmpty()) {
-        sb.append("• 您有${allergies}过敏情况，请特别注意避免接触相关过敏原。\n")
-    }
-    
-    // 运动建议
-    sb.append("\n【运动调养建议】\n")
-    
-    // 根据年龄提供运动建议
-    if (ageInt < 60) {
-        sb.append("• 可进行中等强度有氧运动，如快走、慢跑、游泳等，每次30-40分钟，每周3-5次。\n")
-        sb.append("• 适当进行力量训练，如哑铃、弹力带等，增强肌肉力量和骨密度。\n")
-    } else if (ageInt < 70) {
-        sb.append("• 建议进行低强度有氧运动，如散步、太极拳、健身操等，每次20-30分钟，每天1次。\n")
-        sb.append("• 进行适度的肌肉力量训练，如轻度哑铃、弹力带等，每周2-3次。\n")
-    } else {
-        sb.append("• 建议进行轻柔的活动，如散步、太极拳、八段锦等，每次15-20分钟，每天1-2次。\n")
-        sb.append("• 注重平衡性训练，预防跌倒，可进行简单的站立平衡训练。\n")
-    }
-    
-    // 天气特殊情况的运动建议
-    if (weather.contains("雨") || weather.contains("雪")) {
-        sb.append("• 今天天气不适宜户外运动，可在室内进行适度活动，如八段锦、站桩等。\n")
-    } else if (temperature > 30) {
-        sb.append("• 高温天气应避免在中午前后户外运动，建议在清晨或傍晚进行，注意补充水分。\n")
-    } else if (temperature < 5) {
-        sb.append("• 低温天气外出运动前应充分热身，注意保暖，运动强度不宜过大。\n")
-    }
-    
-    // 根据医疗史调整运动建议
-    if (medicalHistory.isNotEmpty()) {
-        if (medicalHistory.contains("高血压") || medicalHistory.contains("心脏")) {
-            sb.append("• 有高血压或心脏病史，运动时应避免剧烈活动，控制心率不超过(220-年龄)×60%。\n")
-            sb.append("• 运动前后测量血压，如有不适立即停止。\n")
-        }
-        if (medicalHistory.contains("关节炎") || medicalHistory.contains("骨质")) {
-            sb.append("• 有关节问题，建议选择低冲击运动，如游泳、太极等，避免跑跳等剧烈活动。\n")
-        }
-    }
-    
-    // 作息建议
-    sb.append("\n【作息调养建议】\n")
-    sb.append("• 保持规律作息，建议晚上10点前入睡，早晨6-7点起床。\n")
-    sb.append("• 午休20-30分钟，有助于恢复精力，但不宜时间过长。\n")
-    
-    // 根据天气调整作息
-    if (weather.contains("雨") || weather.contains("阴")) {
-        sb.append("• 阴雨天气容易引起情绪低落，可适当增加室内照明，多听轻松愉快的音乐。\n")
-    }
-    
-    // 结语
-    sb.append("\n请记住，养生贵在坚持，希望您保持健康愉快的生活！\n")
-    sb.append("如有不适，请及时咨询医生。")
-    
-    return sb.toString()
 } 
