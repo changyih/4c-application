@@ -71,6 +71,7 @@ private val API_SECRET = "你的阿里云API密钥"
 ```kotlin
 // 模型名称
 private val MODEL_NAME = "qwen-vl-max" // 可以根据需要使用不同的模型版本
+"qwen2-7b-instruct-ft-202504101651-dcd6" // 微调后的模型
 ```
 
 ### 5.2 请求体定制
