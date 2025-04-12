@@ -37,6 +37,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
 import android.util.Log
 import android.Manifest
 import android.content.pm.PackageManager
@@ -60,14 +61,6 @@ import com.example.olderperson.data.ContactHelper
 import com.example.olderperson.data.ContactRepository
 import com.example.olderperson.data.FamilyContact
 import kotlinx.coroutines.flow.collectLatest
-
-// 搜索类型枚举
-enum class NearbyServiceType(val title: String, val icon: Int, val keyword: String, val displayName: String) {
-    HOSPITAL("医院", R.drawable.ic_hospital, "医院", "医院"),
-    PHARMACY("药店", R.drawable.ic_pharmacy, "药店", "药店"),
-    RESTAURANT("餐厅", R.drawable.ic_restaurant, "餐厅", "餐厅"),
-    COMMUNITY("社区", R.drawable.ic_community, "社区服务", "社区服务")
-}
 
 @Composable
 fun FamilyScreen(
@@ -132,32 +125,6 @@ fun FamilyScreen(
         newContactName = ""
         newContactRelation = ""
         newContactPhone = ""
-    }
-    
-    // 初始化NearbyPoiSearch
-    DisposableEffect(Unit) {
-        try {
-            // 确保百度地图SDK初始化成功
-            Log.d("FamilyScreen", "初始化百度地图搜索服务")
-            NearbyPoiSearch.init(context)
-            
-            // 预热搜索服务
-            val preloadLocation = BaiduLatLng(43.90200, 125.27900)
-            // 使用低优先级线程预加载搜索功能
-            Handler(Looper.getMainLooper()).postDelayed({
-                NearbyPoiSearch.search(
-                    location = preloadLocation,
-                    keyword = "医院",
-                    radius = 3000,
-                    onSuccess = { Log.d("FamilyScreen", "搜索服务预热成功，结果数量: ${it.size}") },
-                    onError = { code, msg -> Log.e("FamilyScreen", "搜索服务预热失败: code=$code, msg=$msg") }
-                )
-            }, 1000)
-        } catch (e: Exception) {
-            Log.e("FamilyScreen", "初始化搜索服务失败: ${e.message}", e)
-        }
-        
-        onDispose { }
     }
     
     // 拨打电话确认对话框
@@ -521,19 +488,6 @@ fun FamilyScreen(
                     )
                 }
                 
-                // 通讯方式
-                item {
-                    CommunicationMethodsCard()
-                }
-                
-                // 附近服务卡片（新增）
-                item {
-                    NearbyServicesCard(
-                        modifier = Modifier,
-                        textToSpeechService = localTextToSpeechService
-                    )
-                }
-                
                 // 家庭相册
                 item {
                     FamilyPhotoAlbumCard()
@@ -634,7 +588,7 @@ private fun FamilyContactsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -649,12 +603,20 @@ private fun FamilyContactsCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ContactPhone,
-                        contentDescription = "家人联系",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF87CEEB).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = "家人联系",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
@@ -669,19 +631,22 @@ private fun FamilyContactsCard(
                 // 管理按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onManageContacts() }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onManageContacts() }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "管理",
                         fontSize = 14.sp,
-                        color = Color(0xFF2E7D32)
+                        color = Color(0xFF4682B4)
                     )
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "管理",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFF4682B4),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -728,19 +693,20 @@ private fun ContactItem(
         // 联系人头像
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(color)
+                .background(color.copy(alpha = 0.85f))
                 .clickable { 
                     onCallRequest(name, phoneNumber)
-                },
+                }
+                .border(2.dp, color.copy(alpha = 0.3f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = name.first().toString(),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
+                fontSize = 28.sp
             )
         }
         
@@ -748,7 +714,7 @@ private fun ContactItem(
         
         Text(
             text = name,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black
         )
@@ -770,17 +736,18 @@ private fun AddContactItem(onClick: () -> Unit) {
         // 添加按钮
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF4CAF50))
-                .clickable { onClick() },
+                .background(Color(0xFF87CEEB).copy(alpha = 0.15f))
+                .clickable { onClick() }
+                .border(2.dp, Color(0xFF87CEEB).copy(alpha = 0.3f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "添加",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                tint = Color(0xFF4682B4),
+                modifier = Modifier.size(32.dp)
             )
         }
         
@@ -788,7 +755,7 @@ private fun AddContactItem(onClick: () -> Unit) {
         
         Text(
             text = "添加",
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black
         )
@@ -797,77 +764,6 @@ private fun AddContactItem(onClick: () -> Unit) {
             text = "新联系人",
             fontSize = 12.sp,
             color = Color.Gray
-        )
-    }
-}
-
-@Composable
-private fun CommunicationMethodsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            // 视频通话
-            CommunicationMethod(
-                icon = Icons.Default.Videocam,
-                text = "视频通话",
-                backgroundColor = Color(0xFFE8F5E9)
-            )
-            
-            // 语音通话
-            CommunicationMethod(
-                icon = Icons.Default.Call,
-                text = "语音通话",
-                backgroundColor = Color(0xFFE3F2FD)
-            )
-            
-            // 发送消息
-            CommunicationMethod(
-                icon = Icons.Default.Message,
-                text = "发送消息",
-                backgroundColor = Color(0xFFF3E5F5)
-            )
-        }
-    }
-}
-
-@Composable
-private fun CommunicationMethod(
-    icon: ImageVector,
-    text: String,
-    backgroundColor: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(backgroundColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = Color(0xFF2E7D32),
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            color = Color.Black
         )
     }
 }
@@ -892,12 +788,20 @@ private fun FamilyPhotoAlbumCard() {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Photo,
-                        contentDescription = "家庭相册",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF87CEEB).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Photo,
+                            contentDescription = "家庭相册",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
@@ -912,41 +816,30 @@ private fun FamilyPhotoAlbumCard() {
                 // 全部按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { /* 查看全部 */ }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { /* 查看全部 */ }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "全部",
                         fontSize = 14.sp,
-                        color = Color(0xFF2E7D32)
+                        color = Color(0xFF4682B4)
                     )
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "全部",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFF4682B4),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 相册预览
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // 第一行照片
-                GridRow()
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // 第二行照片
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                GridRow()
-            }
+            // 相册预览 - 改进布局为更现代的网格
+            PhotoGrid()
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -955,7 +848,7 @@ private fun FamilyPhotoAlbumCard() {
                 onClick = { /* 添加照片 */ },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2E7D32)
+                    containerColor = Color(0xFF4682B4)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -963,15 +856,15 @@ private fun FamilyPhotoAlbumCard() {
                     imageVector = Icons.Default.Add,
                     contentDescription = "添加",
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 
                 Text(
                     text = "添加照片",
                     color = Color.White,
-                    fontSize = 14.sp
+                    fontSize = 15.sp
                 )
             }
         }
@@ -979,30 +872,75 @@ private fun FamilyPhotoAlbumCard() {
 }
 
 @Composable
-private fun GridRow() {
-    Row(
+private fun PhotoGrid() {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        repeat(3) {
-            ImagePlaceholder()
+        // 第一行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE0F7FA),
+                icon = Icons.Default.Landscape,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFF3E5F5),
+                icon = Icons.Default.People,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFFF3E0),
+                icon = Icons.Default.Cake,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        // 第二行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE8F5E9),
+                icon = Icons.Default.Park,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFE1F5FE),
+                icon = Icons.Default.House,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFCE4EC),
+                icon = Icons.Default.EmojiEvents,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun ImagePlaceholder() {
+private fun PhotoItem(
+    color: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
-            .size(110.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.LightGray),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color)
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Image,
-            contentDescription = "图片",
-            tint = Color.Gray,
+            imageVector = icon,
+            contentDescription = "照片",
+            tint = Color(0xFF4682B4),
             modifier = Modifier.size(32.dp)
         )
     }
@@ -1380,447 +1318,6 @@ private fun FamilyBottomNavItem(
             fontSize = 12.sp,
             color = if (isSelected) Color(0xFF2E7D32) else Color.Gray,
             textAlign = TextAlign.Center
-        )
-    }
-}
-
-/**
- * 附近服务卡片 - 查找周边医院、药店、餐厅等设施
- */
-@Composable
-private fun NearbyServicesCard(
-    modifier: Modifier = Modifier,
-    textToSpeechService: TextToSpeechService? = null
-) {
-    val context = LocalContext.current
-    var selectedService by remember { mutableStateOf<NearbyServiceType?>(null) }
-    var searchResults by remember { mutableStateOf<List<PoiInfo>>(emptyList()) }
-    var isSearching by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    
-    // 定义吉林大学前卫南区的位置（精确坐标）
-    val jilinUniversityLocation = remember { BaiduLatLng(43.90200, 125.27900) }
-    
-    // 直接执行搜索的函数
-    fun searchDirectly(type: NearbyServiceType) {
-        // 根据类型生成更详细的关键词
-        val keyword = when (type) {
-            NearbyServiceType.HOSPITAL -> "医院 综合医院 专科医院 诊所"
-            NearbyServiceType.PHARMACY -> "药店 药房 大药房 医药"
-            NearbyServiceType.RESTAURANT -> "餐饮 美食 饭店 餐厅"
-            else -> type.keyword
-        }
-        
-        Log.d("NearbyServicesCard", "搜索: ${type.title}, 关键词: $keyword, 坐标: lat=${jilinUniversityLocation.latitude}, lng=${jilinUniversityLocation.longitude}")
-        
-        // 设置当前搜索类型
-        selectedService = type
-        isSearching = true
-        error = null
-        
-        // 直接使用静态方法搜索
-        NearbyPoiSearch.search(
-            location = jilinUniversityLocation,
-            keyword = keyword,
-            radius = 5000, // 扩大搜索半径，提高找到结果的可能性
-            onSuccess = { poiList ->
-                // 确保在主线程更新UI
-                Handler(Looper.getMainLooper()).post {
-                    Log.d("NearbyServicesCard", "搜索成功: ${type.name}, 原始结果数量: ${poiList.size}")
-                    
-                    // 记录每个结果的详细信息用于调试
-                    poiList.forEachIndexed { index, poi ->
-                        Log.d("NearbyServicesCard", "结果[$index]: ${poi.name}, 地址: ${poi.address}, 距离: ${poi.distance}米")
-                    }
-                    
-                    if (poiList.isEmpty()) {
-                        error = "未找到${type.displayName}，请尝试其他类型或扩大搜索范围"
-                        searchResults = emptyList()
-                    } else {
-                        // 过滤和排序结果，确保最相关的结果在前面
-                        val filteredResults = poiList
-                            .filter { it.name.isNotEmpty() && it.address != null } // 过滤掉没有名称或地址的结果
-                            .sortedBy { it.distance } // 按距离排序
-                        
-                        searchResults = filteredResults
-                        error = null
-                    }
-                    
-                    Log.d("NearbyServicesCard", "最终显示结果数量: ${searchResults.size}")
-                    isSearching = false
-                }
-            },
-            onError = { code, message ->
-                // 确保在主线程更新UI
-                Handler(Looper.getMainLooper()).post {
-                    isSearching = false
-                    error = "搜索失败: $message (错误码: $code)"
-                    searchResults = emptyList()
-                    Log.e("NearbyServicesCard", "搜索失败: ${type.name}, 错误码: $code, 错误信息: $message")
-                }
-            }
-        )
-    }
-    
-    // 当选择服务类型时触发搜索
-    LaunchedEffect(selectedService) {
-        selectedService?.let { serviceType ->
-            searchDirectly(serviceType)
-        }
-    }
-    
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "附近服务",
-            style = MaterialTheme.typography.titleLarge,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 服务类型选择行
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            ServiceButton(
-                icon = painterResource(id = R.drawable.ic_hospital),
-                text = "医院",
-                isSelected = selectedService == NearbyServiceType.HOSPITAL,
-                onClick = { selectedService = NearbyServiceType.HOSPITAL }
-            )
-            
-            ServiceButton(
-                icon = painterResource(id = R.drawable.ic_pharmacy),
-                text = "药店",
-                isSelected = selectedService == NearbyServiceType.PHARMACY,
-                onClick = { selectedService = NearbyServiceType.PHARMACY }
-            )
-            
-            ServiceButton(
-                icon = painterResource(id = R.drawable.ic_restaurant),
-                text = "餐厅",
-                isSelected = selectedService == NearbyServiceType.RESTAURANT,
-                onClick = { selectedService = NearbyServiceType.RESTAURANT }
-            )
-            
-            ServiceButton(
-                icon = painterResource(id = R.drawable.ic_community),
-                text = "社区服务",
-                isSelected = selectedService == NearbyServiceType.COMMUNITY,
-                onClick = { selectedService = NearbyServiceType.COMMUNITY }
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 地图视图（可折叠）
-        AnimatedVisibility(
-            visible = selectedService != null,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // 使用我们的自定义BaiduMapView组件
-                    BaiduMapView(
-                        poiList = searchResults,
-                        centerLatLng = BaiduLatLng(43.90200, 125.27900)
-                    )
-                    
-                    // 地图关闭按钮
-                    IconButton(
-                        onClick = { selectedService = null },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .size(32.dp)
-                            .background(Color.White.copy(alpha = 0.8f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "关闭地图",
-                            tint = Color.Black
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // 搜索结果或加载状态区域
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            if (isSearching) {
-                // 加载状态
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "正在搜索附近的${selectedService?.title ?: "服务"}...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            } else if (error != null) {
-                // 错误信息
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Info,
-                            contentDescription = "错误信息",
-                            tint = Color.Red,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = error!!,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Red,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { selectedService?.let { searchDirectly(it) } }
-                        ) {
-                            Text("重试")
-                        }
-                    }
-                }
-            } else if (searchResults.isEmpty() && selectedService != null) {
-                // 无搜索结果
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "未找到附近的${selectedService?.title}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else if (selectedService != null) {
-                // 搜索结果列表
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    // 结果标题
-                    Text(
-                        text = "附近${selectedService?.title}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                }
-                
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    val displayResults = searchResults.take(5) // 显示前5个结果
-                    
-                    if (displayResults.isNotEmpty()) {
-                        displayResults.forEach { poi ->
-                            NearbyServiceItem(
-                                name = poi.name,
-                                address = poi.address ?: "地址未知",
-                                distance = "${poi.distance}米",
-                                onClick = { 
-                                    // 显示地图并选中此POI
-                                    searchResults = listOf(poi)
-                                    selectedService = selectedService
-                                    textToSpeechService?.speak("已选择${poi.name}")
-                                }
-                            )
-                            
-                            if (poi != displayResults.last()) {
-                                Divider(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    color = Color(0xFFEEEEEE)
-                                )
-                            }
-                        }
-                        
-                        if (searchResults.size > 5) {
-                            TextButton(
-                                onClick = { /* 查看全部 */ },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("查看全部(${searchResults.size})")
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 服务选择提示
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "请选择上方服务类型以查看附近服务",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * 服务类型按钮
- */
-@Composable
-private fun ServiceButton(
-    icon: Painter,
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (isSelected) Color(0xFF2E7D32) else Color.White),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = icon,
-                contentDescription = text,
-                tint = if (isSelected) Color.White else Color(0xFF2E7D32),
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            color = if (isSelected) Color.White else Color.Black
-        )
-    }
-}
-
-/**
- * 附近服务项
- */
-@Composable
-private fun NearbyServiceItem(
-    name: String,
-    address: String,
-    distance: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFFF5F5F5))
-            .clickable { 
-                onClick()
-            }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 设施图标 - 根据名称选择合适的图标
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(
-                    when {
-                        name.contains("医院") || name.contains("诊所") || name.contains("门诊") -> Color(0xFFE57373) // 红色
-                        name.contains("药") || name.contains("医药") -> Color(0xFF81C784) // 绿色
-                        name.contains("餐厅") || name.contains("食") || name.contains("饭店") -> Color(0xFFFFB74D) // 橙色
-                        else -> Color(0xFF2E7D32) // 默认绿色
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = when {
-                    name.contains("医院") || name.contains("诊所") || name.contains("门诊") -> Icons.Default.LocalHospital
-                    name.contains("药") || name.contains("医药") -> Icons.Default.LocalPharmacy
-                    name.contains("餐厅") || name.contains("食") || name.contains("饭店") -> Icons.Default.Restaurant
-                    else -> Icons.Default.Place
-                },
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = name,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = address,
-                fontSize = 14.sp,
-                color = Color.Gray,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        Text(
-            text = distance,
-            fontSize = 14.sp,
-            color = Primary
         )
     }
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
@@ -57,6 +58,12 @@ import android.content.Intent
 import android.net.Uri
 import com.example.olderperson.utils.EmergencyContactsManager
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.text.font.FontStyle
+
 
 @Composable
 fun CareHomeScreen(
@@ -193,32 +200,6 @@ private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpee
 
         // 智能助手对话框
         AssistantChatBox(textToSpeechService)
-        
-        // 交流按钮区域
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // 语音交流按钮
-            CommunicationButton(
-                icon = Icons.Default.Mic,
-                text = "语音交流",
-                modifier = Modifier.weight(1f),
-                onClick = { 
-                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show()
-                }
-            )
-
-            // 文字交流按钮
-            CommunicationButton(
-                icon = Icons.Default.Keyboard,
-                text = "文字交流",
-                modifier = Modifier.weight(1f),
-                onClick = { textToSpeechService?.speak("文字交流") }
-            )
-        }
     }
 }
 
@@ -894,7 +875,11 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                                             )
                                             
                                             // 调用千问API
-                                            wellnessPlanContent = qianwenService.sendTextMessage(prompt)
+                                            val apiResponse = qianwenService.sendTextMessage(prompt)
+                                            
+                                            // 预处理API响应，处理掉所有markdown标记
+                                            wellnessPlanContent = processMarkdownContent(apiResponse)
+                                            
                                             isLoading = false
                                         } catch (e: Exception) {
                                             // 异常处理
@@ -962,18 +947,101 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                             )
                         }
                     } else {
+                        // 新增状态：是否显示详情
+                        var showFullContent by remember { mutableStateOf(false) }
+                        
+                        // 提取欢迎语和各个部分
+                        val welcomeMessage = remember(wellnessPlanContent) {
+                            wellnessPlanContent.lines().firstOrNull { it.contains("尊敬的用户") || it.contains("量身定制") } ?: 
+                            "尊敬的用户，我为您量身定制了一份个性化养生方案。请您根据以下建议进行调整和实践。"
+                        }
+                        
+                        // 提取各个部分
+                        val healthFocus = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "今日健康重点", "饮食建议")
+                        }
+                        
+                        val dietSuggestion = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "饮食建议", "运动与作息")
+                        }
+                        
+                        val exerciseAndRoutine = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "运动与作息", "中医调理方案")
+                        }
+                        
+                        val tcmTherapy = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "中医调理方案", "预警与禁忌")
+                        }
+                        
+                        val warningsAndTaboos = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "预警与禁忌", null)
+                        }
+                        
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 400.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
+                            // 欢迎语总是显示
                             Text(
-                                text = wellnessPlanContent,
+                                text = welcomeMessage,
                                 fontSize = 16.sp,
                                 lineHeight = 24.sp,
-                                color = Color.White
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
                             )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (showFullContent) {
+                                // 详情模式：显示完整内容
+                                Text(
+                                    text = wellnessPlanContent,
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp,
+                                    color = Color.White
+                                )
+                            } else {
+                                // 简化模式：只显示各部分标题和简短内容
+                                SectionCard(
+                                    title = "今日健康重点",
+                                    summary = getSummary(healthFocus),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "饮食建议",
+                                    summary = getSummary(dietSuggestion),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "运动与作息",
+                                    summary = getSummary(exerciseAndRoutine),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "中医调理方案",
+                                    summary = getSummary(tcmTherapy),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "预警与禁忌",
+                                    summary = getSummary(warningsAndTaboos),
+                                    textToSpeechService = textToSpeechService
+                                )
+                            }
                             
                             // 按钮区域
                             Spacer(modifier = Modifier.height(24.dp))
@@ -983,6 +1051,34 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                                     .padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
+                                // 详情/简化按钮
+                                Button(
+                                    onClick = { showFullContent = !showFullContent },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.White.copy(alpha = 0.2f)
+                                    )
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (showFullContent) Icons.Default.ViewHeadline else Icons.Default.Article, 
+                                            contentDescription = if (showFullContent) "简化" else "详情", 
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = if (showFullContent) "简化" else "详情",
+                                            fontSize = 18.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                                
                                 // 朗读按钮
                                 Button(
                                     onClick = { textToSpeechService?.speak(wellnessPlanContent) },
@@ -1378,45 +1474,6 @@ private fun getCurrentDate(): String {
     return dateFormat.format(Date())
 }
 
-@Composable
-private fun CommunicationButton(
-    icon: ImageVector,
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = FontSizeConfig.scaledSp(14).sp
-            )
-        }
-    }
-}
-
 // 播报完整天气信息
 fun speakWeatherInfo(info: WeatherManager.Companion.WeatherInfo, tts: TextToSpeechService?) {
     tts?.let {
@@ -1458,7 +1515,9 @@ private fun buildPromptForQianwen(
     val solarTerm = weatherInfo?.solarTerm ?: "立夏"
     
     return """
-        不要使用'**'和'##'这种符号
+        【重要】不要使用任何Markdown格式，不要使用'**'或'*'或'#'或'##'或'###'等任何标记符号。
+        【重要】不要使用任何加粗、斜体或标题标记，直接输出纯文本。
+        
         你好！我需要根据以下个人信息和当前天气情况，生成一份个性化养生方案。请结合中医养生原则、现代医学建议及天气特征，提供具体、可操作的指导。
         用户信息：
         - 年龄：$age
@@ -1480,36 +1539,40 @@ private fun buildPromptForQianwen(
 饮食建议：
 根据节气、温度、空气质量及用户体质，推荐今日食材（标注寒热属性），避免与疾病或过敏相关的禁忌食物（如高血压患者减少高盐食物）。
 若空气质量差，增加清肺润燥的食疗方案（如参考《黄帝内经》"天人相应"理论）。
+
 运动与作息：
 根据天气温度和健康状况，推荐适合的运动类型与时长（如高温天建议室内拉伸，低温天推荐温补性活动）。
 结合节气调整作息（如冬至后"早卧晚起"，夏季"夜卧早起"）。
 若用户有慢性病（如关节炎），需避免特定动作（如剧烈跳跃）。
+
 中医调理与防护：
 针对用户体质（如阳虚/阴虚），提供穴位按摩、茶饮或艾灸建议。
 若空气质量差，建议室内净化措施（如使用加湿器、选择开窗时段）。
 结合节气重点（如"芒种防暑湿""冬至补肾"）说明调理方法。
+
 预警与禁忌：
 根据疾病史，列出今日需警惕的症状或风险（如高温天中暑预警、心脏病患者避免暴晒）。
 若推荐药物或补品，标注每日安全用量及与现有药物的相互作用（参考《中国药典》）。
-格式要求：
 
-分点清晰，用标题分隔饮食、运动、中医调理等模块。
+格式要求：
+【重要】输出纯文本，不要使用任何格式标记，直接使用普通文本。
+分点清晰，用普通文本如"今日健康重点："、"饮食建议："等作为标题。
 语言通俗，必要时解释专业术语（如"痰湿体质"）。
 关键建议引用权威来源（如《黄帝内经》或知识库模板）。
 给出具体操作描述（如"每天按压足三里穴3分钟"）。
-补充说明：
+
+请以"尊敬的用户，我为您量身定制了一份个性化养生方案。请您根据以下建议进行调整和实践。"作为开头，保留这个欢迎语。
 
 若用户未提供生活习惯，默认饮食无特殊要求，运动强度为低至中等（适合老年人或慢性病患者）。
-若用户有应酬或特殊事件（如饮酒），请补充"应酬防护"模块（参考知识库"【应酬防护】模板"）。
-需特别标注儿童/孕妇/老年人的安全边界（如运动强度、补品选择）。
-请确保方案科学严谨，无伪养生内容（参考知识库"4步揪出伪科学"原则），并包含以下模块：
+请确保方案科学严谨，无伪养生内容，并包含以下模块：
 
-今日健康重点（核心需求+节气提示）
-饮食建议（食材、禁忌、食谱示例）
-运动与作息（类型、时间、防护措施）
-中医调理方案（穴位/茶饮、环境调节）
-预警与禁忌（症状预警、就医信号）
-不要使用'**'和'##'这种符号
+今日健康重点：（核心需求+节气提示）
+饮食建议：（食材、禁忌、食谱示例）
+运动与作息：（类型、时间、防护措施）
+中医调理方案：（穴位/茶饮、环境调节）
+预警与禁忌：（症状预警、就医信号）
+
+再次强调：不要使用任何格式标记，如'#'或'*'等，直接使用普通文本。标题和重点内容可以用"食材推荐："这样的格式直接表示，无需加粗或标题格式。
     """.trimIndent()
 }
 
@@ -1638,4 +1701,318 @@ private fun EmergencyCallButton(
             )
         }
     }
+}
+
+// 添加辅助函数：从养生方案内容中提取指定部分
+private fun extractSection(content: String, sectionTitle: String, nextSectionTitle: String?): String {
+    val lines = content.lines()
+    val startIndex = lines.indexOfFirst { it.contains(sectionTitle) }
+    
+    if (startIndex == -1) return ""
+    
+    val endIndex = if (nextSectionTitle != null) {
+        val nextIndex = lines.indexOfFirst { it.contains(nextSectionTitle) }
+        if (nextIndex == -1) lines.size else nextIndex
+    } else {
+        lines.size
+    }
+    
+    return lines.subList(startIndex, endIndex).joinToString("\n")
+}
+
+// 修改提取摘要的函数，对内容进行简化而不是只截取前面部分
+private fun getSummary(section: String): String {
+    val lines = section.lines()
+    if (lines.isEmpty()) return ""
+    
+    // 清理掉所有的标记
+    val cleanedLines = lines.map { line ->
+        line.replace(Regex("#{1,3}\\s*"), "")
+            .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+            .replace(Regex("\\*(.+?)\\*"), "$1")
+    }
+    
+    // 提取标题行
+    val title = cleanedLines.first()
+    
+    // 简化内容处理逻辑
+    val simplifiedContent = StringBuilder()
+    
+    // 添加标题
+    simplifiedContent.append(title).append("\n")
+    
+    // 提取并简化每个要点
+    val bulletPoints = cleanedLines
+        .filter { it.trim().startsWith("-") || it.trim().startsWith("•") }
+        .map { point -> 
+            // 简化每个要点，只保留关键信息
+            val content = point.replace(Regex("^[•-]\\s*"), "")
+            
+            // 对长句进行简化处理
+            if (content.length > 50) {
+                val parts = content.split("，", "。", "；")
+                if (parts.size > 1) {
+                    // 取第一个逗号或句号前的内容作为简化版
+                    "• ${parts[0]}"
+                } else {
+                    "• $content"
+                }
+            } else {
+                "• $content"
+            }
+        }
+    
+    // 添加所有简化后的要点
+    bulletPoints.forEach { simplifiedContent.append(it).append("\n") }
+    
+    return simplifiedContent.toString().trim()
+}
+
+// 修改SectionCard组件，添加Markdown渲染支持
+@Composable
+private fun SectionCard(
+    title: String,
+    summary: String,
+    textToSpeechService: TextToSpeechService? = null
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    // 提取简化显示内容
+    val displayTitle = remember(title) {
+        title.replace(Regex("#{1,3}\\s*"), "")
+    }
+    
+    // 提取第一行内容（不包括标题）作为预览
+    val previewContent = remember(summary) {
+        val lines = summary.lines()
+        if (lines.size > 1) {
+            // 找到第一个以"•"开头的要点
+            lines.drop(1)
+                .firstOrNull { it.isNotBlank() && (it.trim().startsWith("•") || it.trim().startsWith("-")) }
+                ?.trim()
+                ?.replace(Regex("^[•-]\\s*"), "") // 去除项目符号
+                ?.let { point ->
+                    // 如果要点太长，截取前面部分
+                    if (point.length > 35) {
+                        point.take(35) + "..."
+                    } else {
+                        point
+                    }
+                } ?: "点击查看详情"
+        } else {
+            "点击查看详情"
+        }
+    }
+    
+    // 移除Markdown标记的纯文本(用于语音朗读)
+    val plainText = remember(summary) {
+        summary.replace(Regex("#{1,3}\\s*"), "")  // 移除标题标记
+              .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")  // 移除加粗标记
+              .replace(Regex("\\*(.+?)\\*"), "$1")  // 移除斜体标记
+              .replace(Regex("^[•-]\\s*"), "")  // 移除列表标记
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.15f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = displayTitle,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "收起" else "展开",
+                    tint = Color.White
+                )
+            }
+            
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    // 渲染Markdown内容
+                    MarkdownText(
+                        text = summary.replace(Regex("#{1,3}\\s*"), ""), // 去除所有的"###"标记
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        lineHeight = 20.sp
+                    )
+                    
+                    // 朗读按钮
+                    TextButton(
+                        onClick = { textToSpeechService?.speak(plainText) },
+                        modifier = Modifier.align(Alignment.End),
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeUp,
+                            contentDescription = "朗读",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("朗读本段", fontSize = 12.sp)
+                    }
+                }
+            }
+            
+            if (!expanded) {
+                Text(
+                    text = previewContent,
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+// 添加Markdown文本渲染组件
+@Composable
+private fun MarkdownText(
+    text: String,
+    fontSize: TextUnit,
+    color: Color,
+    lineHeight: TextUnit
+) {
+    // 把文本按行分割，逐行处理
+    val lines = text.lines()
+    
+    Column {
+        lines.forEach { line ->
+            val processedLine = line.trim()
+            
+            when {
+                // 处理列表项
+                processedLine.startsWith("- ") || processedLine.startsWith("• ") -> {
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "•",
+                            fontSize = fontSize,
+                            color = color,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(end = 8.dp, top = 0.5.dp)
+                        )
+                        // 处理列表项内的样式
+                        val itemText = processedLine.substring(if (processedLine.startsWith("- ")) 2 else 2)
+                        StyledText(
+                            text = itemText,
+                            fontSize = fontSize,
+                            color = color,
+                            lineHeight = lineHeight
+                        )
+                    }
+                }
+                // 空行处理
+                processedLine.isBlank() -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                // 普通段落
+                else -> {
+                    StyledText(
+                        text = processedLine,
+                        fontSize = fontSize,
+                        color = color,
+                        lineHeight = lineHeight,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 处理样式标记的文本 (加粗、斜体等)
+@Composable
+private fun StyledText(
+    text: String,
+    fontSize: TextUnit,
+    color: Color,
+    lineHeight: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    val annotatedString = buildAnnotatedString {
+        var currentIndex = 0
+        val cleanedText = text.replace(Regex("#{1,3}\\s*"), "")
+        
+        // 找到所有加粗文本和斜体文本
+        val pattern = "(\\*\\*(.+?)\\*\\*)|(\\*(.+?)\\*)".toRegex()
+        val matches = pattern.findAll(cleanedText)
+        
+        for (match in matches) {
+            // 添加匹配前的文本
+            if (match.range.first > currentIndex) {
+                append(cleanedText.substring(currentIndex, match.range.first))
+            }
+            
+            val value = match.value
+            
+            // 处理加粗文本 (**text**)
+            if (value.startsWith("**") && value.endsWith("**")) {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(value.substring(2, value.length - 2))
+                }
+            }
+            // 处理斜体文本 (*text*)
+            else if (value.startsWith("*") && value.endsWith("*")) {
+                withStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)) {
+                    append(value.substring(1, value.length - 1))
+                }
+            }
+            
+            currentIndex = match.range.last + 1
+        }
+        
+        // 添加剩余文本
+        if (currentIndex < cleanedText.length) {
+            append(cleanedText.substring(currentIndex))
+        }
+    }
+    
+    Text(
+        text = annotatedString,
+        fontSize = fontSize,
+        color = color,
+        lineHeight = lineHeight,
+        modifier = modifier
+    )
+}
+
+// 添加API响应预处理函数，处理markdown标记
+private fun processMarkdownContent(content: String): String {
+    var processedContent = content
+    
+    // 替换所有标题标记为普通文本
+    processedContent = processedContent.replace(Regex("#{1,3}\\s*(今日健康重点|饮食建议|运动与作息|中医调理方案|预警与禁忌)"), "$1")
+    
+    // 替换标记的强调（如**食材选择**）为普通文本
+    processedContent = processedContent.replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+    
+    // 替换标记的斜体（如*注意事项*）为普通文本
+    processedContent = processedContent.replace(Regex("\\*(.+?)\\*"), "$1")
+    
+    // 列表项保留，但确保格式统一
+    processedContent = processedContent.replace(Regex("^\\s*-\\s+"), "- ")
+    
+    return processedContent
 } 
