@@ -1,12 +1,18 @@
 package com.example.olderperson.ui.screens
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -19,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +45,8 @@ import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.TextStyle
 
 @Composable
 fun CareHomeScreen(
@@ -191,6 +200,25 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     val coroutineScope = rememberCoroutineScope()
     var currentCity by remember { mutableStateOf("长春") }
     
+    // 新增：城市选择对话框状态
+    var showCityDialog by remember { mutableStateOf(false) }
+    
+    // 新增：显示按钮状态
+    var showButtons by remember { mutableStateOf(false) }
+    
+    // 新增：健康情况对话框状态
+    var showHealthDialog by remember { mutableStateOf(false) }
+    
+    // 新增：健康信息状态
+    var age by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("男") }
+    var medicalHistory by remember { mutableStateOf("") }
+    var dietaryRestrictions by remember { mutableStateOf("") }
+    var allergies by remember { mutableStateOf("") }
+    
+    // 新增：城市列表
+    val cityList = listOf("长春", "北京", "上海", "广州")
+    
     // 获取天气信息
     LaunchedEffect(currentCity) {
         coroutineScope.launch {
@@ -209,36 +237,327 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
     // 当天更新时间
     val updateTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
     
+    // 新增：城市选择对话框
+    if (showCityDialog) {
+        AlertDialog(
+            onDismissRequest = { showCityDialog = false },
+            title = { Text("选择城市") },
+            text = {
+                Column {
+                    cityList.forEach { city ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (city != currentCity) {
+                                        currentCity = city
+                                        // 播报切换城市的语音提示
+                                        textToSpeechService?.speak("正在切换到${city}天气")
+                                        Log.d("CareHomeScreen", "城市切换: ${weatherInfo?.city} -> $city")
+                                    }
+                                    showCityDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationCity,
+                                contentDescription = null,
+                                tint = if (city == currentCity) Primary else Color.Gray
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = city,
+                                fontSize = 16.sp,
+                                fontWeight = if (city == currentCity) FontWeight.Bold else FontWeight.Normal,
+                                color = if (city == currentCity) Primary else Color.Black
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCityDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 新增：健康情况输入对话框
+    if (showHealthDialog) {
+        AlertDialog(
+            onDismissRequest = { showHealthDialog = false },
+            title = { 
+                Text(
+                    text = "添加健康情况",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // 说明文字
+                    Text(
+                        text = "请填写您的健康信息，帮助我们为您提供更精准的养生建议",
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    // 年龄输入
+                    Text(
+                        text = "年龄",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = age,
+                        onValueChange = { age = it },
+                        placeholder = { Text("请输入您的年龄", fontSize = 16.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        textStyle = TextStyle(fontSize = 18.sp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Primary,
+                            focusedContainerColor = Color(0xFFF8F8F8),
+                            unfocusedContainerColor = Color(0xFFF0F0F0),
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.DarkGray
+                        )
+                    )
+                    
+                    // 性别选择
+                    Text(
+                        text = "性别",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (gender == "男") Primary.copy(alpha = 0.1f) else Color.Transparent)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (gender == "男") Primary else Color.Gray,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { gender = "男" }
+                                .padding(vertical = 12.dp, horizontal = 16.dp)
+                        ) {
+                            RadioButton(
+                                selected = gender == "男",
+                                onClick = { gender = "男" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = Primary
+                                )
+                            )
+                            Text(
+                                text = "男",
+                                fontSize = 18.sp,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (gender == "女") Primary.copy(alpha = 0.1f) else Color.Transparent)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (gender == "女") Primary else Color.Gray,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { gender = "女" }
+                                .padding(vertical = 12.dp, horizontal = 16.dp)
+                        ) {
+                            RadioButton(
+                                selected = gender == "女",
+                                onClick = { gender = "女" },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = Primary
+                                )
+                            )
+                            Text(
+                                text = "女",
+                                fontSize = 18.sp,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                    
+                    // 疾病史输入
+                    Text(
+                        text = "疾病史（选填）",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = medicalHistory,
+                        onValueChange = { medicalHistory = it },
+                        placeholder = { Text("例如：高血压、糖尿病等", fontSize = 16.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        textStyle = TextStyle(fontSize = 18.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Primary,
+                            focusedContainerColor = Color(0xFFF8F8F8),
+                            unfocusedContainerColor = Color(0xFFF0F0F0),
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.DarkGray
+                        )
+                    )
+                    
+                    // 忌口输入
+                    Text(
+                        text = "忌口（选填）",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = dietaryRestrictions,
+                        onValueChange = { dietaryRestrictions = it },
+                        placeholder = { Text("例如：海鲜、辛辣食物等", fontSize = 16.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        textStyle = TextStyle(fontSize = 18.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Primary,
+                            focusedContainerColor = Color(0xFFF8F8F8),
+                            unfocusedContainerColor = Color(0xFFF0F0F0),
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.DarkGray
+                        )
+                    )
+                    
+                    // 过敏情况输入
+                    Text(
+                        text = "过敏情况（选填）",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = allergies,
+                        onValueChange = { allergies = it },
+                        placeholder = { Text("例如：花粉、药物等", fontSize = 16.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        textStyle = TextStyle(fontSize = 18.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Primary,
+                            focusedContainerColor = Color(0xFFF8F8F8),
+                            unfocusedContainerColor = Color(0xFFF0F0F0),
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.DarkGray
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 取消按钮
+                    Button(
+                        onClick = { showHealthDialog = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.LightGray
+                        )
+                    ) {
+                        Text(
+                            text = "取消",
+                            fontSize = 18.sp,
+                            color = Color.Black
+                        )
+                    }
+                    
+                    // 确认按钮
+                    Button(
+                        onClick = {
+                            // 保存健康信息并朗读确认信息
+                            val confirmText = "已保存您的健康信息。年龄：$age，性别：$gender" +
+                                    (if (medicalHistory.isNotEmpty()) "，疾病史：$medicalHistory" else "") +
+                                    (if (dietaryRestrictions.isNotEmpty()) "，忌口：$dietaryRestrictions" else "") +
+                                    (if (allergies.isNotEmpty()) "，过敏情况：$allergies" else "")
+                            textToSpeechService?.speak(confirmText)
+                            // TODO: 保存健康信息到数据库或SharedPreferences
+                            showHealthDialog = false
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Primary
+                        )
+                    ) {
+                        Text(
+                            text = "确认",
+                            fontSize = 18.sp
+                        )
+                    }
+                }
+            }
+        )
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
+                // 点击卡片切换显示按钮状态
+                showButtons = !showButtons
+                
                 // 如果天气信息已加载，播报详细信息
                 weatherInfo?.let { info ->
                     speakWeatherInfo(info, textToSpeechService)
                 } ?: run {
                     // 如果尚未加载，播报加载中提示
                     textToSpeechService?.speak("正在获取天气信息，请稍候")
-                }
-                
-                // 城市切换逻辑
-                coroutineScope.launch {
-                    val oldCity = currentCity
-                    if (currentCity == "长春") {
-                        currentCity = "北京"
-                    } else if (currentCity == "北京") {
-                        currentCity = "上海"
-                    } else if (currentCity == "上海") {
-                        currentCity = "广州"
-                    } else {
-                        currentCity = "长春"
-                    }
-                    
-                    // 播报切换城市的语音提示
-                    textToSpeechService?.speak("正在切换到${currentCity}天气")
-                    
-                    Log.d("CareHomeScreen", "城市切换: $oldCity -> $currentCity")
                 }
             },
         shape = RoundedCornerShape(16.dp),
@@ -276,13 +595,24 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 城市名称
-                    Text(
-                        text = weatherInfo?.city ?: "长春",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    // 城市名称 - 修改为可点击
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { showCityDialog = true }
+                    ) {
+                        Text(
+                            text = weatherInfo?.city ?: "长春",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "选择城市",
+                            tint = Color.White
+                        )
+                    }
                     
                     // 更新时间
                     Text(
@@ -441,16 +771,89 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                     }
                 }
                 
-                // 提示文本(点击切换城市)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "点击切换城市",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.align(Alignment.End)
-                )
+                // 新增：显示两个按钮
+                AnimatedVisibility(
+                    visible = showButtons,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Divider(
+                            color = Color.White.copy(alpha = 0.2f),
+                            thickness = 1.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            // 添加情况按钮
+                            WeatherActionButton(
+                                icon = Icons.Default.Add,
+                                text = "添加情况",
+                                onClick = {
+                                    textToSpeechService?.speak("添加健康情况")
+                                    showHealthDialog = true
+                                }
+                            )
+                            
+                            // 生成养生方案按钮
+                            WeatherActionButton(
+                                icon = Icons.Default.Favorite,
+                                text = "生成养生方案",
+                                onClick = {
+                                    textToSpeechService?.speak("生成养生方案")
+                                    // TODO: 实现生成养生方案功能
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+// 新增：天气操作按钮组件
+@Composable
+private fun WeatherActionButton(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 12.sp
+        )
     }
 }
 
