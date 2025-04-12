@@ -198,7 +198,6 @@ fun HomeScreen(
                     onHealthDataClick = { showHealthData = true },
                     onHealthPlanClick = { showHealthPlan = true },
                     onRehabilitationClick = { showRehabilitation = true },
-                    onServiceClick = { showService = true },
                     onWellnessClick = { showWellness = true }
                 )
             }
@@ -257,40 +256,28 @@ fun NormalModeScreen(
     scrollState: ScrollState,
     paddingValues: PaddingValues,
     textToSpeechService: TextToSpeechService,
-    onHealthDataClick: () -> Unit,
-    onHealthPlanClick: () -> Unit,
-    onRehabilitationClick: () -> Unit,
-    onServiceClick: () -> Unit,
-    onWellnessClick: () -> Unit
+    onHealthDataClick: () -> Unit = {},
+    onHealthPlanClick: () -> Unit = {},
+    onRehabilitationClick: () -> Unit = {},
+    onWellnessClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp)
+            .verticalScroll(scrollState)
             .background(Background),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 功能区标题
-        Text(
-            text = "健康管理",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Primary
-        )
-        
         // 功能导航区域
         FunctionNavigation(
             textToSpeechService = textToSpeechService,
             onHealthDataClick = onHealthDataClick,
             onHealthPlanClick = onHealthPlanClick,
             onRehabilitationClick = onRehabilitationClick,
-            onWellnessClick = onWellnessClick,
-            onServiceClick = onServiceClick
+            onWellnessClick = onWellnessClick
         )
-        
-        Divider(color = PrimaryLight, thickness = 1.dp)
         
         // 健康数据卡片区域
         HealthDataCards(textToSpeechService)
@@ -300,9 +287,6 @@ fun NormalModeScreen(
         
         // 健康提醒
         HealthReminderCard()
-        
-        // 底部留白
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -429,11 +413,10 @@ fun BottomNavItem(
 @Composable
 fun FunctionNavigation(
     textToSpeechService: TextToSpeechService,
-    onHealthDataClick: () -> Unit,
-    onHealthPlanClick: () -> Unit,
-    onRehabilitationClick: () -> Unit,
-    onWellnessClick: () -> Unit,
-    onServiceClick: () -> Unit  // 保留参数但不使用
+    onHealthDataClick: () -> Unit = {},
+    onHealthPlanClick: () -> Unit = {},
+    onRehabilitationClick: () -> Unit = {},
+    onWellnessClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -2170,7 +2153,7 @@ fun HealthServiceTab() {
                 ) {
                     Column {
                         Text(
-                            text = "慧龄铂金会员",
+                            text = "颐年铂金会员",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold

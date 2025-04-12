@@ -5,9 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,7 +32,9 @@ import com.baidu.mapapi.map.BitmapDescriptorFactory
 import com.baidu.mapapi.map.MapStatusUpdateFactory
 import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.MarkerOptions
-import com.baidu.mapapi.model.LatLng
+import com.baidu.mapapi.map.Marker
+import com.baidu.mapapi.map.MapStatus
+import com.baidu.mapapi.model.LatLng as BaiduLatLng
 import com.baidu.mapapi.search.core.SearchResult
 import com.baidu.mapapi.search.core.PoiInfo
 import com.baidu.mapapi.search.poi.PoiDetailResult
@@ -39,6 +44,7 @@ import com.baidu.mapapi.search.poi.PoiResult
 import com.baidu.mapapi.search.poi.PoiSearch
 import com.baidu.mapapi.search.poi.OnGetPoiSearchResultListener
 import com.baidu.mapapi.search.poi.PoiNearbySearchOption
+import com.baidu.mapapi.search.poi.PoiSortType
 import com.example.olderperson.R
 import com.example.olderperson.ui.theme.DarkText
 import kotlinx.coroutines.launch
@@ -51,8 +57,8 @@ data class MapLocation(
     val longitude: Double
 ) {
     // 转换为百度地图坐标
-    fun toBaiduLatLng(): LatLng {
-        return LatLng(latitude, longitude)
+    fun toBaiduLatLng(): BaiduLatLng {
+        return BaiduLatLng(latitude, longitude)
     }
     
     // 从Google地图坐标转换
@@ -268,65 +274,283 @@ private fun Drawable.toBitmap(): Bitmap {
  * 搜索周边POI
  */
 class NearbyPoiSearch(private val context: Context) {
+    private val TAG = "NearbyPoiSearch"
     private var poiSearch: PoiSearch? = null
+    private var listener: OnPoiSearchResultListener? = null
+    private var currentKeyword: String = ""
+    private var currentLocation: BaiduLatLng? = null
+    private var searchAttempts = 0
+    private val maxAttempts = 3
+    
+    // 添加伴生对象，实现静态方法
+    companion object {
+        private var instance: NearbyPoiSearch? = null
+        
+        /**
+         * 静态搜索方法，供外部直接调用
+         */
+        fun search(
+            location: BaiduLatLng,
+            keyword: String,
+            radius: Int = 2000,
+            onSuccess: (List<PoiInfo>) -> Unit,
+            onError: (Int, String) -> Unit
+        ) {
+            try {
+                Log.d("NearbyPoiSearch", "静态方法收到搜索请求: $keyword @ $location, 范围 ${radius}m")
+                
+                // 使用单例模式
+                if (instance?.context == null) {
+                    Log.e("NearbyPoiSearch", "实例不可用，无法执行搜索")
+                    onError(-1, "搜索服务未初始化")
+                    return
+                }
+                
+                // 设置回调
+                instance?.setOnPoiSearchResultListener(object : OnPoiSearchResultListener {
+                    override fun onPoiSearchResult(poiList: List<PoiInfo>) {
+                        Log.d("NearbyPoiSearch", "静态方法搜索完成，返回 ${poiList.size} 个结果")
+                        onSuccess(poiList)
+                    }
+                })
+                
+                // 执行搜索
+                instance?.searchNearby(location, keyword, radius)
+            } catch (e: Exception) {
+                Log.e("NearbyPoiSearch", "静态方法搜索异常: ${e.message}", e)
+                onError(-2, "搜索异常: ${e.message}")
+            }
+        }
+        
+        /**
+         * 初始化方法，应在应用启动时调用
+         */
+        fun init(context: Context) {
+            if (instance == null) {
+                instance = NearbyPoiSearch(context.applicationContext)
+                Log.d("NearbyPoiSearch", "静态实例已初始化")
+            }
+        }
+    }
     
     init {
         try {
+            Log.d(TAG, "初始化NearbyPoiSearch")
             poiSearch = PoiSearch.newInstance()
+            
+            // 设置单例实例
+            instance = this
+            
             poiSearch?.setOnGetPoiSearchResultListener(object : OnGetPoiSearchResultListener {
                 override fun onGetPoiResult(result: PoiResult?) {
-                    if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
-                        listener?.onPoiSearchResult(emptyList())
+                    Log.d(TAG, "原始POI搜索结果回调: ${result?.allPoi?.size ?: 0}个结果")
+                    
+                    if (result == null) {
+                        Log.e(TAG, "POI搜索结果为空")
+                        // 重试搜索
+                        retrySearchIfNeeded()
                         return
                     }
                     
-                    val poiList = result.allPoi
-                    listener?.onPoiSearchResult(poiList ?: emptyList())
+                    if (result.error != SearchResult.ERRORNO.NO_ERROR) {
+                        Log.e(TAG, "POI搜索错误: ${result.error}, 错误码: ${result.error.ordinal}")
+                        // 重试搜索
+                        retrySearchIfNeeded()
+                        return
+                    }
+                    
+                    val poiList = result.allPoi ?: emptyList()
+                    Log.d(TAG, "有效POI搜索结果: ${poiList.size}个")
+                    
+                    if (poiList.isEmpty() && searchAttempts < maxAttempts) {
+                        Log.d(TAG, "搜索结果为空，尝试扩大搜索范围")
+                        retrySearchWithLargerRadius()
+                        return
+                    }
+                    
+                    // 记录搜索结果详情
+                    poiList.forEachIndexed { index, poi ->
+                        Log.d(TAG, "结果[$index]: 名称=${poi.name}, 地址=${poi.address}, " +
+                              "坐标=(${poi.location?.latitude}, ${poi.location?.longitude}), " +
+                              "距离=${poi.distance}米, UID=${poi.uid}")
+                    }
+                    
+                    // 重置搜索尝试次数
+                    searchAttempts = 0
+                    
+                    // 确保在主线程回调
+                    Handler(Looper.getMainLooper()).post {
+                        listener?.onPoiSearchResult(poiList)
+                    }
                 }
                 
                 override fun onGetPoiDetailResult(result: PoiDetailResult?) {
-                    // 不处理详情结果
+                    Log.d(TAG, "收到POI详情结果: ${result?.name}")
                 }
                 
                 override fun onGetPoiDetailResult(result: PoiDetailSearchResult?) {
-                    // 不处理详情结果
+                    Log.d(TAG, "收到POI详情搜索结果: ${result?.poiDetailInfoList?.size ?: 0}个结果")
                 }
                 
                 override fun onGetPoiIndoorResult(result: PoiIndoorResult?) {
                     // 不处理室内结果
+                    Log.d(TAG, "收到POI室内结果")
                 }
             })
+            Log.d(TAG, "POI搜索监听器设置成功")
         } catch (e: Exception) {
+            Log.e(TAG, "初始化错误: ${e.message}", e)
             e.printStackTrace()
         }
     }
     
-    private var listener: OnPoiSearchResultListener? = null
-    
     fun setOnPoiSearchResultListener(listener: OnPoiSearchResultListener) {
         this.listener = listener
+        Log.d(TAG, "设置自定义POI搜索结果监听器")
     }
     
-    fun searchNearby(location: LatLng, keyword: String, radius: Int = 2000) {
+    private fun retrySearchIfNeeded() {
+        if (searchAttempts < maxAttempts && currentLocation != null) {
+            searchAttempts++
+            Log.d(TAG, "重试搜索 (尝试 $searchAttempts/$maxAttempts)")
+            
+            Handler(Looper.getMainLooper()).postDelayed({
+                val radius = 3000 + (searchAttempts * 2000) // 根据尝试次数增加搜索半径
+                searchNearbyInternal(currentLocation!!, currentKeyword, radius)
+            }, 1000)
+        } else {
+            searchAttempts = 0
+            // 确保在主线程回调
+            Handler(Looper.getMainLooper()).post {
+                listener?.onPoiSearchResult(emptyList())
+            }
+        }
+    }
+    
+    private fun retrySearchWithLargerRadius() {
+        if (currentLocation != null) {
+            searchAttempts++
+            val radius = 5000 + (searchAttempts * 3000) // 大幅增加搜索半径
+            Log.d(TAG, "使用更大半径重试搜索: ${radius}米 (尝试 $searchAttempts/$maxAttempts)")
+            
+            Handler(Looper.getMainLooper()).postDelayed({
+                searchNearbyInternal(currentLocation!!, currentKeyword, radius)
+            }, 1000)
+        } else {
+            searchAttempts = 0
+            // 确保在主线程回调
+            Handler(Looper.getMainLooper()).post {
+                listener?.onPoiSearchResult(emptyList())
+            }
+        }
+    }
+    
+    fun searchNearby(location: BaiduLatLng, keyword: String, radius: Int = 2000) {
+        searchAttempts = 0
+        currentKeyword = keyword
+        currentLocation = location
+        
+        // 记录详细的位置信息
+        Log.d(TAG, "开始附近搜索, 位置详情: 纬度=${location.latitude}, 经度=${location.longitude}")
+        Log.d(TAG, "搜索关键词: $keyword, 搜索半径: ${radius}米")
+        
+        // 确保搜索开始时通知UI更新状态
+        Handler(Looper.getMainLooper()).post {
+            // 可以在这里发送开始搜索的通知，如果需要的话
+        }
+        
+        // 检查当前坐标是否有效
+        if (location.latitude < 1.0 && location.longitude < 1.0) {
+            Log.e(TAG, "搜索位置坐标无效: (${location.latitude}, ${location.longitude})")
+            Handler(Looper.getMainLooper()).post {
+                listener?.onPoiSearchResult(emptyList())
+            }
+            return
+        }
+        
+        // 重要：确保使用当前位置，而不是任何硬编码位置
+        Log.d(TAG, "确认搜索位置: (${location.latitude}, ${location.longitude})")
+        
+        // 使用指定位置进行搜索
+        searchNearbyInternal(location, keyword, radius)
+    }
+    
+    private fun searchNearbyInternal(location: BaiduLatLng, keyword: String, radius: Int) {
         try {
+            // 检查POI搜索实例是否可用
+            if (poiSearch == null) {
+                Log.e(TAG, "POI搜索实例不可用，尝试重新初始化")
+                poiSearch = PoiSearch.newInstance()
+                poiSearch?.setOnGetPoiSearchResultListener(object : OnGetPoiSearchResultListener {
+                    override fun onGetPoiResult(result: PoiResult?) {
+                        Log.d(TAG, "重新初始化后的POI搜索结果回调: ${result?.allPoi?.size ?: 0}个结果")
+                        // 处理搜索结果...
+                        val poiList = result?.allPoi ?: emptyList()
+                        
+                        // 确保在主线程回调
+                        Handler(Looper.getMainLooper()).post {
+                            listener?.onPoiSearchResult(poiList)
+                        }
+                    }
+                    
+                    override fun onGetPoiDetailResult(result: PoiDetailResult?) {}
+                    override fun onGetPoiDetailResult(result: PoiDetailSearchResult?) {}
+                    override fun onGetPoiIndoorResult(result: PoiIndoorResult?) {}
+                })
+            }
+            
+            Log.d(TAG, "开始搜索附近: $keyword, 坐标: (${location.latitude}, ${location.longitude}), 半径: ${radius}米")
+            
+            // 使用百度地图POI查询选项
             val nearbySearchOption = PoiNearbySearchOption()
                 .location(location)
                 .keyword(keyword)
                 .radius(radius)
                 .pageNum(0)
-                .pageCapacity(10)
+                .pageCapacity(50) // 增加返回结果数量到50
+                .sortType(PoiSortType.distance_from_near_to_far) // 按距离从近到远排序
             
-            poiSearch?.searchNearby(nearbySearchOption)
+            // 记录当前搜索选项
+            Log.d(TAG, "搜索选项: location=(${location.latitude}, ${location.longitude}), " +
+                  "keyword=$keyword, radius=$radius, pageCapacity=50")
+            
+            val result = poiSearch?.searchNearby(nearbySearchOption)
+            if (result == null) {
+                Log.e(TAG, "搜索请求发送失败")
+                // 确保在主线程回调
+                Handler(Looper.getMainLooper()).post {
+                    listener?.onPoiSearchResult(emptyList())
+                }
+            } else {
+                Log.d(TAG, "搜索请求已发送, 结果状态: $result")
+                
+                // 在此处添加延迟以确保搜索有足够时间完成
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (poiSearch != null && searchAttempts == 0) {
+                        // 如果几秒后仍未收到结果，发送备用搜索请求
+                        searchAttempts++
+                        Log.d(TAG, "发送备用搜索请求 (尝试 $searchAttempts/$maxAttempts)")
+                        poiSearch?.searchNearby(nearbySearchOption)
+                    }
+                }, 5000)
+            }
         } catch (e: Exception) {
+            Log.e(TAG, "搜索出错: ${e.message}", e)
             e.printStackTrace()
-            listener?.onPoiSearchResult(emptyList())
+            // 确保在主线程回调
+            Handler(Looper.getMainLooper()).post {
+                listener?.onPoiSearchResult(emptyList())
+            }
         }
     }
     
     fun destroy() {
         try {
+            Log.d(TAG, "销毁POI搜索实例")
             poiSearch?.destroy()
+            poiSearch = null
         } catch (e: Exception) {
+            Log.e(TAG, "销毁POI搜索实例时出错: ${e.message}", e)
             e.printStackTrace()
         }
     }
@@ -340,29 +564,358 @@ class NearbyPoiSearch(private val context: Context) {
  * 百度定位服务
  */
 class LocationService(context: Context) {
-    private val locationClient: LocationClient = LocationClient(context)
+    private val TAG = "LocationService"
+    private val locationClient: LocationClient
     
     init {
+        LocationClient.setAgreePrivacy(true)
+        locationClient = LocationClient(context.applicationContext)
+        
         try {
-            val option = LocationClientOption()
-            option.isOpenGps = true // 打开GPS
-            option.setCoorType("bd09ll") // 设置坐标类型
-            option.setScanSpan(1000) // 1秒更新一次
+            val option = LocationClientOption().apply {
+                // 设置坐标类型
+                setCoorType("bd09ll")
+                
+                // 设置定位模式，高精度定位模式，会同时使用GPS和网络定位
+                setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy)
+                
+                // 设置定位间隔，单位毫秒，减少为3秒以提高响应速度
+                setScanSpan(3000)
+                
+                // 设置是否使用GPS定位
+                isOpenGps = true
+                
+                // 设置是否需要地址信息
+                setIsNeedAddress(true)
+                
+                // 设置是否需要设备方向
+                setNeedDeviceDirect(true)
+                
+                // 设置是否需要定位问题诊断信息
+                setIsNeedLocationDescribe(true)
+                
+                // 设置是否需要位置语义化信息，设置为true可以返回地址信息
+                setIsNeedLocationPoiList(true)
+                
+                // 设置定位超时时间
+                setLocationNotify(true)
+                
+                // 使用最新的GPS数据，不使用缓存
+                setEnableSimulateGps(false)
+                
+                // 设置返回位置精度半径
+                setIsNeedAltitude(true)
+                
+                // 设置输出的坐标为百度坐标系，即BD09坐标
+                setCoorType("bd09ll")
+                
+                // 为了获取更准确的POI信息
+                setIsNeedLocationPoiList(true)
+                
+                // 设置GPS优先
+                setOpenGps(true)
+                
+                // 设置为接口频率较高的使用场景
+                setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy)
+                
+                // 每次定位都回调，频繁更新以确保位置准确性
+                setOnceLocation(false)
+                setScanSpan(2000)  // 2秒一次
+            }
+            
             locationClient.locOption = option
+            Log.d(TAG, "定位服务初始化完成")
         } catch (e: Exception) {
+            Log.e(TAG, "定位服务初始化失败: ${e.message}", e)
             e.printStackTrace()
         }
     }
     
     fun registerListener(listener: BDAbstractLocationListener) {
-        locationClient.registerLocationListener(listener)
+        try {
+            locationClient.registerLocationListener(listener)
+            Log.d(TAG, "注册定位监听器成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "注册定位监听器失败: ${e.message}", e)
+            e.printStackTrace()
+        }
     }
     
     fun start() {
-        locationClient.start()
+        try {
+            if (!locationClient.isStarted) {
+                locationClient.start()
+                Log.d(TAG, "定位服务启动成功")
+                
+                // 立即进行一次定位
+                locationClient.requestLocation()
+                Log.d(TAG, "请求立即定位")
+                
+                // 再次请求定位确保获取到最精确的位置
+                Handler(Looper.getMainLooper()).postDelayed({
+                    locationClient.requestLocation()
+                    Log.d(TAG, "再次请求定位以确保准确性")
+                }, 1000)
+            } else {
+                Log.d(TAG, "定位服务已经启动，手动请求一次定位")
+                locationClient.requestLocation()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "定位服务启动失败: ${e.message}", e)
+            e.printStackTrace()
+        }
     }
     
     fun stop() {
-        locationClient.stop()
+        try {
+            locationClient.stop()
+            Log.d(TAG, "定位服务停止")
+        } catch (e: Exception) {
+            Log.e(TAG, "定位服务停止失败: ${e.message}", e)
+            e.printStackTrace()
+        }
+    }
+}
+
+/**
+ * 百度地图视图组件
+ */
+@Composable
+fun BaiduMapView(
+    poiList: List<PoiInfo>,
+    centerLatLng: BaiduLatLng = BaiduLatLng(43.90200, 125.27900), // 更新为吉林大学前卫南区北苑一公寓的精确坐标
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // 创建地图视图
+    val mapView = remember { BaiduMapViewContainer(context) }
+    
+    // 生命周期管理
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> {}
+            }
+        }
+        
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // 显示POI标记
+    LaunchedEffect(poiList) {
+        mapView.showPois(poiList, centerLatLng)
+    }
+    
+    // 渲染地图
+    AndroidView(
+        factory = { mapView },
+        modifier = modifier.fillMaxSize()
+    )
+}
+
+/**
+ * 百度地图视图容器
+ */
+class BaiduMapViewContainer(context: Context) : FrameLayout(context) {
+    
+    private val mapView: MapView
+    private val baiduMap: BaiduMap
+    private val markers = mutableListOf<Marker>()
+    
+    init {
+        // 加载地图视图
+        val view = LayoutInflater.from(context).inflate(R.layout.layout_baidu_map, this, true)
+        
+        // 获取地图对象
+        mapView = findViewById(R.id.bmapView)
+        baiduMap = mapView.map
+        
+        // 配置地图
+        baiduMap.apply {
+            // 设置地图类型为普通地图
+            mapType = BaiduMap.MAP_TYPE_NORMAL
+            
+            // 启用缩放控件
+            uiSettings.isZoomGesturesEnabled = true
+            
+            // 启用指南针
+            uiSettings.isCompassEnabled = true
+            
+            // 设置缩放级别
+            setMapStatus(MapStatusUpdateFactory.zoomTo(15f))
+            
+            // 开启定位图层
+            isMyLocationEnabled = true
+        }
+        
+        Log.d("BaiduMapView", "初始化完成")
+    }
+    
+    /**
+     * 显示POI标记
+     */
+    fun showPois(poiList: List<PoiInfo>, centerLatLng: BaiduLatLng) {
+        // 清除之前的标记
+        clearMarkers()
+        
+        if (poiList.isEmpty()) {
+            // 如果POI列表为空，仅居中显示地图
+            Log.d("BaiduMapView", "POI列表为空，仅居中到位置: $centerLatLng")
+            moveTo(centerLatLng)
+            return
+        }
+        
+        Log.d("BaiduMapView", "显示${poiList.size}个POI标记")
+        
+        // 添加POI标记
+        poiList.forEachIndexed { index, poi ->
+            val location = poi.location
+            if (location == null) {
+                Log.e("BaiduMapView", "POI位置为空: ${poi.name}")
+                return@forEachIndexed
+            }
+            
+            Log.d("BaiduMapView", "添加标记: ${poi.name} 在 (${location.latitude}, ${location.longitude}), 距离: ${poi.distance}米")
+            
+            try {
+                // 根据POI类型选择不同的图标
+                val iconResId = when {
+                    poi.name.contains("医院") || poi.name.contains("诊所") -> R.drawable.ic_hospital
+                    poi.name.contains("药") -> R.drawable.ic_pharmacy
+                    poi.name.contains("餐") || poi.name.contains("饭店") || poi.name.contains("食") -> R.drawable.ic_restaurant
+                    else -> R.drawable.ic_location
+                }
+                
+                // 创建标记选项
+                val options = MarkerOptions()
+                    .position(location)
+                    .icon(BitmapDescriptorFactory.fromResource(iconResId))
+                    .zIndex(index)
+                    .title(poi.name)
+                
+                // 添加标记
+                val marker = (baiduMap.addOverlay(options) as Marker).also {
+                    it.setAnchor(0.5f, 1.0f) // 设置锚点
+                }
+                
+                markers.add(marker)
+            } catch (e: Exception) {
+                Log.e("BaiduMapView", "添加标记失败: ${e.message}")
+            }
+        }
+        
+        // 设置地图视图以显示所有POI
+        if (markers.size == 1) {
+            // 单个POI - 直接设置位置和缩放级别
+            val poi = poiList[0]
+            val location = poi.location
+            if (location != null) {
+                Log.d("BaiduMapView", "居中到单个POI: ${poi.name} 在 $location")
+                val update = MapStatusUpdateFactory.newLatLngZoom(location, 16f)
+                baiduMap.setMapStatus(update)
+            } else {
+                moveTo(centerLatLng)
+            }
+        } else if (markers.size > 1) {
+            // 多个POI - 调整以显示所有标记
+            try {
+                // 计算所有标记的平均位置
+                val validMarkers = markers.filter { it.position != null }
+                if (validMarkers.isNotEmpty()) {
+                    val sumLat = validMarkers.sumOf { it.position.latitude }
+                    val sumLng = validMarkers.sumOf { it.position.longitude }
+                    val avgLat = sumLat / validMarkers.size
+                    val avgLng = sumLng / validMarkers.size
+                    val centerPos = BaiduLatLng(avgLat, avgLng)
+                    
+                    // 根据POI数量和分布确定合适的缩放级别
+                    val zoomLevel = when {
+                        validMarkers.size <= 2 -> 15f
+                        validMarkers.size <= 5 -> 14f
+                        else -> 13f
+                    }
+                    
+                    Log.d("BaiduMapView", "设置多POI视图: 中心=$centerPos, 缩放=$zoomLevel")
+                    val update = MapStatusUpdateFactory.newLatLngZoom(centerPos, zoomLevel)
+                    baiduMap.setMapStatus(update)
+                } else {
+                    moveTo(centerLatLng)
+                }
+            } catch (e: Exception) {
+                Log.e("BaiduMapView", "计算多POI视图失败: ${e.message}")
+                moveTo(centerLatLng)
+            }
+        }
+        
+        // 配置标记点击事件
+        baiduMap.setOnMarkerClickListener(object : BaiduMap.OnMarkerClickListener {
+            override fun onMarkerClick(marker: Marker): Boolean {
+                try {
+                    // 移动到被点击的标记位置
+                    val update = MapStatusUpdateFactory.newLatLng(marker.position)
+                    baiduMap.animateMapStatus(update)
+                    
+                    // 显示标记标题
+                    val title = marker.title
+                    Toast.makeText(context, title, Toast.LENGTH_SHORT).show()
+                    Log.d("BaiduMapView", "点击标记: $title")
+                } catch (e: Exception) {
+                    Log.e("BaiduMapView", "处理标记点击失败: ${e.message}")
+                }
+                return true
+            }
+        })
+    }
+    
+    /**
+     * 移动地图到指定位置
+     */
+    private fun moveTo(latLng: BaiduLatLng) {
+        Log.d("BaiduMapView", "移动到位置: $latLng")
+        val update = MapStatusUpdateFactory.newLatLng(latLng)
+        baiduMap.setMapStatus(update)
+    }
+    
+    /**
+     * 清除所有标记
+     */
+    private fun clearMarkers() {
+        Log.d("BaiduMapView", "清除${markers.size}个标记")
+        baiduMap.clear()
+        markers.clear()
+    }
+    
+    /**
+     * 生命周期方法：恢复
+     */
+    fun onResume() {
+        mapView.onResume()
+        Log.d("BaiduMapView", "onResume")
+    }
+    
+    /**
+     * 生命周期方法：暂停
+     */
+    fun onPause() {
+        mapView.onPause()
+        Log.d("BaiduMapView", "onPause")
+    }
+    
+    /**
+     * 生命周期方法：销毁
+     */
+    fun onDestroy() {
+        baiduMap.isMyLocationEnabled = false
+        mapView.onDestroy()
+        Log.d("BaiduMapView", "onDestroy")
     }
 } 
