@@ -46,6 +46,7 @@ val Context.dataStore by preferencesDataStore(name = "settings")
 private val FONT_SIZE_KEY = floatPreferencesKey("font_size")
 private val VOICE_ENABLED_KEY = booleanPreferencesKey("voice_enabled")
 private val VOICE_VOLUME_KEY = floatPreferencesKey("voice_volume")
+private val SPEECH_RATE_KEY = floatPreferencesKey("speech_rate")
 
 // 全局声音设置
 object SoundSettings {
@@ -63,6 +64,14 @@ object SoundSettings {
     
     fun setVolume(value: Float) {
         _volume.value = value
+    }
+    
+    // 语音语速
+    private val _speechRate = mutableStateOf(0.8f)
+    val speechRate = _speechRate
+    
+    fun setSpeechRate(rate: Float) {
+        _speechRate.value = rate
     }
 }
 
@@ -128,6 +137,14 @@ class CareActivity : ComponentActivity() {
                     .first()
                 SoundSettings.setVolume(savedVolume)
                 
+                // 尝试从存储中读取语速设置
+                val savedSpeechRate = dataStore.data
+                    .map { preferences ->
+                        preferences[SPEECH_RATE_KEY] ?: 0.8f // 默认为0.8
+                    }
+                    .first()
+                SoundSettings.setSpeechRate(savedSpeechRate)
+                
                 // 根据保存的设置调整TTS服务
                 textToSpeechService.setEnabled(savedVoiceEnabled)
                 textToSpeechService.setVolume(savedVolume)
@@ -156,6 +173,15 @@ class CareActivity : ComponentActivity() {
                 }
                 // 更新TTS服务音量
                 textToSpeechService.setVolume(SoundSettings.volume.value)
+            }
+            
+            // 监听语速变化并保存
+            LaunchedEffect(SoundSettings.speechRate.value) {
+                dataStore.edit { preferences ->
+                    preferences[SPEECH_RATE_KEY] = SoundSettings.speechRate.value
+                }
+                // 更新TTS服务语速
+                textToSpeechService.setSpeechRate(SoundSettings.speechRate.value)
             }
             
             OlderPersonTheme {

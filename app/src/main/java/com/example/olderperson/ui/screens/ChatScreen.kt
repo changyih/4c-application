@@ -41,6 +41,7 @@ import coil.request.ImageRequest
 import java.text.SimpleDateFormat
 import java.util.*
 import android.widget.Toast
+import com.example.olderperson.SoundSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,8 +120,8 @@ fun ChatScreen(
     
     // 显示语音设置对话框
     if (showVoiceSettings) {
-        var speechRate by remember { mutableStateOf(0.8f) }
-        var volume by remember { mutableStateOf(1.0f) }
+        var speechRate by remember { mutableStateOf(SoundSettings.speechRate.value) }
+        var volume by remember { mutableStateOf(SoundSettings.volume.value) }
         
         AlertDialog(
             onDismissRequest = { showVoiceSettings = false },
@@ -198,8 +199,9 @@ fun ChatScreen(
             confirmButton = {
                 TextButton(
                     onClick = { 
-                        textToSpeechService.setSpeechRate(speechRate)
-                        textToSpeechService.setVolume(volume)
+                        // 更新全局设置
+                        SoundSettings.setSpeechRate(speechRate)
+                        SoundSettings.setVolume(volume)
                         showVoiceSettings = false
                     }
                 ) {

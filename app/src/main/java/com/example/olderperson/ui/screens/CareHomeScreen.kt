@@ -50,6 +50,7 @@ import androidx.compose.ui.text.TextStyle
 import com.example.olderperson.service.AlibabaQianwenService
 import android.widget.Toast
 import android.content.Context
+import com.example.olderperson.SoundSettings
 
 @Composable
 fun CareHomeScreen(
@@ -1311,6 +1312,10 @@ private fun CommunicationButton(
 // 播报完整天气信息
 fun speakWeatherInfo(info: WeatherManager.Companion.WeatherInfo, tts: TextToSpeechService?) {
     tts?.let {
+        // 确保使用全局设置的语速
+        it.setSpeechRate(SoundSettings.speechRate.value)
+        it.setVolume(SoundSettings.volume.value)
+        
         val weatherText = """
             ${info.city}今天天气${info.weather}，
             气温${info.temperature}，
