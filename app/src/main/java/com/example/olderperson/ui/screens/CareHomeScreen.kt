@@ -375,6 +375,7 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                         modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
                     )
                     Row(
+
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
