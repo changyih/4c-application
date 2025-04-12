@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -17,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +55,11 @@ import androidx.compose.ui.res.painterResource
 import com.example.olderperson.R
 import androidx.compose.ui.graphics.painter.Painter
 import kotlinx.coroutines.launch
+import com.example.olderperson.service.PhoneCallService
+import com.example.olderperson.data.ContactHelper
+import com.example.olderperson.data.ContactRepository
+import com.example.olderperson.data.FamilyContact
+import kotlinx.coroutines.flow.collectLatest
 
 // 搜索类型枚举
 enum class NearbyServiceType(val title: String, val icon: Int, val keyword: String, val displayName: String) {
@@ -63,10 +72,66 @@ enum class NearbyServiceType(val title: String, val icon: Int, val keyword: Stri
 @Composable
 fun FamilyScreen(
     onBackToHome: () -> Unit = {},
-    textToSpeechService: TextToSpeechService? = null
+    textToSpeechService: TextToSpeechService? = null,
+    phoneCallService: PhoneCallService? = null
 ) {
     val context = LocalContext.current
     val localTextToSpeechService = remember { TextToSpeechService(context) }
+    
+    // 创建联系人仓库
+    val contactRepository = remember { ContactRepository(context) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 联系人列表状态
+    val contactsState = contactRepository.contacts.collectAsState(initial = ContactHelper.defaultContacts)
+    
+    // 拨打电话对话框状态
+    var showCallDialog by remember { mutableStateOf(false) }
+    var currentContactName by remember { mutableStateOf("") }
+    var currentPhoneNumber by remember { mutableStateOf("") }
+    
+    // 添加联系人对话框状态
+    var showAddContactDialog by remember { mutableStateOf(false) }
+    var newContactName by remember { mutableStateOf("") }
+    var newContactRelation by remember { mutableStateOf("") }
+    var newContactPhone by remember { mutableStateOf("") }
+    
+    // 联系人管理对话框状态
+    var showManageContactsDialog by remember { mutableStateOf(false) }
+    
+    // 编辑联系人对话框状态
+    var showEditContactDialog by remember { mutableStateOf(false) }
+    var editingContact by remember { mutableStateOf<FamilyContact?>(null) }
+    var editContactName by remember { mutableStateOf("") }
+    var editContactRelation by remember { mutableStateOf("") }
+    var editContactPhone by remember { mutableStateOf("") }
+    
+    // 删除确认对话框状态
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var contactToDelete by remember { mutableStateOf<FamilyContact?>(null) }
+    
+    // 设置要编辑的联系人
+    fun prepareEditContact(contact: FamilyContact) {
+        editingContact = contact
+        editContactName = contact.name
+        editContactRelation = contact.relation
+        editContactPhone = contact.phoneNumber
+    }
+    
+    // 清除编辑联系人表单
+    fun clearEditContactForm() {
+        editingContact = null
+        editContactName = ""
+        editContactRelation = ""
+        editContactPhone = ""
+    }
+    
+    // 清除添加联系人对话框内容
+    fun clearAddContactForm() {
+        newContactName = ""
+        newContactRelation = ""
+        newContactPhone = ""
+    }
     
     // 初始化NearbyPoiSearch
     DisposableEffect(Unit) {
@@ -94,6 +159,318 @@ fun FamilyScreen(
         onDispose { }
     }
     
+    // 拨打电话确认对话框
+    if (showCallDialog) {
+        AlertDialog(
+            onDismissRequest = { showCallDialog = false },
+            title = { Text("拨打电话") },
+            text = { 
+                Column {
+                    Text("确定要拨打 $currentContactName 的电话吗？")
+                    Text("电话号码：$currentPhoneNumber")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        phoneCallService?.makePhoneCall(currentPhoneNumber)
+                        showCallDialog = false
+                        textToSpeechService?.speak("正在拨打${currentContactName}的电话")
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showCallDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 添加联系人对话框
+    if (showAddContactDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showAddContactDialog = false
+                clearAddContactForm()
+            },
+            title = { Text("添加联系人") },
+            text = { 
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 姓名输入
+                    OutlinedTextField(
+                        value = newContactName,
+                        onValueChange = { newContactName = it },
+                        label = { Text("姓名") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // 关系输入
+                    OutlinedTextField(
+                        value = newContactRelation,
+                        onValueChange = { newContactRelation = it },
+                        label = { Text("与您的关系") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // 电话号码输入
+                    OutlinedTextField(
+                        value = newContactPhone,
+                        onValueChange = { newContactPhone = it },
+                        label = { Text("电话号码") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // 验证输入
+                        if (newContactName.isNotBlank() && newContactPhone.isNotBlank()) {
+                            // 创建新联系人
+                            val newContact = FamilyContact(
+                                id = ContactHelper.generateId(),
+                                name = newContactName,
+                                relation = newContactRelation,
+                                phoneNumber = newContactPhone,
+                                colorHex = ContactHelper.getRandomColorHex()
+                            )
+                            
+                            // 添加联系人
+                            coroutineScope.launch {
+                                contactRepository.addContact(newContact)
+                                textToSpeechService?.speak("已添加联系人${newContactName}")
+                            }
+                            
+                            // 清空表单并关闭对话框
+                            clearAddContactForm()
+                            showAddContactDialog = false
+                        } else {
+                            // 提示用户填写必要字段
+                            Toast.makeText(context, "请填写姓名和电话号码", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("添加")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        showAddContactDialog = false
+                        clearAddContactForm()
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 联系人管理对话框
+    if (showManageContactsDialog) {
+        AlertDialog(
+            onDismissRequest = { showManageContactsDialog = false },
+            title = { Text("管理联系人") },
+            text = { 
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .heightIn(max = 300.dp)
+                ) {
+                    if (contactsState.value.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("暂无联系人，请添加")
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(contactsState.value) { contact ->
+                                ManageContactItem(
+                                    contact = contact,
+                                    onEdit = {
+                                        prepareEditContact(contact)
+                                        showEditContactDialog = true
+                                        showManageContactsDialog = false
+                                    },
+                                    onDelete = {
+                                        contactToDelete = contact
+                                        showDeleteConfirmDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        showManageContactsDialog = false
+                        clearAddContactForm()
+                        showAddContactDialog = true
+                    }
+                ) {
+                    Text("添加新联系人")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showManageContactsDialog = false }
+                ) {
+                    Text("关闭")
+                }
+            }
+        )
+    }
+    
+    // 编辑联系人对话框
+    if (showEditContactDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showEditContactDialog = false
+                clearEditContactForm()
+            },
+            title = { Text("编辑联系人") },
+            text = { 
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 姓名输入
+                    OutlinedTextField(
+                        value = editContactName,
+                        onValueChange = { editContactName = it },
+                        label = { Text("姓名") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // 关系输入
+                    OutlinedTextField(
+                        value = editContactRelation,
+                        onValueChange = { editContactRelation = it },
+                        label = { Text("与您的关系") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // 电话号码输入
+                    OutlinedTextField(
+                        value = editContactPhone,
+                        onValueChange = { editContactPhone = it },
+                        label = { Text("电话号码") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // 验证输入
+                        if (editContactName.isNotBlank() && editContactPhone.isNotBlank() && editingContact != null) {
+                            // 创建更新后的联系人
+                            val updatedContact = editingContact!!.copy(
+                                name = editContactName,
+                                relation = editContactRelation,
+                                phoneNumber = editContactPhone
+                            )
+                            
+                            // 更新联系人
+                            coroutineScope.launch {
+                                contactRepository.updateContact(updatedContact)
+                                textToSpeechService?.speak("已更新联系人${editContactName}")
+                                // 关闭对话框并显示管理界面
+                                showEditContactDialog = false
+                                clearEditContactForm()
+                                showManageContactsDialog = true
+                            }
+                        } else {
+                            // 提示用户填写必要字段
+                            Toast.makeText(context, "请填写姓名和电话号码", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        showEditContactDialog = false
+                        clearEditContactForm()
+                        showManageContactsDialog = true
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 删除确认对话框
+    if (showDeleteConfirmDialog && contactToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showDeleteConfirmDialog = false
+                contactToDelete = null
+            },
+            title = { Text("确认删除") },
+            text = { 
+                Text("您确定要删除联系人\"${contactToDelete!!.name}\"吗？此操作不可恢复。")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            contactRepository.deleteContact(contactToDelete!!.id)
+                            textToSpeechService?.speak("已删除联系人${contactToDelete!!.name}")
+                            showDeleteConfirmDialog = false
+                            contactToDelete = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935)
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        showDeleteConfirmDialog = false
+                        contactToDelete = null
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -115,7 +492,24 @@ fun FamilyScreen(
             ) {
                 // 家人联系人区域
                 item {
-                    FamilyContactsCard()
+                    FamilyContactsCard(
+                        contacts = contactsState.value,
+                        phoneCallService = phoneCallService,
+                        textToSpeechService = textToSpeechService ?: localTextToSpeechService,
+                        onCallRequest = { name, phoneNumber ->
+                            currentContactName = name
+                            currentPhoneNumber = phoneNumber
+                            showCallDialog = true
+                        },
+                        onAddContactClick = {
+                            clearAddContactForm()
+                            showAddContactDialog = true
+                        },
+                        onManageContacts = {
+                            showManageContactsDialog = true
+                            textToSpeechService?.speak("管理联系人")
+                        }
+                    )
                 }
                 
                 // 通讯方式
@@ -220,7 +614,14 @@ private fun FamilyHeader(onBackToHome: () -> Unit) {
 }
 
 @Composable
-private fun FamilyContactsCard() {
+private fun FamilyContactsCard(
+    contacts: List<FamilyContact>,
+    phoneCallService: PhoneCallService? = null,
+    textToSpeechService: TextToSpeechService? = null,
+    onCallRequest: (String, String) -> Unit,
+    onAddContactClick: () -> Unit,
+    onManageContacts: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -259,7 +660,7 @@ private fun FamilyContactsCard() {
                 // 管理按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { /* 管理联系人 */ }
+                    modifier = Modifier.clickable { onManageContacts() }
                 ) {
                     Text(
                         text = "管理",
@@ -279,33 +680,25 @@ private fun FamilyContactsCard() {
             Spacer(modifier = Modifier.height(16.dp))
             
             // 联系人列表
-            Row(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 李明远
-                ContactItem(
-                    name = "李明远",
-                    relation = "儿子",
-                    color = Color(0xFFFF9800)
-                )
+                // 显示联系人
+                items(contacts) { contact ->
+                    ContactItem(
+                        name = contact.name,
+                        relation = contact.relation,
+                        phoneNumber = contact.phoneNumber,
+                        color = contact.getColor(),
+                        onCallRequest = onCallRequest
+                    )
+                }
                 
-                // 丽丽
-                ContactItem(
-                    name = "李安和",
-                    relation = "女儿",
-                    color = Color(0xFF9C27B0)
-                )
-                
-                // 小红
-                ContactItem(
-                    name = "宋若宁",
-                    relation = "儿媳",
-                    color = Color(0xFF2196F3)
-                )
-                
-                // 添加
-                AddContactItem()
+                // 添加联系人按钮
+                item {
+                    AddContactItem(onAddContactClick)
+                }
             }
         }
     }
@@ -315,25 +708,30 @@ private fun FamilyContactsCard() {
 private fun ContactItem(
     name: String,
     relation: String,
-    color: Color
+    phoneNumber: String,
+    color: Color,
+    onCallRequest: (String, String) -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
         // 联系人头像
         Box(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(color),
+                .background(color)
+                .clickable { 
+                    onCallRequest(name, phoneNumber)
+                },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = name,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+            Text(
+                text = name.first().toString(),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp
             )
         }
         
@@ -355,17 +753,18 @@ private fun ContactItem(
 }
 
 @Composable
-private fun AddContactItem() {
+private fun AddContactItem(onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
         // 添加按钮
         Box(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF4CAF50)),
+                .background(Color(0xFF4CAF50))
+                .clickable { onClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -1414,5 +1813,80 @@ private fun NearbyServiceItem(
             fontSize = 14.sp,
             color = Primary
         )
+    }
+}
+
+@Composable
+private fun ManageContactItem(
+    contact: FamilyContact,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF5F5F5))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 联系人头像
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(contact.getColor()),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = contact.name.first().toString(),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // 联系人信息
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = contact.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
+            
+            Text(
+                text = "${contact.relation} · ${contact.phoneNumber}",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
+        
+        // 编辑按钮
+        IconButton(
+            onClick = onEdit,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "编辑",
+                tint = Color(0xFF2196F3)
+            )
+        }
+        
+        // 删除按钮
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "删除",
+                tint = Color(0xFFE53935)
+            )
+        }
     }
 } 

@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.olderperson.service.SpeechRecognitionService
 import com.example.olderperson.service.TextToSpeechService
+import com.example.olderperson.service.VideoCallService
+import com.example.olderperson.service.PhoneCallService
 
 import com.example.olderperson.ui.screens.*
 
@@ -70,8 +72,10 @@ object SoundSettings {
  * 呵护模式的入口Activity
  */
 class CareActivity : ComponentActivity() {
+    private lateinit var videoCallService: VideoCallService
     private lateinit var textToSpeechService: TextToSpeechService
     private lateinit var speechRecognitionService: SpeechRecognitionService
+    private lateinit var phoneCallService: PhoneCallService
     private val TAG = "CareActivity"
     
     // 录音权限请求
@@ -93,11 +97,11 @@ class CareActivity : ComponentActivity() {
         // 请求录音权限
         requestMicrophonePermission()
         
-        // 初始化文字转语音服务
+        // 初始化各种服务
+        videoCallService = VideoCallService(this)
         textToSpeechService = TextToSpeechService(this)
-        
-        // 初始化语音识别服务
         speechRecognitionService = SpeechRecognitionService(this)
+        phoneCallService = PhoneCallService(this)
         
         setContent {
             // 从DataStore加载字体大小设置
@@ -194,6 +198,7 @@ class CareActivity : ComponentActivity() {
                     CareApp(
                         textToSpeechService = textToSpeechService,
                         speechRecognitionService = speechRecognitionService,
+                        phoneCallService = phoneCallService,
                         onRequestPermission = {
                             // 检查权限状态
                             if (ContextCompat.checkSelfPermission(
@@ -267,6 +272,7 @@ class CareActivity : ComponentActivity() {
 fun CareApp(
     textToSpeechService: TextToSpeechService,
     speechRecognitionService: SpeechRecognitionService,
+    phoneCallService: PhoneCallService,
     onRequestPermission: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -321,7 +327,8 @@ fun CareApp(
                 Log.d("CareActivity", "Navigating back to Home from Family")
                 currentScreen = "home"
             },
-            textToSpeechService = textToSpeechService
+            textToSpeechService = textToSpeechService,
+            phoneCallService = phoneCallService
         )
         "community" -> CommunityScreen(
             onBackToHome = {
