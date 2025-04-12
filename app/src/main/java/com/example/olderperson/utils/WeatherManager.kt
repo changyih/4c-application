@@ -110,6 +110,7 @@ class WeatherManager {
                         minDayDiff = diff
                         nearestTerm = term
                     }
+
                 } else {
                     // 不同月份时，计算相对于本月的距离
                     // 简化计算，认为每个月30天
