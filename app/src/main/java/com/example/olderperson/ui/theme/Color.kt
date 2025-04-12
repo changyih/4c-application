@@ -42,6 +42,7 @@ val PurpleGradientEnd = Color(0xFF7B69D6)
 val Background = DeepBlack
 val Surface = Color(0xFF121212)
 val Primary = OrangeGradient
+val PrimaryLight = Color(0xFFFFBE98) // 新增主色的浅色版本
 val Secondary = PurpleGradient
 val Tertiary = BrightBlue
 val Error = Color(0xFFCF6679)
