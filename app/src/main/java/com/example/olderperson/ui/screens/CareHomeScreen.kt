@@ -193,32 +193,6 @@ private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpee
 
         // 智能助手对话框
         AssistantChatBox(textToSpeechService)
-        
-        // 交流按钮区域
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // 语音交流按钮
-            CommunicationButton(
-                icon = Icons.Default.Mic,
-                text = "语音交流",
-                modifier = Modifier.weight(1f),
-                onClick = { 
-                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show()
-                }
-            )
-
-            // 文字交流按钮
-            CommunicationButton(
-                icon = Icons.Default.Keyboard,
-                text = "文字交流",
-                modifier = Modifier.weight(1f),
-                onClick = { textToSpeechService?.speak("文字交流") }
-            )
-        }
     }
 }
 
@@ -1376,45 +1350,6 @@ private fun HomeBottomNavItem(
 private fun getCurrentDate(): String {
     val dateFormat = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINESE)
     return dateFormat.format(Date())
-}
-
-@Composable
-private fun CommunicationButton(
-    icon: ImageVector,
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = FontSizeConfig.scaledSp(14).sp
-            )
-        }
-    }
 }
 
 // 播报完整天气信息
