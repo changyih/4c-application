@@ -132,17 +132,17 @@ fun ChatScreen(
                     Slider(
                         value = speechRate,
                         onValueChange = { speechRate = it },
-                        valueRange = 0.5f..1.5f,
-                        steps = 10,
+                        valueRange = 0.2f..3.0f,
+                        steps = 4,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("慢", fontSize = 12.sp)
+                        Text("非常慢", fontSize = 12.sp)
                         Text("适中", fontSize = 12.sp)
-                        Text("快", fontSize = 12.sp)
+                        Text("非常快", fontSize = 12.sp)
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))

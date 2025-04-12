@@ -97,7 +97,7 @@ class TextToSpeechService(context: Context) {
 
     // 设置语速
     fun setSpeechRate(rate: Float) {
-        this.speechRate = rate.coerceIn(0.5f, 1.5f) // 限制在0.5-1.5范围内
+        this.speechRate = rate.coerceIn(0.2f, 3.0f) // 更大范围，0.2非常慢，3.0非常快
         textToSpeech?.setSpeechRate(this.speechRate)
         Log.d(TAG, "设置语速: $speechRate")
     }

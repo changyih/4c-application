@@ -71,7 +71,7 @@ object SoundSettings {
     val speechRate = _speechRate
     
     fun setSpeechRate(rate: Float) {
-        _speechRate.value = rate
+        _speechRate.value = rate.coerceIn(0.2f, 3.0f)  // 更新为新的范围
     }
 }
 
