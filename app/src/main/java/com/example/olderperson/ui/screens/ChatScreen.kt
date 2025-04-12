@@ -40,6 +40,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.Toast
+import com.example.olderperson.SoundSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +64,9 @@ fun ChatScreen(
     var showVoiceHelp by remember { mutableStateOf(false) }
     var showImagePickerOptions by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var autoReadMessages by remember { mutableStateOf(true) } // 自动朗读消息
+    var showVoiceSettings by remember { mutableStateOf(false) } // 语音设置对话框
+    var isSpeaking by remember { mutableStateOf(false) } // 跟踪当前是否正在播放语音
     
     val coroutineScope = rememberCoroutineScope()
     
@@ -92,13 +97,124 @@ fun ChatScreen(
     
     // 添加初始消息，只执行一次
     LaunchedEffect(Unit) {
-        messages = listOf(
-            ChatMessage(
-                content = "您好！我是您的智能助手，有什么可以帮您的吗？我可以回答问题，也可以理解您上传的图片。",
-                isUser = false,
-                timestamp = System.currentTimeMillis(),
-                messageType = MessageType.TEXT
-            )
+        val welcomeMessage = ChatMessage(
+            content = "您好！我是您的智能助手，有什么可以帮您的吗？我可以回答问题，也可以理解您上传的图片。",
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            messageType = MessageType.TEXT
+        )
+        messages = listOf(welcomeMessage)
+        
+        // 自动朗读欢迎消息
+        if (autoReadMessages) {
+            textToSpeechService.speak(welcomeMessage.content)
+            isSpeaking = true
+            // 监听TTS是否完成
+            delay(1000) // 延迟检查，让TTS有时间开始
+            while (textToSpeechService.isSpeaking()) {
+                delay(500)
+            }
+            isSpeaking = false
+        }
+    }
+    
+    // 显示语音设置对话框
+    if (showVoiceSettings) {
+        var speechRate by remember { mutableStateOf(SoundSettings.speechRate.value) }
+        var volume by remember { mutableStateOf(SoundSettings.volume.value) }
+        
+        AlertDialog(
+            onDismissRequest = { showVoiceSettings = false },
+            title = { Text("语音设置") },
+            text = { 
+                Column {
+                    Text("语速设置")
+                    Slider(
+                        value = speechRate,
+                        onValueChange = { speechRate = it },
+                        valueRange = 0.2f..3.0f,
+                        steps = 4,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("非常慢", fontSize = 12.sp)
+                        Text("适中", fontSize = 12.sp)
+                        Text("非常快", fontSize = 12.sp)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("音量设置")
+                    Slider(
+                        value = volume,
+                        onValueChange = { volume = it },
+                        valueRange = 0.0f..1.0f,
+                        steps = 10,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("小", fontSize = 12.sp)
+                        Text("中", fontSize = 12.sp)
+                        Text("大", fontSize = 12.sp)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(onClick = {
+                            // 播放测试语音
+                            textToSpeechService.setSpeechRate(speechRate)
+                            textToSpeechService.setVolume(volume)
+                            textToSpeechService.speak("这是一条测试语音，您可以根据需要调整语速和音量。")
+                            isSpeaking = true
+                        }) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "测试")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("测试")
+                        }
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        Button(onClick = {
+                            // 停止播放
+                            textToSpeechService.stop()
+                            isSpeaking = false
+                        }) {
+                            Icon(Icons.Default.Stop, contentDescription = "停止")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("停止")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        // 更新全局设置
+                        SoundSettings.setSpeechRate(speechRate)
+                        SoundSettings.setVolume(volume)
+                        showVoiceSettings = false
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showVoiceSettings = false 
+                }) {
+                    Text("取消")
+                }
+            }
         )
     }
     
@@ -179,7 +295,7 @@ fun ChatScreen(
                     onClick = { 
                         selectedImageUri?.let { uri ->
                             coroutineScope.launch {
-                                addImageMessage(uri, inputText, messages) { newMessages ->
+                                addImageMessage(uri, inputText, messages, qianwenService, textToSpeechService, autoReadMessages) { newMessages ->
                                     messages = newMessages
                                 }
                                 // 重置状态
@@ -225,18 +341,40 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // 语音设置按钮
+                    IconButton(
+                        onClick = { showVoiceSettings = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "语音设置"
+                        )
+                    }
+                    
+                    // 语音功能开关
+                    IconButton(
+                        onClick = { 
+                            autoReadMessages = !autoReadMessages
+                            textToSpeechService.setEnabled(autoReadMessages)
+                            if (!autoReadMessages) {
+                                // 如果关闭自动朗读，同时停止当前播放
+                                textToSpeechService.stop()
+                                isSpeaking = false
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (autoReadMessages) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                            contentDescription = if (autoReadMessages) "关闭自动朗读" else "开启自动朗读"
+                        )
+                    }
+                    
                     // 帮助按钮
                     IconButton(onClick = { showVoiceHelp = true }) {
                         Icon(
                             imageVector = Icons.Default.Help,
                             contentDescription = "语音帮助"
                         )
-                    }
-                    // 查看今日全部提醒按钮
-                    TextButton(
-                        onClick = { /* TODO: 实现查看全部提醒功能 */ }
-                    ) {
-                        Text("查看今日全部提醒")
                     }
                 }
             )
@@ -256,7 +394,15 @@ fun ChatScreen(
                 reverseLayout = true
             ) {
                 items(messages.asReversed()) { message ->
-                    ChatMessageItem(message)
+                    ChatMessageItem(
+                        message = message,
+                        textToSpeechService = textToSpeechService,
+                        isAutoReadEnabled = autoReadMessages,
+                        isSpeaking = isSpeaking,
+                        onSpeakStart = { isSpeaking = true },
+                        onSpeakStop = { isSpeaking = false },
+                        onSpeakPause = { textToSpeechService.pause() }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -271,7 +417,13 @@ fun ChatScreen(
                 onSendClick = {
                     if (inputText.isNotEmpty()) {
                         coroutineScope.launch {
-                            addUserMessage(inputText, messages, qianwenService) { newMessages ->
+                            // 发送前如果正在语音播放，先停止
+                            if (isSpeaking) {
+                                textToSpeechService.stop()
+                                isSpeaking = false
+                            }
+                            
+                            addUserMessage(inputText, messages, qianwenService, textToSpeechService, autoReadMessages) { newMessages ->
                                 messages = newMessages
                             }
                             inputText = ""
@@ -287,6 +439,11 @@ fun ChatScreen(
                 },
                 onStartRecognition = { 
                     Log.d(TAG, "开始语音识别")
+                    // 开始识别前如果正在播放语音，先停止
+                    if (isSpeaking) {
+                        textToSpeechService.stop()
+                        isSpeaking = false
+                    }
                     speechRecognitionService.startListening() 
                 },
                 onStopRecognition = { 
@@ -297,7 +454,7 @@ fun ChatScreen(
                     if (inputText.isNotEmpty()) {
                         Log.d(TAG, "识别到的文本: $inputText")
                         coroutineScope.launch {
-                            addUserMessage(inputText, messages, qianwenService) { newMessages ->
+                            addUserMessage(inputText, messages, qianwenService, textToSpeechService, autoReadMessages) { newMessages ->
                                 messages = newMessages
                             }
                             inputText = ""
@@ -321,6 +478,8 @@ private suspend fun addUserMessage(
     text: String,
     currentMessages: List<ChatMessage>,
     qianwenService: AlibabaQianwenService,
+    textToSpeechService: TextToSpeechService,
+    autoReadMessages: Boolean,
     updateMessages: (List<ChatMessage>) -> Unit
 ) {
     val userMessage = ChatMessage(
@@ -345,6 +504,11 @@ private suspend fun addUserMessage(
         )
         
         updateMessages(currentMessages + userMessage + assistantMessage)
+        
+        // 自动朗读助手回复
+        if (autoReadMessages) {
+            textToSpeechService.speak(response)
+        }
     } catch (e: Exception) {
         Log.e("ChatScreen", "发送消息失败: ${e.message}")
         val errorMessage = ChatMessage(
@@ -354,6 +518,11 @@ private suspend fun addUserMessage(
             messageType = MessageType.TEXT
         )
         updateMessages(currentMessages + userMessage + errorMessage)
+        
+        // 自动朗读错误信息
+        if (autoReadMessages) {
+            textToSpeechService.speak(errorMessage.content)
+        }
     }
 }
 
@@ -362,6 +531,9 @@ private suspend fun addImageMessage(
     imageUri: Uri,
     text: String,
     currentMessages: List<ChatMessage>,
+    qianwenService: AlibabaQianwenService,
+    textToSpeechService: TextToSpeechService,
+    autoReadMessages: Boolean,
     updateMessages: (List<ChatMessage>) -> Unit
 ) {
     val userMessage = ChatMessage(
@@ -375,21 +547,50 @@ private suspend fun addImageMessage(
     // 先添加用户消息
     updateMessages(currentMessages + userMessage)
     
-    // 延迟一秒后添加助手回复（模拟API调用）
-    delay(1000)
-    
-    val assistantMessage = ChatMessage(
-        content = "这是一张很有趣的图片！我能看到...(演示模式，实际使用时请配置API_KEY)",
-        isUser = false,
-        timestamp = System.currentTimeMillis(),
-        messageType = MessageType.TEXT
-    )
-    
-    updateMessages(currentMessages + userMessage + assistantMessage)
+    try {
+        // 调用视觉模型API
+        val response = qianwenService.sendImageMessage(text, imageUri)
+        
+        val assistantMessage = ChatMessage(
+            content = response,
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            messageType = MessageType.TEXT
+        )
+        
+        updateMessages(currentMessages + userMessage + assistantMessage)
+        
+        // 自动朗读助手回复
+        if (autoReadMessages) {
+            textToSpeechService.speak(response)
+        }
+    } catch (e: Exception) {
+        Log.e("ChatScreen", "处理图片失败: ${e.message}")
+        val errorMessage = ChatMessage(
+            content = "抱歉，我无法处理这张图片。错误信息: ${e.message}",
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            messageType = MessageType.TEXT
+        )
+        updateMessages(currentMessages + userMessage + errorMessage)
+        
+        // 自动朗读错误信息
+        if (autoReadMessages) {
+            textToSpeechService.speak(errorMessage.content)
+        }
+    }
 }
 
 @Composable
-fun ChatMessageItem(message: ChatMessage) {
+fun ChatMessageItem(
+    message: ChatMessage,
+    textToSpeechService: TextToSpeechService,
+    isAutoReadEnabled: Boolean,
+    isSpeaking: Boolean,
+    onSpeakStart: () -> Unit,
+    onSpeakStop: () -> Unit,
+    onSpeakPause: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
@@ -446,11 +647,58 @@ fun ChatMessageItem(message: ChatMessage) {
                 
                 // 显示文本内容
                 if (message.content.isNotEmpty()) {
-                    Text(
-                        text = message.content,
-                        color = if (message.isUser) Color.White else Color.Black,
-                        fontSize = 16.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = message.content,
+                            color = if (message.isUser) Color.White else Color.Black,
+                            fontSize = 16.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // 为非用户消息添加朗读控制按钮
+                        if (!message.isUser) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Row {
+                                // 播放按钮或暂停按钮（根据当前状态显示）
+                                IconButton(
+                                    onClick = { 
+                                        if (isSpeaking) {
+                                            onSpeakPause()
+                                        } else {
+                                            textToSpeechService.speak(message.content)
+                                            onSpeakStart()
+                                        }
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSpeaking) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = if (isSpeaking) "暂停朗读" else "朗读消息",
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                
+                                // 停止按钮
+                                IconButton(
+                                    onClick = { 
+                                        textToSpeechService.stop()
+                                        onSpeakStop()
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Stop,
+                                        contentDescription = "停止朗读",
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -470,6 +718,8 @@ fun BottomInputArea(
     onStopRecognition: () -> Unit,
     onImagePickerClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -491,7 +741,10 @@ fun BottomInputArea(
         ) {
             // 语音/键盘切换按钮
             IconButton(
-                onClick = onVoiceModeToggle,
+                onClick = { 
+                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show()
+                    // onVoiceModeToggle() 
+                },
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
@@ -507,32 +760,19 @@ fun BottomInputArea(
             if (isVoiceMode) {
                 // 语音输入按钮
                 Button(
-                    onClick = { /* 不处理单击事件 */ },
+                    onClick = { 
+                        Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show() 
+                    },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = { 
-                                    // 按下时开始录音
-                                    onStartRecognition()
-                                    // 等待释放
-                                    try {
-                                        awaitRelease()
-                                    } finally {
-                                        // 释放时停止录音
-                                        onStopRecognition()
-                                    }
-                                }
-                            )
-                        },
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isListening) Color(0xFFB9F6CA) else Color(0xFFE8F5E9),
+                        containerColor = Color(0xFFE8F5E9),
                         contentColor = Color(0xFF2E7D32)
                     )
                 ) {
                     Text(
-                        text = if (isListening) "正在收听..." else "按住说话",
+                        text = "按住说话",
                         fontSize = 16.sp
                     )
                 }

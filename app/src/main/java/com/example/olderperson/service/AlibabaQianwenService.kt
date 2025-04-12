@@ -110,7 +110,17 @@ class AlibabaQianwenService(private val context: Context) {
                 
                 // 将图像转换为Base64
                 val imageStream = context.contentResolver.openInputStream(imageUri)
-                val base64Image = encodeImageToBase64(imageStream!!)
+                
+                // 检查文件大小
+                val fileSize = imageStream?.available() ?: 0
+                if (fileSize > 10 * 1024 * 1024) { // 10MB限制
+                    return@withContext "抱歉，图片太大了，请选择小于10MB的图片。"
+                }
+                
+                // 获取MIME类型
+                val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                
+                val base64Image = encodeImageToBase64WithPrefix(imageStream!!, mimeType)
                 
                 // 使用多模态格式构建请求
                 val requestBody = """
@@ -165,8 +175,21 @@ class AlibabaQianwenService(private val context: Context) {
             try {
                 _isProcessing.value = true
                 
-                // 将Bitmap转换为Base64
-                val base64Image = encodeImageToBase64(bitmap)
+                // 检查图像大小
+                if (bitmap.width * bitmap.height > 4096 * 4096) {
+                    // 如果图像太大，进行压缩
+                    val scaleFactor = 4096.0 / Math.max(bitmap.width, bitmap.height)
+                    val resizedBitmap = Bitmap.createScaledBitmap(
+                        bitmap,
+                        (bitmap.width * scaleFactor).toInt(),
+                        (bitmap.height * scaleFactor).toInt(),
+                        true
+                    )
+                    return@withContext sendImageMessage(prompt, resizedBitmap)
+                }
+                
+                // 将Bitmap转换为Base64（带前缀）
+                val base64Image = encodeImageToBase64WithPrefix(bitmap, "image/jpeg")
                 
                 // 使用多模态格式构建请求
                 val requestBody = """
@@ -307,17 +330,46 @@ class AlibabaQianwenService(private val context: Context) {
                 val errorBody = response.body?.string() ?: "无响应内容"
                 Log.e(TAG, "API请求失败: ${response.code} ${response.message}\n$errorBody")
                 
+                // 记录更详细的请求信息以便调试（但不记录完整Base64图像）
+                val sanitizedRequestBody = if (url == VISION_API_URL) {
+                    "多模态请求(图像数据已省略)" 
+                } else {
+                    requestBody
+                }
+                Log.e(TAG, "请求详情 - URL: $url\n请求体: $sanitizedRequestBody")
+                
                 // 尝试从错误响应中提取信息
                 try {
                     val jsonError = JSONObject(errorBody)
                     if (jsonError.has("message")) {
-                        throw Exception("API错误: ${jsonError.getString("message")}")
+                        val errorMessage = jsonError.getString("message")
+                        Log.e(TAG, "API错误消息: $errorMessage")
+                        
+                        // 根据常见错误提供更具体的提示
+                        if (errorMessage.contains("token") || errorMessage.contains("API")) {
+                            throw Exception("API密钥错误或未授权: $errorMessage")
+                        } else if (errorMessage.contains("quota") || errorMessage.contains("limit")) {
+                            throw Exception("API配额超限: $errorMessage")
+                        } else if (errorMessage.contains("image") || errorMessage.contains("format")) {
+                            throw Exception("图像格式或大小不支持: $errorMessage")
+                        } else {
+                            throw Exception("API错误: $errorMessage")
+                        }
                     }
                 } catch (e: Exception) {
-                    // 忽略JSON解析错误
+                    // 如果不是JSON格式的错误或解析失败，则提供HTTP状态码错误
+                    if (response.code == 400) {
+                        throw Exception("请求格式错误(400)，请检查图片格式和大小是否符合要求")
+                    } else if (response.code == 401) {
+                        throw Exception("API密钥未授权(401)，请检查密钥是否有效")
+                    } else if (response.code == 403) {
+                        throw Exception("无权限访问(403)，请确认模型权限")
+                    } else if (response.code == 429) {
+                        throw Exception("请求频率超限(429)，请稍后再试")
+                    } else {
+                        throw Exception("API请求失败: ${response.code} ${response.message}")
+                    }
                 }
-                
-                throw Exception("API请求失败: ${response.code} ${response.message}")
             }
             
             return response.body?.string() ?: throw Exception("响应体为空")
@@ -327,6 +379,36 @@ class AlibabaQianwenService(private val context: Context) {
         }
     }
     
+    // 添加新方法 - 带格式前缀的Base64编码方法
+    /**
+     * 将InputStream编码为带前缀的Base64
+     * @param inputStream 图像的InputStream
+     * @param mimeType 图像的MIME类型
+     * @return 带前缀的Base64编码字符串
+     */
+    private fun encodeImageToBase64WithPrefix(inputStream: InputStream, mimeType: String): String {
+        val bytes = inputStream.readBytes()
+        inputStream.close()
+        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        return "data:$mimeType;base64,$base64"
+    }
+    
+    /**
+     * 将Bitmap编码为带前缀的Base64
+     * @param bitmap 图像的Bitmap
+     * @param mimeType 图像的MIME类型
+     * @return 带前缀的Base64编码字符串
+     */
+    private fun encodeImageToBase64WithPrefix(bitmap: Bitmap, mimeType: String): String {
+        val outputStream = ByteArrayOutputStream()
+        // 使用较高质量的JPEG压缩以确保图像质量
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        val bytes = outputStream.toByteArray()
+        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        return "data:$mimeType;base64,$base64"
+    }
+    
+    // 保留原方法以向后兼容
     /**
      * 将InputStream编码为Base64
      * @param inputStream 图像的InputStream

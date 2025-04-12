@@ -75,6 +75,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 import com.baidu.mapapi.model.LatLng as BaiduLatLng
+import android.widget.Toast
 
 /**
  * 首页界面
@@ -210,6 +211,8 @@ fun HomeScreen(
  */
 @Composable
 fun VoiceModeScreen(textToSpeechService: TextToSpeechService) {
+    val context = LocalContext.current
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -222,7 +225,9 @@ fun VoiceModeScreen(textToSpeechService: TextToSpeechService) {
         ) {
             // 语音输入按钮
             Button(
-                onClick = { /* TODO: 实现语音输入功能 */ },
+                onClick = { 
+                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show() 
+                },
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape),
