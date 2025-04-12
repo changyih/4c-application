@@ -1,11 +1,13 @@
 package com.example.olderperson.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,13 +19,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.ui.theme.FontSizeConfig
 import com.example.olderperson.SoundSettings
+import com.example.olderperson.utils.EmergencyContactsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,9 +38,18 @@ fun SettingsScreen(
     textToSpeechService: TextToSpeechService? = null
 ) {
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
     
     // 确认退出对话框状态
     var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    // 紧急联系人设置对话框状态
+    var showEmergencyContactDialog by remember { mutableStateOf(false) }
+    
+    // 获取当前紧急联系人信息
+    val currentEmergencyContact = remember { 
+        mutableStateOf(EmergencyContactsManager.getEmergencyContact(context)) 
+    }
     
     // 退出登录确认对话框
     if (showLogoutDialog) {
@@ -59,6 +73,22 @@ fun SettingsScreen(
                     Text("取消")
                 }
             }
+        )
+    }
+    
+    // 紧急联系人设置对话框
+    if (showEmergencyContactDialog) {
+        EmergencyContactDialog(
+            currentContact = currentEmergencyContact.value,
+            onDismiss = { showEmergencyContactDialog = false },
+            onSave = { contact ->
+                EmergencyContactsManager.saveEmergencyContact(context, contact)
+                currentEmergencyContact.value = contact
+                showEmergencyContactDialog = false
+                Toast.makeText(context, "紧急联系人已保存", Toast.LENGTH_SHORT).show()
+                textToSpeechService?.speak("紧急联系人已设置为${contact.name}")
+            },
+            textToSpeechService = textToSpeechService
         )
     }
     
@@ -125,9 +155,12 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Outlined.ContactPhone,
                 title = "紧急联系人",
-                description = "设置紧急情况下的联系人",
+                description = if (currentEmergencyContact.value != null) 
+                    "已设置：${currentEmergencyContact.value?.name} (${currentEmergencyContact.value?.phone})" 
+                    else "设置紧急情况下的联系人",
                 onClick = {
-                    textToSpeechService?.speak("紧急联系人")
+                    textToSpeechService?.speak("紧急联系人设置")
+                    showEmergencyContactDialog = true
                 }
             )
             
@@ -582,4 +615,101 @@ fun SoundSettings(textToSpeechService: TextToSpeechService? = null) {
             }
         }
     }
+}
+
+/**
+ * 紧急联系人设置对话框
+ */
+@Composable
+fun EmergencyContactDialog(
+    currentContact: EmergencyContactsManager.EmergencyContact?,
+    onDismiss: () -> Unit,
+    onSave: (EmergencyContactsManager.EmergencyContact) -> Unit,
+    textToSpeechService: TextToSpeechService?
+) {
+    var name by remember { mutableStateOf(currentContact?.name ?: "") }
+    var phone by remember { mutableStateOf(currentContact?.phone ?: "") }
+    var relationship by remember { mutableStateOf(currentContact?.relationship ?: "") }
+    
+    val isValid = name.isNotBlank() && phone.isNotBlank()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { 
+            Text(
+                text = "设置紧急联系人",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            ) 
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                // 联系人姓名
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("联系人姓名") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    singleLine = true
+                )
+                
+                // 联系人电话
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("联系人电话") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true
+                )
+                
+                // 联系人关系
+                OutlinedTextField(
+                    value = relationship,
+                    onValueChange = { relationship = it },
+                    label = { Text("与您的关系 (选填)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    singleLine = true
+                )
+                
+                // 提示文本
+                Text(
+                    text = "紧急情况下，按下主页上的紧急呼叫按钮将直接拨打此联系人电话",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val contact = EmergencyContactsManager.EmergencyContact(
+                        name = name.trim(),
+                        phone = phone.trim(),
+                        relationship = relationship.trim()
+                    )
+                    onSave(contact)
+                },
+                enabled = isValid
+            ) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 } 
