@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,6 +53,10 @@ import com.example.olderperson.service.AlibabaQianwenService
 import android.widget.Toast
 import android.content.Context
 import com.example.olderperson.SoundSettings
+import android.content.Intent
+import android.net.Uri
+import com.example.olderperson.utils.EmergencyContactsManager
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun CareHomeScreen(
@@ -68,6 +73,9 @@ fun CareHomeScreen(
     textToSpeechService: TextToSpeechService? = null
 ) {
     val context = LocalContext.current
+    // 获取紧急联系人数据
+    val emergencyContact = EmergencyContactsManager.getEmergencyContact(context)
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -116,6 +124,19 @@ fun CareHomeScreen(
                 onChatClick = onNavigateToChat,
                 onExploreClick = onNavigateToExplore,
                 onSettingsClick = onNavigateToSettings
+            )
+        }
+        
+        // 紧急呼叫按钮（固定在右下角）
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 90.dp, end = 16.dp)
+        ) {
+            EmergencyCallButton(
+                emergencyContact = emergencyContact,
+                textToSpeechService = textToSpeechService,
+                context = context
             )
         }
     }
@@ -1490,4 +1511,131 @@ private fun buildPromptForQianwen(
 预警与禁忌（症状预警、就医信号）
 不要使用'**'和'##'这种符号
     """.trimIndent()
+}
+
+/**
+ * 紧急呼叫按钮
+ */
+@Composable
+private fun EmergencyCallButton(
+    emergencyContact: EmergencyContactsManager.EmergencyContact?,
+    textToSpeechService: TextToSpeechService?,
+    context: Context
+) {
+    // 是否显示确认对话框
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    
+    // 确认对话框
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("紧急呼叫", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = { 
+                Text(
+                    text = emergencyContact?.let { 
+                        "确认拨打${it.name}的电话：${it.phone}？" 
+                    } ?: "您尚未设置紧急联系人。请先在设置页面添加紧急联系人。",
+                    fontSize = 16.sp
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        if (emergencyContact != null) {
+                            textToSpeechService?.speak("正在拨打紧急联系人${emergencyContact.name}的电话")
+                            // 直接拨打电话
+                            val intent = Intent(Intent.ACTION_CALL).apply {
+                                data = Uri.parse("tel:${emergencyContact.phone}")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "无法拨打电话，请检查应用权限", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    enabled = emergencyContact != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("确认拨打", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showConfirmDialog = false },
+                    border = BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .padding(16.dp)
+            .size(80.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = CircleShape,
+                spotColor = Color.Red.copy(alpha = 0.5f)
+            )
+            .clip(CircleShape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFF5252),
+                        Color(0xFFD50000)
+                    )
+                )
+            )
+            .clickable {
+                if (emergencyContact != null) {
+                    // 直接拨打电话
+                    textToSpeechService?.speak("正在拨打紧急联系人${emergencyContact.name}的电话")
+                    val intent = Intent(Intent.ACTION_CALL).apply {
+                        data = Uri.parse("tel:${emergencyContact.phone}")
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "无法拨打电话，请检查应用权限", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    textToSpeechService?.speak("请先设置紧急联系人")
+                    Toast.makeText(context, "请先设置紧急联系人", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .border(
+                width = 2.dp,
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.8f),
+                        Color.White.copy(alpha = 0.3f)
+                    )
+                ),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Call,
+                contentDescription = "紧急呼叫",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "紧急呼叫",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
 } 
