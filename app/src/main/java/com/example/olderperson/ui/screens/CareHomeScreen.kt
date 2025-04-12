@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
@@ -57,6 +58,7 @@ import android.content.Intent
 import android.net.Uri
 import com.example.olderperson.utils.EmergencyContactsManager
 import androidx.compose.foundation.BorderStroke
+
 
 @Composable
 fun CareHomeScreen(
@@ -936,18 +938,101 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                             )
                         }
                     } else {
+                        // 新增状态：是否显示详情
+                        var showFullContent by remember { mutableStateOf(false) }
+                        
+                        // 提取欢迎语和各个部分
+                        val welcomeMessage = remember(wellnessPlanContent) {
+                            wellnessPlanContent.lines().firstOrNull { it.contains("尊敬的用户") || it.contains("量身定制") } ?: 
+                            "尊敬的用户，我为您量身定制了一份个性化养生方案。请您根据以下建议进行调整和实践。"
+                        }
+                        
+                        // 提取各个部分
+                        val healthFocus = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "今日健康重点", "饮食建议")
+                        }
+                        
+                        val dietSuggestion = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "饮食建议", "运动与作息")
+                        }
+                        
+                        val exerciseAndRoutine = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "运动与作息", "中医调理方案")
+                        }
+                        
+                        val tcmTherapy = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "中医调理方案", "预警与禁忌")
+                        }
+                        
+                        val warningsAndTaboos = remember(wellnessPlanContent) {
+                            extractSection(wellnessPlanContent, "预警与禁忌", null)
+                        }
+                        
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 400.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
+                            // 欢迎语总是显示
                             Text(
-                                text = wellnessPlanContent,
+                                text = welcomeMessage,
                                 fontSize = 16.sp,
                                 lineHeight = 24.sp,
-                                color = Color.White
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
                             )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (showFullContent) {
+                                // 详情模式：显示完整内容
+                                Text(
+                                    text = wellnessPlanContent,
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp,
+                                    color = Color.White
+                                )
+                            } else {
+                                // 简化模式：只显示各部分标题和简短内容
+                                SectionCard(
+                                    title = "今日健康重点",
+                                    summary = getSummary(healthFocus),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "饮食建议",
+                                    summary = getSummary(dietSuggestion),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "运动与作息",
+                                    summary = getSummary(exerciseAndRoutine),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "中医调理方案",
+                                    summary = getSummary(tcmTherapy),
+                                    textToSpeechService = textToSpeechService
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                SectionCard(
+                                    title = "预警与禁忌",
+                                    summary = getSummary(warningsAndTaboos),
+                                    textToSpeechService = textToSpeechService
+                                )
+                            }
                             
                             // 按钮区域
                             Spacer(modifier = Modifier.height(24.dp))
@@ -957,6 +1042,34 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                                     .padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
+                                // 详情/简化按钮
+                                Button(
+                                    onClick = { showFullContent = !showFullContent },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.White.copy(alpha = 0.2f)
+                                    )
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (showFullContent) Icons.Default.ViewHeadline else Icons.Default.Article, 
+                                            contentDescription = if (showFullContent) "简化" else "详情", 
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = if (showFullContent) "简化" else "详情",
+                                            fontSize = 18.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                                
                                 // 朗读按钮
                                 Button(
                                     onClick = { textToSpeechService?.speak(wellnessPlanContent) },
@@ -1572,6 +1685,149 @@ private fun EmergencyCallButton(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
+        }
+    }
+}
+
+// 添加辅助函数：从养生方案内容中提取指定部分
+private fun extractSection(content: String, sectionTitle: String, nextSectionTitle: String?): String {
+    val lines = content.lines()
+    val startIndex = lines.indexOfFirst { it.contains(sectionTitle) }
+    
+    if (startIndex == -1) return ""
+    
+    val endIndex = if (nextSectionTitle != null) {
+        val nextIndex = lines.indexOfFirst { it.contains(nextSectionTitle) }
+        if (nextIndex == -1) lines.size else nextIndex
+    } else {
+        lines.size
+    }
+    
+    return lines.subList(startIndex, endIndex).joinToString("\n")
+}
+
+// 修改提取摘要的函数，确保去除"###"字符
+private fun getSummary(section: String): String {
+    val lines = section.lines()
+    if (lines.isEmpty()) return ""
+    
+    // 首先清理掉所有的"###"和"##"标记
+    val cleanedLines = lines.map { line ->
+        line.replace(Regex("#{1,3}\\s*"), "")
+    }
+    
+    // 如果内容少于3行，直接返回全部
+    if (cleanedLines.size <= 3) return cleanedLines.joinToString("\n")
+    
+    // 提取标题行
+    val title = cleanedLines.first()
+    
+    // 提取要点（以"-"或"•"开头的行），最多取2条
+    val points = cleanedLines
+        .filter { it.trim().startsWith("-") || it.trim().startsWith("•") }
+        .take(2)
+        .joinToString("\n")
+    
+    return if (points.isNotEmpty()) {
+        "$title\n$points..."
+    } else {
+        // 如果没有要点，则取前三行
+        cleanedLines.take(3).joinToString("\n") + "..."
+    }
+}
+
+// 修改SectionCard组件，优化未展开时的显示
+@Composable
+private fun SectionCard(
+    title: String,
+    summary: String,
+    textToSpeechService: TextToSpeechService? = null
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    // 提取简化显示内容
+    val displayTitle = remember(title) {
+        title.replace(Regex("#{1,3}\\s*"), "")
+    }
+    
+    // 提取第一行内容（不包括标题）作为预览
+    val previewContent = remember(summary) {
+        val lines = summary.lines()
+        if (lines.size > 1) {
+            lines.drop(1).firstOrNull { it.isNotBlank() && !it.startsWith("#") }
+                ?.trim()?.replace(Regex("^[•-]\\s*"), "") ?: "点击查看详情"
+        } else {
+            "点击查看详情"
+        }
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.15f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = displayTitle,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "收起" else "展开",
+                    tint = Color.White
+                )
+            }
+            
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    Text(
+                        text = summary.replace(Regex("#{1,3}\\s*"), ""), // 去除所有的"###"标记
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        lineHeight = 20.sp
+                    )
+                    
+                    // 朗读按钮
+                    TextButton(
+                        onClick = { textToSpeechService?.speak(summary.replace(Regex("#{1,3}\\s*"), "")) },
+                        modifier = Modifier.align(Alignment.End),
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeUp,
+                            contentDescription = "朗读",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("朗读本段", fontSize = 12.sp)
+                    }
+                }
+            }
+            
+            if (!expanded) {
+                Text(
+                    text = previewContent,
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 } 
