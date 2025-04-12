@@ -875,7 +875,11 @@ private fun AssistantChatBox(textToSpeechService: TextToSpeechService? = null) {
                                             )
                                             
                                             // 调用千问API
-                                            wellnessPlanContent = qianwenService.sendTextMessage(prompt)
+                                            val apiResponse = qianwenService.sendTextMessage(prompt)
+                                            
+                                            // 预处理API响应，处理掉所有markdown标记
+                                            wellnessPlanContent = processMarkdownContent(apiResponse)
+                                            
                                             isLoading = false
                                         } catch (e: Exception) {
                                             // 异常处理
@@ -1511,7 +1515,9 @@ private fun buildPromptForQianwen(
     val solarTerm = weatherInfo?.solarTerm ?: "立夏"
     
     return """
-        不要使用'**'和'##'或'###'等任何标记符号
+        【重要】不要使用任何Markdown格式，不要使用'**'或'*'或'#'或'##'或'###'等任何标记符号。
+        【重要】不要使用任何加粗、斜体或标题标记，直接输出纯文本。
+        
         你好！我需要根据以下个人信息和当前天气情况，生成一份个性化养生方案。请结合中医养生原则、现代医学建议及天气特征，提供具体、可操作的指导。
         用户信息：
         - 年龄：$age
@@ -1533,21 +1539,24 @@ private fun buildPromptForQianwen(
 饮食建议：
 根据节气、温度、空气质量及用户体质，推荐今日食材（标注寒热属性），避免与疾病或过敏相关的禁忌食物（如高血压患者减少高盐食物）。
 若空气质量差，增加清肺润燥的食疗方案（如参考《黄帝内经》"天人相应"理论）。
+
 运动与作息：
 根据天气温度和健康状况，推荐适合的运动类型与时长（如高温天建议室内拉伸，低温天推荐温补性活动）。
 结合节气调整作息（如冬至后"早卧晚起"，夏季"夜卧早起"）。
 若用户有慢性病（如关节炎），需避免特定动作（如剧烈跳跃）。
+
 中医调理与防护：
 针对用户体质（如阳虚/阴虚），提供穴位按摩、茶饮或艾灸建议。
 若空气质量差，建议室内净化措施（如使用加湿器、选择开窗时段）。
 结合节气重点（如"芒种防暑湿""冬至补肾"）说明调理方法。
+
 预警与禁忌：
 根据疾病史，列出今日需警惕的症状或风险（如高温天中暑预警、心脏病患者避免暴晒）。
 若推荐药物或补品，标注每日安全用量及与现有药物的相互作用（参考《中国药典》）。
-格式要求：
 
-分点清晰，用文字标题分隔饮食、运动、中医调理等模块，但不要使用###或##等标记符号。
-使用"今日健康重点"、"饮食建议"、"运动与作息"、"中医调理方案"、"预警与禁忌"等文字作为标题，不要添加任何#号。
+格式要求：
+【重要】输出纯文本，不要使用任何格式标记，直接使用普通文本。
+分点清晰，用普通文本如"今日健康重点："、"饮食建议："等作为标题。
 语言通俗，必要时解释专业术语（如"痰湿体质"）。
 关键建议引用权威来源（如《黄帝内经》或知识库模板）。
 给出具体操作描述（如"每天按压足三里穴3分钟"）。
@@ -1557,13 +1566,13 @@ private fun buildPromptForQianwen(
 若用户未提供生活习惯，默认饮食无特殊要求，运动强度为低至中等（适合老年人或慢性病患者）。
 请确保方案科学严谨，无伪养生内容，并包含以下模块：
 
-今日健康重点（核心需求+节气提示）
-饮食建议（食材、禁忌、食谱示例）
-运动与作息（类型、时间、防护措施）
-中医调理方案（穴位/茶饮、环境调节）
-预警与禁忌（症状预警、就医信号）
+今日健康重点：（核心需求+节气提示）
+饮食建议：（食材、禁忌、食谱示例）
+运动与作息：（类型、时间、防护措施）
+中医调理方案：（穴位/茶饮、环境调节）
+预警与禁忌：（症状预警、就医信号）
 
-再次强调：不要使用任何'#'或'*'等Markdown符号标记标题或重点内容，直接使用文字。
+再次强调：不要使用任何格式标记，如'#'或'*'等，直接使用普通文本。标题和重点内容可以用"食材推荐："这样的格式直接表示，无需加粗或标题格式。
     """.trimIndent()
 }
 
@@ -1711,34 +1720,52 @@ private fun extractSection(content: String, sectionTitle: String, nextSectionTit
     return lines.subList(startIndex, endIndex).joinToString("\n")
 }
 
-// 修改提取摘要的函数，确保去除"###"字符
+// 修改提取摘要的函数，对内容进行简化而不是只截取前面部分
 private fun getSummary(section: String): String {
     val lines = section.lines()
     if (lines.isEmpty()) return ""
     
-    // 首先清理掉所有的"###"和"##"标记
+    // 清理掉所有的标记
     val cleanedLines = lines.map { line ->
         line.replace(Regex("#{1,3}\\s*"), "")
+            .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+            .replace(Regex("\\*(.+?)\\*"), "$1")
     }
-    
-    // 如果内容少于3行，直接返回全部
-    if (cleanedLines.size <= 3) return cleanedLines.joinToString("\n")
     
     // 提取标题行
     val title = cleanedLines.first()
     
-    // 提取要点（以"-"或"•"开头的行），最多取2条
-    val points = cleanedLines
-        .filter { it.trim().startsWith("-") || it.trim().startsWith("•") }
-        .take(2)
-        .joinToString("\n")
+    // 简化内容处理逻辑
+    val simplifiedContent = StringBuilder()
     
-    return if (points.isNotEmpty()) {
-        "$title\n$points..."
-    } else {
-        // 如果没有要点，则取前三行
-        cleanedLines.take(3).joinToString("\n") + "..."
-    }
+    // 添加标题
+    simplifiedContent.append(title).append("\n")
+    
+    // 提取并简化每个要点
+    val bulletPoints = cleanedLines
+        .filter { it.trim().startsWith("-") || it.trim().startsWith("•") }
+        .map { point -> 
+            // 简化每个要点，只保留关键信息
+            val content = point.replace(Regex("^[•-]\\s*"), "")
+            
+            // 对长句进行简化处理
+            if (content.length > 50) {
+                val parts = content.split("，", "。", "；")
+                if (parts.size > 1) {
+                    // 取第一个逗号或句号前的内容作为简化版
+                    "• ${parts[0]}"
+                } else {
+                    "• $content"
+                }
+            } else {
+                "• $content"
+            }
+        }
+    
+    // 添加所有简化后的要点
+    bulletPoints.forEach { simplifiedContent.append(it).append("\n") }
+    
+    return simplifiedContent.toString().trim()
 }
 
 // 修改SectionCard组件，添加Markdown渲染支持
@@ -1759,14 +1786,19 @@ private fun SectionCard(
     val previewContent = remember(summary) {
         val lines = summary.lines()
         if (lines.size > 1) {
-            val firstContentLine = lines.drop(1)
-                .firstOrNull { it.isNotBlank() && !it.trim().startsWith("#") }
+            // 找到第一个以"•"开头的要点
+            lines.drop(1)
+                .firstOrNull { it.isNotBlank() && (it.trim().startsWith("•") || it.trim().startsWith("-")) }
                 ?.trim()
-                ?.replace(Regex("^[•-]\\s*"), "") 
-                ?.replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")  // 移除加粗标记
-                ?.replace(Regex("\\*(.+?)\\*"), "$1")  // 移除斜体标记
-                ?: "点击查看详情"
-            firstContentLine
+                ?.replace(Regex("^[•-]\\s*"), "") // 去除项目符号
+                ?.let { point ->
+                    // 如果要点太长，截取前面部分
+                    if (point.length > 35) {
+                        point.take(35) + "..."
+                    } else {
+                        point
+                    }
+                } ?: "点击查看详情"
         } else {
             "点击查看详情"
         }
@@ -1964,4 +1996,23 @@ private fun StyledText(
         lineHeight = lineHeight,
         modifier = modifier
     )
+}
+
+// 添加API响应预处理函数，处理markdown标记
+private fun processMarkdownContent(content: String): String {
+    var processedContent = content
+    
+    // 替换所有标题标记为普通文本
+    processedContent = processedContent.replace(Regex("#{1,3}\\s*(今日健康重点|饮食建议|运动与作息|中医调理方案|预警与禁忌)"), "$1")
+    
+    // 替换标记的强调（如**食材选择**）为普通文本
+    processedContent = processedContent.replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+    
+    // 替换标记的斜体（如*注意事项*）为普通文本
+    processedContent = processedContent.replace(Regex("\\*(.+?)\\*"), "$1")
+    
+    // 列表项保留，但确保格式统一
+    processedContent = processedContent.replace(Regex("^\\s*-\\s+"), "- ")
+    
+    return processedContent
 } 
