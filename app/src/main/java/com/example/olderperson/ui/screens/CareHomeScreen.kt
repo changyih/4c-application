@@ -58,6 +58,11 @@ import android.content.Intent
 import android.net.Uri
 import com.example.olderperson.utils.EmergencyContactsManager
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.text.font.FontStyle
 
 
 @Composable
@@ -1736,7 +1741,7 @@ private fun getSummary(section: String): String {
     }
 }
 
-// 修改SectionCard组件，优化未展开时的显示
+// 修改SectionCard组件，添加Markdown渲染支持
 @Composable
 private fun SectionCard(
     title: String,
@@ -1754,11 +1759,25 @@ private fun SectionCard(
     val previewContent = remember(summary) {
         val lines = summary.lines()
         if (lines.size > 1) {
-            lines.drop(1).firstOrNull { it.isNotBlank() && !it.startsWith("#") }
-                ?.trim()?.replace(Regex("^[•-]\\s*"), "") ?: "点击查看详情"
+            val firstContentLine = lines.drop(1)
+                .firstOrNull { it.isNotBlank() && !it.trim().startsWith("#") }
+                ?.trim()
+                ?.replace(Regex("^[•-]\\s*"), "") 
+                ?.replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")  // 移除加粗标记
+                ?.replace(Regex("\\*(.+?)\\*"), "$1")  // 移除斜体标记
+                ?: "点击查看详情"
+            firstContentLine
         } else {
             "点击查看详情"
         }
+    }
+    
+    // 移除Markdown标记的纯文本(用于语音朗读)
+    val plainText = remember(summary) {
+        summary.replace(Regex("#{1,3}\\s*"), "")  // 移除标题标记
+              .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")  // 移除加粗标记
+              .replace(Regex("\\*(.+?)\\*"), "$1")  // 移除斜体标记
+              .replace(Regex("^[•-]\\s*"), "")  // 移除列表标记
     }
     
     Card(
@@ -1794,7 +1813,8 @@ private fun SectionCard(
             
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
-                    Text(
+                    // 渲染Markdown内容
+                    MarkdownText(
                         text = summary.replace(Regex("#{1,3}\\s*"), ""), // 去除所有的"###"标记
                         fontSize = 14.sp,
                         color = Color.White,
@@ -1803,7 +1823,7 @@ private fun SectionCard(
                     
                     // 朗读按钮
                     TextButton(
-                        onClick = { textToSpeechService?.speak(summary.replace(Regex("#{1,3}\\s*"), "")) },
+                        onClick = { textToSpeechService?.speak(plainText) },
                         modifier = Modifier.align(Alignment.End),
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                     ) {
@@ -1830,4 +1850,118 @@ private fun SectionCard(
             }
         }
     }
+}
+
+// 添加Markdown文本渲染组件
+@Composable
+private fun MarkdownText(
+    text: String,
+    fontSize: TextUnit,
+    color: Color,
+    lineHeight: TextUnit
+) {
+    // 把文本按行分割，逐行处理
+    val lines = text.lines()
+    
+    Column {
+        lines.forEach { line ->
+            val processedLine = line.trim()
+            
+            when {
+                // 处理列表项
+                processedLine.startsWith("- ") || processedLine.startsWith("• ") -> {
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "•",
+                            fontSize = fontSize,
+                            color = color,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(end = 8.dp, top = 0.5.dp)
+                        )
+                        // 处理列表项内的样式
+                        val itemText = processedLine.substring(if (processedLine.startsWith("- ")) 2 else 2)
+                        StyledText(
+                            text = itemText,
+                            fontSize = fontSize,
+                            color = color,
+                            lineHeight = lineHeight
+                        )
+                    }
+                }
+                // 空行处理
+                processedLine.isBlank() -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                // 普通段落
+                else -> {
+                    StyledText(
+                        text = processedLine,
+                        fontSize = fontSize,
+                        color = color,
+                        lineHeight = lineHeight,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 处理样式标记的文本 (加粗、斜体等)
+@Composable
+private fun StyledText(
+    text: String,
+    fontSize: TextUnit,
+    color: Color,
+    lineHeight: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    val annotatedString = buildAnnotatedString {
+        var currentIndex = 0
+        val cleanedText = text.replace(Regex("#{1,3}\\s*"), "")
+        
+        // 找到所有加粗文本和斜体文本
+        val pattern = "(\\*\\*(.+?)\\*\\*)|(\\*(.+?)\\*)".toRegex()
+        val matches = pattern.findAll(cleanedText)
+        
+        for (match in matches) {
+            // 添加匹配前的文本
+            if (match.range.first > currentIndex) {
+                append(cleanedText.substring(currentIndex, match.range.first))
+            }
+            
+            val value = match.value
+            
+            // 处理加粗文本 (**text**)
+            if (value.startsWith("**") && value.endsWith("**")) {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(value.substring(2, value.length - 2))
+                }
+            }
+            // 处理斜体文本 (*text*)
+            else if (value.startsWith("*") && value.endsWith("*")) {
+                withStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)) {
+                    append(value.substring(1, value.length - 1))
+                }
+            }
+            
+            currentIndex = match.range.last + 1
+        }
+        
+        // 添加剩余文本
+        if (currentIndex < cleanedText.length) {
+            append(cleanedText.substring(currentIndex))
+        }
+    }
+    
+    Text(
+        text = annotatedString,
+        fontSize = fontSize,
+        color = color,
+        lineHeight = lineHeight,
+        modifier = modifier
+    )
 } 
