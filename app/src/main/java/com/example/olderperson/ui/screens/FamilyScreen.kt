@@ -73,7 +73,8 @@ enum class NearbyServiceType(val title: String, val icon: Int, val keyword: Stri
 fun FamilyScreen(
     onBackToHome: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null,
-    phoneCallService: PhoneCallService? = null
+    phoneCallService: PhoneCallService? = null,
+    onRequestPhonePermission: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val localTextToSpeechService = remember { TextToSpeechService(context) }
@@ -173,9 +174,17 @@ fun FamilyScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        phoneCallService?.makePhoneCall(currentPhoneNumber)
-                        showCallDialog = false
-                        textToSpeechService?.speak("正在拨打${currentContactName}的电话")
+                        // 检查是否有权限，如果没有则请求权限
+                        if (phoneCallService?.hasCallPhonePermission() == true) {
+                            phoneCallService.makePhoneCall(currentPhoneNumber)
+                            showCallDialog = false
+                            textToSpeechService?.speak("正在拨打${currentContactName}的电话")
+                        } else {
+                            // 请求电话权限
+                            onRequestPhonePermission()
+                            // 关闭当前对话框，权限获取后用户需要重新点击
+                            showCallDialog = false
+                        }
                     }
                 ) {
                     Text("确定")

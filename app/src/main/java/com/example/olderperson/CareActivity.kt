@@ -79,7 +79,7 @@ class CareActivity : ComponentActivity() {
     private val TAG = "CareActivity"
     
     // 录音权限请求
-    private val requestPermissionLauncher = registerForActivityResult(
+    private val requestMicrophonePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -91,11 +91,27 @@ class CareActivity : ComponentActivity() {
         }
     }
     
+    // 电话权限请求
+    private val requestPhonePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d(TAG, "拨打电话权限已授予")
+            Toast.makeText(this, "电话权限已授予，现在可以拨打电话", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d(TAG, "拨打电话权限被拒绝")
+            Toast.makeText(this, "需要电话权限来拨打电话", Toast.LENGTH_LONG).show()
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         // 请求录音权限
         requestMicrophonePermission()
+        
+        // 请求电话权限
+        requestPhonePermission()
         
         // 初始化各种服务
         videoCallService = VideoCallService(this)
@@ -167,19 +183,20 @@ class CareActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var showPermissionDialog by remember { mutableStateOf(false) }
+                    var showMicPermissionDialog by remember { mutableStateOf(false) }
+                    var showPhonePermissionDialog by remember { mutableStateOf(false) }
                     
-                    // 权限对话框
-                    if (showPermissionDialog) {
+                    // 麦克风权限对话框
+                    if (showMicPermissionDialog) {
                         AlertDialog(
-                            onDismissRequest = { showPermissionDialog = false },
+                            onDismissRequest = { showMicPermissionDialog = false },
                             title = { Text("需要麦克风权限") },
                             text = { Text("为了使用语音转文字功能，应用需要访问您的麦克风。请在接下来的提示中授予权限。") },
                             confirmButton = {
                                 TextButton(
                                     onClick = {
-                                        showPermissionDialog = false
-                                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                        showMicPermissionDialog = false
+                                        requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }
                                 ) {
                                     Text("确定")
@@ -187,7 +204,33 @@ class CareActivity : ComponentActivity() {
                             },
                             dismissButton = {
                                 TextButton(
-                                    onClick = { showPermissionDialog = false }
+                                    onClick = { showMicPermissionDialog = false }
+                                ) {
+                                    Text("取消")
+                                }
+                            }
+                        )
+                    }
+                    
+                    // 电话权限对话框
+                    if (showPhonePermissionDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showPhonePermissionDialog = false },
+                            title = { Text("需要电话权限") },
+                            text = { Text("为了能够直接拨打电话，应用需要电话权限。请在接下来的提示中授予权限。") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showPhonePermissionDialog = false
+                                        requestPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+                                    }
+                                ) {
+                                    Text("确定")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = { showPhonePermissionDialog = false }
                                 ) {
                                     Text("取消")
                                 }
@@ -199,14 +242,24 @@ class CareActivity : ComponentActivity() {
                         textToSpeechService = textToSpeechService,
                         speechRecognitionService = speechRecognitionService,
                         phoneCallService = phoneCallService,
-                        onRequestPermission = {
-                            // 检查权限状态
+                        onRequestMicPermission = {
+                            // 检查麦克风权限状态
                             if (ContextCompat.checkSelfPermission(
                                     this,
                                     Manifest.permission.RECORD_AUDIO
                                 ) != PackageManager.PERMISSION_GRANTED
                             ) {
-                                showPermissionDialog = true
+                                showMicPermissionDialog = true
+                            }
+                        },
+                        onRequestPhonePermission = {
+                            // 检查电话权限状态
+                            if (ContextCompat.checkSelfPermission(
+                                    this,
+                                    Manifest.permission.CALL_PHONE
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                showPhonePermissionDialog = true
                             }
                         },
                         onLogout = {
@@ -249,11 +302,35 @@ class CareActivity : ComponentActivity() {
             shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> {
                 // 用户之前拒绝过，需要解释为什么需要该权限
                 Toast.makeText(this, "需要麦克风权限来使用语音功能", Toast.LENGTH_LONG).show()
-                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
             else -> {
                 // 首次请求权限
-                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                requestMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+    
+    /**
+     * 请求电话权限
+     */
+    private fun requestPhonePermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CALL_PHONE
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // 已经有权限
+                Log.d(TAG, "已经有电话权限")
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.CALL_PHONE) -> {
+                // 用户之前拒绝过，需要解释为什么需要该权限
+                Toast.makeText(this, "需要电话权限来直接拨打电话", Toast.LENGTH_LONG).show()
+                requestPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+            }
+            else -> {
+                // 首次请求权限
+                requestPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
             }
         }
     }
@@ -273,7 +350,8 @@ fun CareApp(
     textToSpeechService: TextToSpeechService,
     speechRecognitionService: SpeechRecognitionService,
     phoneCallService: PhoneCallService,
-    onRequestPermission: () -> Unit = {},
+    onRequestMicPermission: () -> Unit = {},
+    onRequestPhonePermission: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf("home") }
@@ -301,7 +379,7 @@ fun CareApp(
                 textToSpeechService.speak("进入智慧伙伴对话页面")
                 currentScreen = "chat"
                 // 进入聊天页面时请求权限
-                onRequestPermission()
+                onRequestMicPermission()
             },
             onNavigateToExplore = {
                 Log.d("CareActivity", "Navigating to Explore screen")
@@ -328,7 +406,8 @@ fun CareApp(
                 currentScreen = "home"
             },
             textToSpeechService = textToSpeechService,
-            phoneCallService = phoneCallService
+            phoneCallService = phoneCallService,
+            onRequestPhonePermission = onRequestPhonePermission
         )
         "community" -> CommunityScreen(
             onBackToHome = {
@@ -344,7 +423,7 @@ fun CareApp(
             },
             textToSpeechService = textToSpeechService,
             speechRecognitionService = speechRecognitionService,
-            onRequestPermission = onRequestPermission
+            onRequestPermission = onRequestMicPermission
         )
         "explore" -> ExploreScreen(
             onBackClick = {
