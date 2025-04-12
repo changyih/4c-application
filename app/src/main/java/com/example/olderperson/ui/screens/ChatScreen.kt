@@ -179,7 +179,7 @@ fun ChatScreen(
                     onClick = { 
                         selectedImageUri?.let { uri ->
                             coroutineScope.launch {
-                                addImageMessage(uri, inputText, messages) { newMessages ->
+                                addImageMessage(uri, inputText, messages, qianwenService) { newMessages ->
                                     messages = newMessages
                                 }
                                 // 重置状态
@@ -362,6 +362,7 @@ private suspend fun addImageMessage(
     imageUri: Uri,
     text: String,
     currentMessages: List<ChatMessage>,
+    qianwenService: AlibabaQianwenService,
     updateMessages: (List<ChatMessage>) -> Unit
 ) {
     val userMessage = ChatMessage(
@@ -375,17 +376,28 @@ private suspend fun addImageMessage(
     // 先添加用户消息
     updateMessages(currentMessages + userMessage)
     
-    // 延迟一秒后添加助手回复（模拟API调用）
-    delay(1000)
-    
-    val assistantMessage = ChatMessage(
-        content = "这是一张很有趣的图片！我能看到...(演示模式，实际使用时请配置API_KEY)",
-        isUser = false,
-        timestamp = System.currentTimeMillis(),
-        messageType = MessageType.TEXT
-    )
-    
-    updateMessages(currentMessages + userMessage + assistantMessage)
+    try {
+        // 调用视觉模型API
+        val response = qianwenService.sendImageMessage(text, imageUri)
+        
+        val assistantMessage = ChatMessage(
+            content = response,
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            messageType = MessageType.TEXT
+        )
+        
+        updateMessages(currentMessages + userMessage + assistantMessage)
+    } catch (e: Exception) {
+        Log.e("ChatScreen", "处理图片失败: ${e.message}")
+        val errorMessage = ChatMessage(
+            content = "抱歉，我无法处理这张图片。错误信息: ${e.message}",
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            messageType = MessageType.TEXT
+        )
+        updateMessages(currentMessages + userMessage + errorMessage)
+    }
 }
 
 @Composable
