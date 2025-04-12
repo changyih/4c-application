@@ -109,7 +109,7 @@ fun ProfileScreen(
 
                 // 用户名和位置
                 Text(
-                    text = "曾教家",
+                    text = "李明远",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Normal

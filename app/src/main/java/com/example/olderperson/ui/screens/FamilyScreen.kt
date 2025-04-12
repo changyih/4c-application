@@ -283,23 +283,23 @@ private fun FamilyContactsCard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 小明
+                // 李明远
                 ContactItem(
-                    name = "小明",
+                    name = "李明远",
                     relation = "儿子",
                     color = Color(0xFFFF9800)
                 )
                 
                 // 丽丽
                 ContactItem(
-                    name = "丽丽",
+                    name = "李安和",
                     relation = "女儿",
                     color = Color(0xFF9C27B0)
                 )
                 
                 // 小红
                 ContactItem(
-                    name = "小红",
+                    name = "宋若宁",
                     relation = "儿媳",
                     color = Color(0xFF2196F3)
                 )
@@ -703,7 +703,7 @@ private fun LocationSharingCard() {
                     )
                     
                     Text(
-                        text = "已与 小明、丽丽 共享",
+                        text = "已与 儿子、儿媳 共享",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -789,7 +789,7 @@ private fun FamilyActivitiesCard() {
                 day = "06",
                 month = "4月",
                 title = "周末家庭聚餐",
-                location = "小明家",
+                location = "儿子家",
                 time = "中午 12:00"
             )
             
@@ -799,11 +799,11 @@ private fun FamilyActivitiesCard() {
                 thickness = 1.dp
             )
             
-            // 小明生日聚会
+            // 儿子生日聚会
             ActivityItem(
                 day = "10",
                 month = "4月",
-                title = "小明生日聚会",
+                title = "儿子明远生日聚会",
                 location = "金源餐厅",
                 time = "晚上 18:00"
             )

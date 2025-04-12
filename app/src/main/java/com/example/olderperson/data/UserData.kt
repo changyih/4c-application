@@ -37,12 +37,12 @@ private val REMEMBER_LOGIN_KEY = booleanPreferencesKey("remember_login")
 object UserManager {
     // 预设账号数据
     private val users = mutableListOf(
-        // 父亲阿勇 - 呵护模式用户
+        // 父亲李长青 - 呵护模式用户
         User(
             id = "user1",
             phoneNumber = "13800000001",
             password = "123456",
-            name = "阿勇",
+            name = "李长青",
             role = UserRole.ELDER,
             location = "四川 成都",
             healthPlans = 3,
@@ -50,12 +50,12 @@ object UserManager {
             devices = 3
         ),
         
-        // 儿子明明 - 关爱模式用户
+        // 儿子李明远 - 关爱模式用户
         User(
             id = "user2",
             phoneNumber = "13800000002",
             password = "123456",
-            name = "明明",
+            name = "李明远",
             role = UserRole.FAMILY,
             location = "四川 成都",
             relation = "儿子"

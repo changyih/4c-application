@@ -274,7 +274,7 @@ fun CareApp(
     
     when (currentScreen) {
         "home" -> CareHomeScreen(
-            userName = "王伯伯",
+            userName = "李伯伯",
             onNavigateToProfile = { 
                 Log.d("CareActivity", "Navigating to Self screen")
                 textToSpeechService.speak("进入我和自己页面")

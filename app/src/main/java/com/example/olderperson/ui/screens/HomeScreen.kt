@@ -136,9 +136,9 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "老年关爱",
+                                text = "慧龄",
                                 style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.clickable { textToSpeechService.speak("老年关爱") }
+                                modifier = Modifier.clickable { textToSpeechService.speak("慧龄") }
                             )
                             
                             Row(
@@ -1578,7 +1578,7 @@ fun UserInfoSection() {
                 .weight(1f)
         ) {
             Text(
-                text = "李爱梅",
+                text = "李长青",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -1589,8 +1589,8 @@ fun UserInfoSection() {
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 DataItem("78", "年龄")
-                DataItem("160", "身高")
-                DataItem("54", "体重")
+                DataItem("175", "身高")
+                DataItem("74", "体重")
             }
         }
     }

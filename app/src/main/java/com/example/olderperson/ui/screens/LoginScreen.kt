@@ -32,7 +32,7 @@ fun LoginScreen(
     ) {
         // 应用标题
         Text(
-            text = "老年人关爱应用",
+            text = "慧龄",
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(bottom = 48.dp)
         )

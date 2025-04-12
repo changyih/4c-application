@@ -147,11 +147,11 @@ class LoginActivity : ComponentActivity() {
                 title = { Text("可用账号信息") },
                 text = {
                     Column {
-                        Text("父亲阿勇 (呵护模式):")
+                        Text("父亲李长青 (呵护模式):")
                         Text("手机号: 13800000001")
                         Text("密码: 123456")
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("儿子明明 (关爱模式):")
+                        Text("儿子李明远 (关爱模式):")
                         Text("手机号: 13800000002")
                         Text("密码: 123456")
                     }
@@ -174,7 +174,7 @@ class LoginActivity : ComponentActivity() {
             
             // 应用标题和副标题
             Text(
-                text = "颐年",
+                text = "慧龄",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
