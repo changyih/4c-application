@@ -48,6 +48,8 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.foundation.border
 import androidx.compose.ui.text.TextStyle
 import com.example.olderperson.service.AlibabaQianwenService
+import android.widget.Toast
+import android.content.Context
 
 @Composable
 fun CareHomeScreen(
@@ -63,6 +65,7 @@ fun CareHomeScreen(
 
     textToSpeechService: TextToSpeechService? = null
 ) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -72,7 +75,7 @@ fun CareHomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // 顶部问候区域
-            TopGreetingSection(userName, textToSpeechService)
+            TopGreetingSection(userName, textToSpeechService, context)
             
             // 主要内容区域
             LazyColumn(
@@ -117,7 +120,7 @@ fun CareHomeScreen(
 }
 
 @Composable
-private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpeechService? = null) {
+private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpeechService? = null, context: Context) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,7 +183,9 @@ private fun TopGreetingSection(userName: String, textToSpeechService: TextToSpee
                 icon = Icons.Default.Mic,
                 text = "语音交流",
                 modifier = Modifier.weight(1f),
-                onClick = { textToSpeechService?.speak("语音交流") }
+                onClick = { 
+                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show()
+                }
             )
 
             // 文字交流按钮

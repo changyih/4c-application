@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -715,6 +716,8 @@ fun BottomInputArea(
     onStopRecognition: () -> Unit,
     onImagePickerClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -736,7 +739,10 @@ fun BottomInputArea(
         ) {
             // 语音/键盘切换按钮
             IconButton(
-                onClick = onVoiceModeToggle,
+                onClick = { 
+                    Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show()
+                    // onVoiceModeToggle() 
+                },
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
@@ -752,32 +758,19 @@ fun BottomInputArea(
             if (isVoiceMode) {
                 // 语音输入按钮
                 Button(
-                    onClick = { /* 不处理单击事件 */ },
+                    onClick = { 
+                        Toast.makeText(context, "语音输入功能开发中", Toast.LENGTH_SHORT).show() 
+                    },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = { 
-                                    // 按下时开始录音
-                                    onStartRecognition()
-                                    // 等待释放
-                                    try {
-                                        awaitRelease()
-                                    } finally {
-                                        // 释放时停止录音
-                                        onStopRecognition()
-                                    }
-                                }
-                            )
-                        },
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isListening) Color(0xFFB9F6CA) else Color(0xFFE8F5E9),
+                        containerColor = Color(0xFFE8F5E9),
                         contentColor = Color(0xFF2E7D32)
                     )
                 ) {
                     Text(
-                        text = if (isListening) "正在收听..." else "按住说话",
+                        text = "按住说话",
                         fontSize = 16.sp
                     )
                 }
