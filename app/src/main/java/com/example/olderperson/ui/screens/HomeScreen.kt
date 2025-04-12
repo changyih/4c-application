@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.service.VideoCallService
+import com.example.olderperson.service.PhoneCallService
 import com.example.olderperson.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -86,6 +87,7 @@ import android.widget.Toast
 fun HomeScreen(
     videoCallService: VideoCallService,
     textToSpeechService: TextToSpeechService,
+    phoneCallService: PhoneCallService,
     onVideoCallClick: () -> Unit,
     onProfileClick: () -> Unit = {},
     onMessageClick: () -> Unit = {}
