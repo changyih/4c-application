@@ -37,6 +37,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
 import android.util.Log
 import android.Manifest
 import android.content.pm.PackageManager
@@ -587,7 +588,7 @@ private fun FamilyContactsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -602,12 +603,20 @@ private fun FamilyContactsCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ContactPhone,
-                        contentDescription = "家人联系",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF87CEEB).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = "家人联系",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
@@ -622,19 +631,22 @@ private fun FamilyContactsCard(
                 // 管理按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onManageContacts() }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onManageContacts() }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "管理",
                         fontSize = 14.sp,
-                        color = Color(0xFF2E7D32)
+                        color = Color(0xFF4682B4)
                     )
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "管理",
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFF4682B4),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -681,19 +693,20 @@ private fun ContactItem(
         // 联系人头像
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(color)
+                .background(color.copy(alpha = 0.85f))
                 .clickable { 
                     onCallRequest(name, phoneNumber)
-                },
+                }
+                .border(2.dp, color.copy(alpha = 0.3f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = name.first().toString(),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
+                fontSize = 28.sp
             )
         }
         
@@ -701,7 +714,7 @@ private fun ContactItem(
         
         Text(
             text = name,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black
         )
@@ -723,17 +736,18 @@ private fun AddContactItem(onClick: () -> Unit) {
         // 添加按钮
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF4CAF50))
-                .clickable { onClick() },
+                .background(Color(0xFF87CEEB).copy(alpha = 0.15f))
+                .clickable { onClick() }
+                .border(2.dp, Color(0xFF87CEEB).copy(alpha = 0.3f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "添加",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                tint = Color(0xFF4682B4),
+                modifier = Modifier.size(32.dp)
             )
         }
         
@@ -741,7 +755,7 @@ private fun AddContactItem(onClick: () -> Unit) {
         
         Text(
             text = "添加",
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black
         )
