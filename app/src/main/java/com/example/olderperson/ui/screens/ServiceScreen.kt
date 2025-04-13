@@ -492,7 +492,7 @@ val recommendedServices = listOf(
     RecommendedService(
         name = "老年人体检套餐",
         description = "专为65岁以上老年人定制的全面体检套餐，包含心脑血管、骨密度等检查项目。",
-        provider = "仁爱医院",
+        provider = "吉林大学白求恩第一医院",
         icon = Icons.Default.HealthAndSafety
     ),
     RecommendedService(
@@ -534,19 +534,19 @@ val doctors = listOf(
     Doctor(
         name = "张医生",
         title = "主任医师",
-        hospital = "仁爱医院",
+        hospital = "吉林大学白求恩第一医院",
         specialty = "心血管疾病"
     ),
     Doctor(
         name = "李医生",
         title = "副主任医师",
-        hospital = "人民医院",
+        hospital = "长春市中心医院",
         specialty = "骨科疾病"
     ),
     Doctor(
         name = "王医生",
         title = "主任医师",
-        hospital = "协和医院",
+        hospital = "长春市中心医院",
         specialty = "神经内科"
     )
 )
@@ -554,13 +554,13 @@ val doctors = listOf(
 // 医院列表数据
 val hospitals = listOf(
     Hospital(
-        name = "仁爱医院",
-        address = "成都市武侯区人民南路四段",
+        name = "长春市中心医院",
+        address = "长春市宽城区南京大街728号",
         description = "综合性三甲医院，设有内科、外科、妇科、儿科等多个科室，老年人就诊绿色通道。"
     ),
     Hospital(
-        name = "人民医院",
-        address = "成都市青羊区人民中路二段",
+        name = "吉林大学白求恩第一医院",
+        address = "长春市朝阳区新民大街1号",
         description = "大型综合医院，老年医学科特色突出，提供老年人专属服务窗口。"
     )
 )
@@ -1501,7 +1501,7 @@ val emergencyContacts = listOf(
         phone = "138-1234-5678"
     ),
     EmergencyContact(
-        name = "李明",
+        name = "李明远",
         relationship = "子女",
         phone = "139-8765-4321"
     ),

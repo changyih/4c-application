@@ -73,7 +73,7 @@ fun FamilyCareTopBar(onBackToHome: () -> Unit = {}) {
             )
             
             Text(
-                text = "亲情关注",
+                text = "对话",
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
