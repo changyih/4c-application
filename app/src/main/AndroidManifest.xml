@@ -38,7 +38,7 @@
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="EqJVjwD55O96p6byaOVpWIp4itsOlryo" />
-        <!-- 百度地图AK设置 EqJVjwD55O96p6byaOVpWIp4itsOlryo oys4VdgJF7zgN2tDB0yHNpzpe13eMqMS-->
+        <!-- 百度地图AK设置 EqJVjwD55O96p6byaOVpWIp4itsOlryo oys4VdgJF7zgN2tDB0yHNpzpe13eMqMS kz51jDdMfdXgLvp6sYdscDgnKL0QHT4n-->
         
         <activity
             android:name="com.example.olderperson.LoginActivity"

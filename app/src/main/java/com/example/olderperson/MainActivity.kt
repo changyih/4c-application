@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
         }
         
         if (hasError) {
-            ErrorScreen(
+            MainErrorScreen(
                 errorMessage = errorMessage ?: "加载界面时发生未知错误",
                 retry = { 
                     hasError = false
@@ -264,7 +264,7 @@ fun MainContent(
 }
 
 @Composable
-fun ErrorScreen(errorMessage: String, retry: () -> Unit) {
+fun MainErrorScreen(errorMessage: String, retry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()

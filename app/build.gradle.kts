@@ -18,6 +18,10 @@ android {
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+//            storeFile = file("E:\\APK\\GenerateAPK.jks")
+//            storePassword = "314159"
+//            keyAlias = "GenerateAPK"
+//            keyPassword = "314159"
         }
     }
     namespace = "com.example.olderperson"
@@ -72,6 +76,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-core:1.6.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
+    implementation("androidx.compose.material:material:1.6.1")
+    implementation("androidx.compose.runtime:runtime:1.6.1")
+    implementation("androidx.compose.foundation:foundation:1.6.1")
     
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
