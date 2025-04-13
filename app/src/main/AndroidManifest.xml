@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.olderperson">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -36,7 +37,8 @@
         <!-- 百度地图AK设置 -->
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
-            android:value="oys4VdgJF7zgN2tDB0yHNpzpe13eMqMS" />
+            android:value="EqJVjwD55O96p6byaOVpWIp4itsOlryo" />
+        <!-- 百度地图AK设置 EqJVjwD55O96p6byaOVpWIp4itsOlryo oys4VdgJF7zgN2tDB0yHNpzpe13eMqMS-->
         
         <activity
             android:name="com.example.olderperson.LoginActivity"
