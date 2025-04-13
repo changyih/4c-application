@@ -135,7 +135,7 @@ class LoginActivity : ComponentActivity() {
         var phoneNumber by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var rememberLogin by remember { mutableStateOf(false) }
-        var isCareMode by remember { mutableStateOf(true) }
+        var isCareMode by remember { mutableStateOf(false) }
         
         // 用于显示提示信息
         var showAccountsInfo by remember { mutableStateOf(false) }
@@ -306,48 +306,6 @@ class LoginActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("游客登录", fontSize = 15.sp)
-            }
-            
-            // 其他登录方式
-            Text(
-                text = "其他登录方式",
-                modifier = Modifier.padding(top = 12.dp),
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            
-            // 第三方登录图标
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 微信登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "微信登录",
-                    tint = Color(0xFF07C160)
-                )
-                
-                Spacer(modifier = Modifier.width(40.dp))
-                
-                // QQ登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "QQ登录",
-                    tint = Color(0xFF12B7F5)
-                )
-                
-                Spacer(modifier = Modifier.width(40.dp))
-                
-                // 支付宝登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "支付宝登录",
-                    tint = Color(0xFF1677FF)
-                )
             }
             
             Spacer(modifier = Modifier.weight(1f))

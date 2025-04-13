@@ -14,11 +14,14 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -48,6 +51,14 @@ import com.baidu.mapapi.search.poi.PoiSortType
 import com.example.olderperson.R
 import com.example.olderperson.ui.theme.DarkText
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Arrangement
+import com.baidu.mapapi.SDKInitializer
+import com.baidu.mapapi.CoordType
+import com.example.olderperson.OlderPersonApplication
 
 /**
  * 百度地图位置坐标类，用于兼容Google LatLng到百度LatLng的转换
@@ -84,16 +95,22 @@ fun BaiduMapCard(
     var mapView: MapView? = remember { null }
     var baiduMap: BaiduMap? = remember { null }
     var mapInitError by remember { mutableStateOf<String?>(null) }
+    // 添加初始化尝试计数
+    var initAttempts by remember { mutableStateOf(0) }
+    // 添加标志表示是否应该尝试显示地图
+    var shouldShowMap by remember { mutableStateOf(true) }
     
     // 初始化地图
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             try {
-                when (event) {
-                    Lifecycle.Event.ON_RESUME -> mapView?.onResume()
-                    Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
-                    Lifecycle.Event.ON_DESTROY -> mapView?.onDestroy()
-                    else -> {}
+                if (mapView != null) {
+                    when (event) {
+                        Lifecycle.Event.ON_RESUME -> mapView?.onResume()
+                        Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
+                        Lifecycle.Event.ON_DESTROY -> mapView?.onDestroy()
+                        else -> {}
+                    }
                 }
             } catch (e: Exception) {
                 mapInitError = "地图生命周期错误: ${e.message}"
@@ -119,36 +136,80 @@ fun BaiduMapCard(
             defaultElevation = 4.dp
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            if (mapInitError != null) {
-                // 显示错误信息
-                Column(
+            // 显示错误或地图视图
+            if (mapInitError != null || !shouldShowMap) {
+                // 显示错误信息和重试按钮
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.Center
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "地图加载失败",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkText
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = mapInitError ?: "未知错误",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = DarkText
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { mapInitError = null }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("重试")
+                        Icon(
+                            imageVector = Icons.Default.LocationOff,
+                            contentDescription = "地图加载失败",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = if (mapInitError != null) "地图加载失败" else "地图不可用",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = mapInitError ?: "地图服务暂时不可用，请稍后再试",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Button(
+                            onClick = {
+                                // 重置错误状态
+                                mapInitError = null
+                                initAttempts++
+                                // 如果超过3次尝试，就不再显示地图
+                                shouldShowMap = initAttempts <= 3
+                            }
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "重试",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("重试")
+                            }
+                        }
+                        
+                        if (initAttempts > 3) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "多次尝试后地图仍无法加载，请检查网络连接或重启应用",
+                                fontSize = 12.sp,
+                                color = Color.Red,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             } else {
@@ -157,56 +218,85 @@ fun BaiduMapCard(
                     factory = { ctx ->
                         try {
                             Log.d("BaiduMap", "开始初始化地图视图")
-                            // 创建百度地图视图
-                            val view = MapView(ctx).apply {
-                                Log.d("BaiduMap", "MapView创建成功")
-                                mapView = this
-                                baiduMap = this.map
-                                Log.d("BaiduMap", "获取BaiduMap对象: ${baiduMap != null}")
+                            
+                            // 尝试初始化百度地图SDK (如果尚未初始化)
+                            try {
+                                // 初始化百度地图 SDK
+                                // 确保使用ApplicationContext而不是普通Context
+                                val appContext = ctx.applicationContext
                                 
-                                // 设置地图初始位置
-                                baiduMap?.apply {
-                                    // 允许缩放
-                                    uiSettings.isZoomGesturesEnabled = true
-                                    // 允许旋转
-                                    uiSettings.isRotateGesturesEnabled = true
-                                    // 允许指南针
-                                    uiSettings.isCompassEnabled = true
+                                // 检查应用程序中SDK是否已经初始化
+                                if (!OlderPersonApplication.isBaiduMapAvailable()) {
+                                    Log.d("BaiduMap", "百度地图SDK未在应用级别初始化，可能会导致问题")
+                                } else {
+                                    Log.d("BaiduMap", "百度地图SDK已在应用中初始化")
+                                }
+                                
+                                // 无需再次调用setAgreePrivacy和initialize，这些已在Application中完成
+                                // 如果应用初始化失败，这里重试也不会成功
+                                
+                                // 设置坐标类型 (可以安全地重复设置)
+                                SDKInitializer.setCoordType(CoordType.BD09LL)
+                                Log.d("BaiduMap", "百度地图SDK配置确认")
+                            
+                                // 创建百度地图视图
+                                val view = MapView(appContext).apply {
+                                    Log.d("BaiduMap", "MapView创建成功")
+                                    mapView = this
+                                    baiduMap = this.map
+                                    Log.d("BaiduMap", "获取BaiduMap对象: ${baiduMap != null}")
                                     
-                                    // 设置地图中心点
-                                    val baiduLatLng = userLocation.toBaiduLatLng()
-                                    val update = MapStatusUpdateFactory.newLatLngZoom(baiduLatLng, 15f)
-                                    animateMapStatus(update)
-                                    
-                                    // 添加当前位置标记 - 使用安全的方式添加图标
-                                    try {
-                                        // 尝试加载自定义图标
-                                        val icon = getBitmapDescriptor(ctx)
-                                        val markerOptions = MarkerOptions()
-                                            .position(baiduLatLng)
-                                            .icon(icon)
-                                        addOverlay(markerOptions)
-                                        Log.d("BaiduMap", "标记添加成功")
-                                    } catch (e: Exception) {
-                                        Log.e("BaiduMap", "添加标记失败: ${e.message}", e)
-                                        // 标记添加失败，但地图仍可正常显示，不抛出异常
+                                    // 设置地图初始位置
+                                    baiduMap?.apply {
+                                        // 允许缩放
+                                        uiSettings.isZoomGesturesEnabled = true
+                                        // 允许旋转
+                                        uiSettings.isRotateGesturesEnabled = true
+                                        // 允许指南针
+                                        uiSettings.isCompassEnabled = true
+                                        
+                                        // 设置地图中心点
+                                        val baiduLatLng = userLocation.toBaiduLatLng()
+                                        val update = MapStatusUpdateFactory.newLatLngZoom(baiduLatLng, 15f)
+                                        animateMapStatus(update)
+                                        
+                                        // 添加当前位置标记 - 使用安全的方式添加图标
+                                        try {
+                                            // 尝试加载自定义图标
+                                            val icon = getBitmapDescriptor(appContext)
+                                            val markerOptions = MarkerOptions()
+                                                .position(baiduLatLng)
+                                                .icon(icon)
+                                            addOverlay(markerOptions)
+                                            Log.d("BaiduMap", "标记添加成功")
+                                        } catch (e: Exception) {
+                                            Log.e("BaiduMap", "添加标记失败: ${e.message}", e)
+                                            // 标记添加失败，但地图仍可正常显示，不抛出异常
+                                        }
                                     }
                                 }
+                                Log.d("BaiduMap", "地图初始化完成")
+                                view
+                            } catch(e: Exception) {
+                                Log.e("BaiduMap", "百度地图SDK初始化错误: ${e.message}", e)
+                                throw e  // 重新抛出异常，让下面的catch捕获
                             }
-                            Log.d("BaiduMap", "地图初始化完成")
-                            view
                         } catch (e: Exception) {
                             // 捕获地图初始化异常
                             Log.e("BaiduMap", "地图初始化错误: ${e.message}", e)
                             mapInitError = "地图初始化错误: ${e.message}"
                             e.printStackTrace()
                             
-                            // 返回一个空的FrameLayout作为占位符
+                            // 返回一个包含错误信息的FrameLayout
                             FrameLayout(ctx).apply {
                                 layoutParams = FrameLayout.LayoutParams(
                                     FrameLayout.LayoutParams.MATCH_PARENT,
                                     FrameLayout.LayoutParams.MATCH_PARENT
                                 )
+                                // 激活界面更新
+                                Handler(Looper.getMainLooper()).post {
+                                    shouldShowMap = false
+                                }
                             }
                         }
                     },
@@ -223,7 +313,7 @@ fun BaiduMapCard(
                                     
                                     // 添加当前位置标记 - 使用安全的方式更新图标
                                     try {
-                                        val icon = getBitmapDescriptor(context)
+                                        val icon = getBitmapDescriptor(context.applicationContext)
                                         val markerOptions = MarkerOptions()
                                             .position(baiduLatLng)
                                             .icon(icon)
@@ -251,7 +341,9 @@ fun BaiduMapCard(
  * 获取地图标记图标
  */
 private fun getBitmapDescriptor(context: Context): BitmapDescriptor {
-    // 最简单可靠的方法，直接使用颜色作为标记
+    // 直接使用项目中存在的 ic_location 图标资源
+    // 移除所有对 ic_location_pin 的引用，因为它不存在
+    Log.d("BaiduMap", "使用 R.drawable.ic_location 作为地图标记")
     return BitmapDescriptorFactory.fromResource(R.drawable.ic_location)
 }
 
@@ -281,6 +373,7 @@ class NearbyPoiSearch(private val context: Context) {
     private var currentLocation: BaiduLatLng? = null
     private var searchAttempts = 0
     private val maxAttempts = 3
+    private val appContext = context.applicationContext
     
     // 添加伴生对象，实现静态方法
     companion object {
@@ -300,7 +393,7 @@ class NearbyPoiSearch(private val context: Context) {
                 Log.d("NearbyPoiSearch", "静态方法收到搜索请求: $keyword @ $location, 范围 ${radius}m")
                 
                 // 使用单例模式
-                if (instance?.context == null) {
+                if (instance?.appContext == null) {
                     Log.e("NearbyPoiSearch", "实例不可用，无法执行搜索")
                     onError(-1, "搜索服务未初始化")
                     return
@@ -730,10 +823,18 @@ class BaiduMapViewContainer(context: Context) : FrameLayout(context) {
     private val mapView: MapView
     private val baiduMap: BaiduMap
     private val markers = mutableListOf<Marker>()
+    private val appContext = context.applicationContext
     
     init {
+        // 设置FrameLayout属性，去除边距和内边距
+        layoutParams = LayoutParams(
+            LayoutParams.MATCH_PARENT,
+            LayoutParams.MATCH_PARENT
+        )
+        setPadding(0, 0, 0, 0)
+        
         // 加载地图视图
-        val view = LayoutInflater.from(context).inflate(R.layout.layout_baidu_map, this, true)
+        val view = LayoutInflater.from(appContext).inflate(R.layout.layout_baidu_map, this, true)
         
         // 获取地图对象
         mapView = findViewById(R.id.bmapView)
