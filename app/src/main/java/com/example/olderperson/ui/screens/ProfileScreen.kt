@@ -1,5 +1,7 @@
 package com.example.olderperson.ui.screens
 
+import android.content.Intent
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,12 +22,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.ui.screens.WalletScreen
 import com.example.olderperson.ui.screens.MyFavoritesScreen
 import com.example.olderperson.ui.screens.HelpScreen
 import com.example.olderperson.ui.screens.ServiceOrderScreen
 import com.example.olderperson.ui.screens.MyDevicesScreen
+import com.example.olderperson.data.UserManager
+import com.example.olderperson.LoginActivity
 
 @Composable
 fun ProfileScreen(
@@ -36,6 +43,39 @@ fun ProfileScreen(
     var showHelp by remember { mutableStateOf(false) }
     var showServiceOrder by remember { mutableStateOf(false) }
     var showMyDevices by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // 显示退出账号确认对话框
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("退出账号") },
+            text = { Text("确定要退出当前账号吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    // 执行退出账号操作
+                    coroutineScope.launch {
+                        UserManager.clearCurrentUser(context)
+                        // 跳转到登录界面
+                        val intent = Intent(context, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+                    }
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     if (showWallet) {
         WalletScreen(
@@ -120,7 +160,7 @@ fun ProfileScreen(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
-                        text = "四川 成都",
+                        text = "吉林 长春",
                         color = Color.Gray,
                         fontSize = 12.sp
                     )
@@ -177,6 +217,45 @@ fun ProfileScreen(
                     showHelp = true
                 }
             )
+            
+            // 添加退出账号选项
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { 
+                        textToSpeechService.speak("退出账号")
+                        showLogoutDialog = true 
+                    }
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "退出账号",
+                        tint = Color(0xFFFF5722),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "退出账号",
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                }
+                
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

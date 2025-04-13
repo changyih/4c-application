@@ -38,10 +38,6 @@ fun ExploreScreen(
     onBackClick: () -> Unit,
     textToSpeechService: TextToSpeechService? = null
 ) {
-    val categories = listOf(
-        "健康", "休闲", "学习", "美食", "旅游", "社区", "运动", "娱乐",
-        "医疗", "养生", "科技", "艺术"
-    )
     var searchText by remember { mutableStateOf("") }
     var showContentDialog by remember { mutableStateOf(false) }
     var dialogTitle by remember { mutableStateOf("") }
@@ -349,31 +345,6 @@ fun ExploreScreen(
                                 }
                             )
                         }
-                    }
-                }
-            }
-            
-            // 按兴趣浏览
-            item {
-                Text(
-                    text = "按兴趣浏览",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(categories) { category ->
-                        InterestCategory(
-                            category = category,
-                            onClick = {
-                                textToSpeechService?.speak(category)
-                                showDevelopingDialog = true
-                            }
-                        )
                     }
                 }
             }
@@ -821,27 +792,6 @@ fun InfoItem(
                 color = Color.Gray
             )
         }
-    }
-}
-
-@Composable
-fun InterestCategory(
-    category: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.White)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = category,
-            fontSize = 16.sp,
-            color = Color(0xFF2E7D32)
-        )
     }
 }
 

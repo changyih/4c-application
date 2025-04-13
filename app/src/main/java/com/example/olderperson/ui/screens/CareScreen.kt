@@ -974,10 +974,10 @@ data class FamilyContact(
 
 // 家人联系人列表
 val familyContacts = listOf(
-    FamilyContact("李明", "儿子", Color(0xFFE57373)),
-    FamilyContact("张华", "女儿", Color(0xFF64B5F6)),
-    FamilyContact("王芳", "孙女", Color(0xFF81C784)),
-    FamilyContact("赵强", "孙子", Color(0xFFFFB74D))
+    FamilyContact("李明远", "儿子", Color(0xFFE57373)),
+    FamilyContact("李安和", "女儿", Color(0xFF64B5F6)),
+    FamilyContact("李芳", "孙女", Color(0xFF81C784)),
+    FamilyContact("李强", "孙子", Color(0xFFFFB74D))
 )
 
 // 社区活动列表

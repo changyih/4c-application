@@ -348,10 +348,10 @@ fun BottomNavigationBar(
             
             // 消息按钮
             BottomNavItem(
-                text = "亲情关注",
+                text = "对话",
                 isSelected = false,
                 onClick = { 
-                    textToSpeechService.speak("亲情关注")
+                    textToSpeechService.speak("对话")
                     onMessageClick()
                 }
             )
@@ -1713,7 +1713,7 @@ fun LocationInfoCard() {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "四川省成都市高新区",
+                    text = "吉林省长春市朝阳区",
                     fontSize = 16.sp,
                     color = Color.Black,
                     fontWeight = FontWeight.Medium
@@ -2160,7 +2160,7 @@ fun HealthServiceTab() {
                 ) {
                     Column {
                         Text(
-                            text = "颐年铂金会员",
+                            text = "慧龄",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -2215,7 +2215,7 @@ fun HealthServiceTab() {
                 )
                 
                 Text(
-                    text = "2021-05-16",
+                    text = "2025-05-16",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -2772,7 +2772,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 1,
             title = "初级水疗康复定制",
-            location = "康复科 | 天府区",
+            location = "康复科 | 朝阳区",
             rating = 5.0f,
             distance = "15 km",
             imageUrl = "",
@@ -2782,7 +2782,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 2,
             title = "老年性痴呆认知复健",
-            location = "康复科 | 武侯区",
+            location = "康复科 | 宽城区",
             rating = 4.0f,
             distance = "22 km",
             imageUrl = "",
@@ -2792,7 +2792,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 3,
             title = "脑卒中后康复复建",
-            location = "康复科 | 天府区",
+            location = "康复科 | 朝阳区",
             rating = 4.5f,
             distance = "48 km",
             imageUrl = "",
@@ -2802,7 +2802,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 4,
             title = "腿中风，踝助康复",
-            location = "康复科 | 高新区",
+            location = "康复科 | 二道区",
             rating = 3.5f,
             distance = "89 km",
             imageUrl = "",
@@ -2812,7 +2812,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 5,
             title = "心血管疾病康复",
-            location = "康复科 | 高新区",
+            location = "康复科 | 绿园区",
             rating = 5.0f,
             distance = "106 km",
             imageUrl = "",

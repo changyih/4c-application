@@ -44,13 +44,14 @@ object UserManager {
             password = "123456",
             name = "李长青",
             role = UserRole.ELDER,
-            location = "四川 成都",
+            location = "吉林 长春",
             healthPlans = 3,
             serviceOrders = 1,
             devices = 3
         ),
         
         // 儿子李明远 - 关爱模式用户
+
         User(
             id = "user2",
             phoneNumber = "13800000002",
