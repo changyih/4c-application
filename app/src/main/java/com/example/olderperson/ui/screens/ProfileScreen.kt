@@ -120,7 +120,7 @@ fun ProfileScreen(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
-                        text = "四川 成都",
+                        text = "吉林 长春",
                         color = Color.Gray,
                         fontSize = 12.sp
                     )

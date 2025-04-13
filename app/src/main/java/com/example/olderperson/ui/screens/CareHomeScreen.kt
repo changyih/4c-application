@@ -63,6 +63,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntSize
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
+import com.example.olderperson.ui.components.DraggableEmergencyButton
+import com.example.olderperson.ui.components.ScheduleEditDialog
 
 
 @Composable
@@ -140,11 +147,27 @@ fun CareHomeScreen(
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 90.dp, end = 16.dp)
         ) {
-            EmergencyCallButton(
-                emergencyContact = emergencyContact,
-                textToSpeechService = textToSpeechService,
-                context = context
-            )
+            // 获取Box尺寸以便传递给DraggableEmergencyButton
+            var parentSize by remember { mutableStateOf(IntSize(0, 0)) }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        parentSize = coordinates.size
+                    }
+            ) {
+                if (parentSize != IntSize(0, 0)) {
+                    DraggableEmergencyButton(
+                        emergencyContact = emergencyContact,
+                        textToSpeechService = textToSpeechService,
+                        context = context,
+                        parentSize = parentSize,
+                        initialX = parentSize.width - 96,
+                        initialY = parentSize.height - 200
+                    )
+                }
+            }
         }
     }
 }

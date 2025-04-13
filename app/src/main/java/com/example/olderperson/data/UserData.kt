@@ -44,7 +44,7 @@ object UserManager {
             password = "123456",
             name = "李长青",
             role = UserRole.ELDER,
-            location = "四川 成都",
+            location = "吉林 长春",
             healthPlans = 3,
             serviceOrders = 1,
             devices = 3

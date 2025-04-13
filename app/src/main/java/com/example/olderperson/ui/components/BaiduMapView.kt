@@ -341,7 +341,9 @@ fun BaiduMapCard(
  * 获取地图标记图标
  */
 private fun getBitmapDescriptor(context: Context): BitmapDescriptor {
-    // 最简单可靠的方法，直接使用颜色作为标记
+    // 直接使用项目中存在的 ic_location 图标资源
+    // 移除所有对 ic_location_pin 的引用，因为它不存在
+    Log.d("BaiduMap", "使用 R.drawable.ic_location 作为地图标记")
     return BitmapDescriptorFactory.fromResource(R.drawable.ic_location)
 }
 
@@ -824,6 +826,13 @@ class BaiduMapViewContainer(context: Context) : FrameLayout(context) {
     private val appContext = context.applicationContext
     
     init {
+        // 设置FrameLayout属性，去除边距和内边距
+        layoutParams = LayoutParams(
+            LayoutParams.MATCH_PARENT,
+            LayoutParams.MATCH_PARENT
+        )
+        setPadding(0, 0, 0, 0)
+        
         // 加载地图视图
         val view = LayoutInflater.from(appContext).inflate(R.layout.layout_baidu_map, this, true)
         

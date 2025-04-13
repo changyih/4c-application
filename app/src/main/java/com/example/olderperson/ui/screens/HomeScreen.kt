@@ -98,111 +98,116 @@ fun HomeScreen(
     var showWellness by remember { mutableStateOf(false) }
     var showService by remember { mutableStateOf(false) }
     
-    if (showHealthData) {
-        HealthDataScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showHealthData = false }
-        )
-    } else if (showHealthPlan) {
-        HealthPlanScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showHealthPlan = false }
-        )
-    } else if (showRehabilitation) {
-        RehabilitationScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showRehabilitation = false }
-        )
-    } else if (showService) {
-        ServiceScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showService = false }
-        )
-    } else if (showWellness) {
-        WellnessScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showWellness = false }
-        )
-    } else {
-        val scrollState = rememberScrollState()
-        val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
-        var isVoiceMode by remember { mutableStateOf(false) }
-        
-        Scaffold(
-            topBar = {
-                // 顶部状态栏
-                TopAppBar(
-                    title = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "慧龄",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.clickable { textToSpeechService.speak("慧龄") }
-                            )
-                            
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Background)) {
+        if (showHealthData) {
+            HealthDataScreen(
+                textToSpeechService = textToSpeechService,
+                onBackClick = { showHealthData = false }
+            )
+        } else if (showHealthPlan) {
+            HealthPlanScreen(
+                textToSpeechService = textToSpeechService,
+                onBackClick = { showHealthPlan = false }
+            )
+        } else if (showRehabilitation) {
+            RehabilitationScreen(
+                textToSpeechService = textToSpeechService,
+                onBackClick = { showRehabilitation = false }
+            )
+        } else if (showService) {
+            ServiceScreen(
+                textToSpeechService = textToSpeechService,
+                onBackClick = { showService = false }
+            )
+        } else if (showWellness) {
+            WellnessScreen(
+                textToSpeechService = textToSpeechService,
+                onBackClick = { showWellness = false }
+            )
+        } else {
+            val scrollState = rememberScrollState()
+            val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
+            var isVoiceMode by remember { mutableStateOf(false) }
+            
+            Scaffold(
+                topBar = {
+                    // 顶部状态栏
+                    TopAppBar(
+                        title = {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = currentTime,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.clickable { textToSpeechService.speak("现在时间是 $currentTime") }
+                                    text = "慧龄",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.clickable { textToSpeechService.speak("慧龄") }
                                 )
                                 
-                                // 模式切换按钮
-                                IconButton(
-                                    onClick = { 
-                                        isVoiceMode = !isVoiceMode
-                                        textToSpeechService.speak(if (isVoiceMode) "已切换到语音模式" else "已切换到普通模式")
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Primary)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Text(
-                                        text = if (isVoiceMode) "文" else "音",
-                                        color = Color.White,
-                                        fontSize = 20.sp
+                                        text = currentTime,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.clickable { textToSpeechService.speak("现在时间是 $currentTime") }
                                     )
+                                    
+                                    // 模式切换按钮
+                                    IconButton(
+                                        onClick = { 
+                                            isVoiceMode = !isVoiceMode
+                                            textToSpeechService.speak(if (isVoiceMode) "已切换到语音模式" else "已切换到普通模式")
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Primary)
+                                    ) {
+                                        Text(
+                                            text = if (isVoiceMode) "文" else "音",
+                                            color = Color.White,
+                                            fontSize = 20.sp
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Background
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Background
+                        )
                     )
-                )
-            },
-            bottomBar = {
-                // 底部导航栏
-                BottomNavigationBar(
-                    onVideoCallClick = onVideoCallClick,
-                    textToSpeechService = textToSpeechService,
-                    onProfileClick = onProfileClick,
-                    onMessageClick = onMessageClick
-                )
-            }
-        ) { paddingValues ->
-            if (isVoiceMode) {
-                // 语音模式界面
-                VoiceModeScreen(textToSpeechService)
-            } else {
-                // 普通模式界面
-                NormalModeScreen(
-                    scrollState = scrollState,
-                    paddingValues = paddingValues,
-                    textToSpeechService = textToSpeechService,
-                    onHealthDataClick = { showHealthData = true },
-                    onHealthPlanClick = { showHealthPlan = true },
-                    onRehabilitationClick = { showRehabilitation = true },
-                    onWellnessClick = { showWellness = true }
-                )
+                },
+                bottomBar = {
+                    // 底部导航栏
+                    BottomNavigationBar(
+                        onVideoCallClick = onVideoCallClick,
+                        textToSpeechService = textToSpeechService,
+                        onProfileClick = onProfileClick,
+                        onMessageClick = onMessageClick
+                    )
+                },
+                containerColor = Background
+            ) { paddingValues ->
+                if (isVoiceMode) {
+                    // 语音模式界面
+                    VoiceModeScreen(textToSpeechService)
+                } else {
+                    // 普通模式界面
+                    NormalModeScreen(
+                        scrollState = scrollState,
+                        paddingValues = paddingValues,
+                        textToSpeechService = textToSpeechService,
+                        onHealthDataClick = { showHealthData = true },
+                        onHealthPlanClick = { showHealthPlan = true },
+                        onRehabilitationClick = { showRehabilitation = true },
+                        onWellnessClick = { showWellness = true }
+                    )
+                }
             }
         }
     }
@@ -348,10 +353,10 @@ fun BottomNavigationBar(
             
             // 消息按钮
             BottomNavItem(
-                text = "亲情关注",
+                text = "对话",
                 isSelected = false,
                 onClick = { 
-                    textToSpeechService.speak("亲情关注")
+                    textToSpeechService.speak("对话")
                     onMessageClick()
                 }
             )
@@ -955,32 +960,10 @@ fun HealthDataCard(
 
 /**
  * 地图信息卡片
+ * 使用简单卡片替代地图，避免OpenGL错误
  */
 @Composable
 fun MapInfoCard(textToSpeechService: TextToSpeechService) {
-    // 长春市坐标
-    val changchunLocation = LatLng(43.817071, 125.323544)
-    var showNearbyFacilities by remember { mutableStateOf(false) }
-    var selectedFacilityType by remember { mutableStateOf<FacilityType?>(null) }
-    val context = LocalContext.current
-    
-    // 使用百度地图POI搜索
-    val poiSearch = remember { NearbyPoiSearch(context) }
-    var searchResults by remember { mutableStateOf<List<PoiInfo>>(emptyList()) }
-    
-    // 设置POI搜索监听器
-    DisposableEffect(poiSearch) {
-        poiSearch.setOnPoiSearchResultListener(object : NearbyPoiSearch.OnPoiSearchResultListener {
-            override fun onPoiSearchResult(poiList: List<PoiInfo>) {
-                searchResults = poiList
-            }
-        })
-        
-        onDispose {
-            poiSearch.destroy()
-        }
-    }
-    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1004,432 +987,105 @@ fun MapInfoCard(textToSpeechService: TextToSpeechService) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // 使用LocationMapCard组件显示地图
-                LocationMapCard(
-                    modifier = Modifier.fillMaxSize(),
-                    userLocation = changchunLocation,
-                    onLocationUpdate = { /* 位置更新回调 */ }
-                )
-                
-                // 地图控制按钮
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    MapControlButton(
-                        icon = Icons.Default.LocalHospital,
-                        contentDescription = "医疗机构",
-                        onClick = {
-                            selectedFacilityType = FacilityType.HOSPITAL
-                            showNearbyFacilities = true
-                            textToSpeechService.speak("显示附近医疗机构")
-                            
-                            // 使用百度地图搜索附近医院
-                            val baiduLocation = BaiduLatLng(
-                                changchunLocation.latitude, 
-                                changchunLocation.longitude
-                            )
-                            poiSearch.searchNearby(baiduLocation, "医院", 2000)
-                        }
+                    // 使用图标代替地图
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "位置",
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "长春市",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
                     )
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    MapControlButton(
-                        icon = Icons.Default.LocalPharmacy,
-                        contentDescription = "药店",
-                        onClick = {
-                            selectedFacilityType = FacilityType.PHARMACY
-                            showNearbyFacilities = true
-                            textToSpeechService.speak("显示附近药店")
-                            
-                            // 使用百度地图搜索附近药店
-                            val baiduLocation = BaiduLatLng(
-                                changchunLocation.latitude, 
-                                changchunLocation.longitude
-                            )
-                            poiSearch.searchNearby(baiduLocation, "药店", 2000)
-                        }
+                    Text(
+                        text = "位置服务暂不可用",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     
-                    MapControlButton(
-                        icon = Icons.Default.Restaurant,
-                        contentDescription = "餐厅",
-                        onClick = {
-                            selectedFacilityType = FacilityType.RESTAURANT
-                            showNearbyFacilities = true
-                            textToSpeechService.speak("显示附近餐厅")
-                            
-                            // 使用百度地图搜索附近餐厅
-                            val baiduLocation = BaiduLatLng(
-                                changchunLocation.latitude, 
-                                changchunLocation.longitude
-                            )
-                            poiSearch.searchNearby(baiduLocation, "餐厅", 2000)
-                        }
-                    )
+                    // 显示一些简化的服务按钮
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ServiceButton(
+                            icon = Icons.Default.LocalHospital,
+                            label = "医疗机构",
+                            onClick = { textToSpeechService.speak("附近医疗机构功能暂不可用") }
+                        )
+                        
+                        ServiceButton(
+                            icon = Icons.Default.LocalPharmacy,
+                            label = "药店",
+                            onClick = { textToSpeechService.speak("附近药店功能暂不可用") }
+                        )
+                        
+                        ServiceButton(
+                            icon = Icons.Default.Restaurant,
+                            label = "餐厅",
+                            onClick = { textToSpeechService.speak("附近餐厅功能暂不可用") }
+                        )
+                    }
                 }
-            }
-        }
-        
-        // 附近设施列表
-        AnimatedVisibility(
-            visible = showNearbyFacilities,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            if (searchResults.isNotEmpty()) {
-                // 使用百度地图搜索结果
-                BaiduPoiResultsList(
-                    poiList = searchResults,
-                    facilityType = selectedFacilityType,
-                    textToSpeechService = textToSpeechService,
-                    onClose = { showNearbyFacilities = false }
-                )
-            } else {
-                // 使用本地数据作为备用
-                NearbyFacilitiesList(
-                    facilityType = selectedFacilityType,
-                    textToSpeechService = textToSpeechService,
-                    onClose = { showNearbyFacilities = false }
-                )
             }
         }
     }
 }
 
 /**
- * 地图控制按钮
+ * 简化的服务按钮
  */
 @Composable
-fun MapControlButton(
+fun ServiceButton(
     icon: ImageVector,
-    contentDescription: String,
+    label: String,
     onClick: () -> Unit
 ) {
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(Color.White)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+            .padding(8.dp)
+            .clickable(onClick = onClick)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Primary,
-            modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-/**
- * 设施类型
- */
-enum class FacilityType(val label: String) {
-    HOSPITAL("医疗机构"),
-    PHARMACY("药店"),
-    RESTAURANT("餐厅"),
-    COMMUNITY_CENTER("社区服务中心")
-}
-
-/**
- * 设施数据类
- */
-data class Facility(
-    val name: String,
-    val address: String,
-    val distance: String,
-    val type: FacilityType
-)
-
-/**
- * 附近设施列表
- */
-@Composable
-fun NearbyFacilitiesList(
-    facilityType: FacilityType?,
-    textToSpeechService: TextToSpeechService,
-    onClose: () -> Unit
-) {
-    val facilities = when(facilityType) {
-        FacilityType.HOSPITAL -> listOf(
-            Facility("长春市第一医院", "长春市南关区人民大街1800号", "1.2公里", FacilityType.HOSPITAL),
-            Facility("吉林大学第一医院", "长春市朝阳区新民大街71号", "2.5公里", FacilityType.HOSPITAL),
-            Facility("长春市中医院", "长春市朝阳区工农大路1478号", "3.1公里", FacilityType.HOSPITAL)
-        )
-        FacilityType.PHARMACY -> listOf(
-            Facility("大参林药店", "长春市南关区人民大街1588号", "0.8公里", FacilityType.PHARMACY),
-            Facility("益丰大药房", "长春市朝阳区重庆路1355号", "1.5公里", FacilityType.PHARMACY),
-            Facility("老百姓大药房", "长春市朝阳区西安大路1255号", "2.3公里", FacilityType.PHARMACY)
-        )
-        FacilityType.RESTAURANT -> listOf(
-            Facility("老街饭店", "长春市南关区大经路125号", "0.5公里", FacilityType.RESTAURANT),
-            Facility("吉顺居", "长春市朝阳区西安大路233号", "1.3公里", FacilityType.RESTAURANT),
-            Facility("老杨家饺子馆", "长春市朝阳区重庆路78号", "1.8公里", FacilityType.RESTAURANT)
-        )
-        else -> emptyList()
-    }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "附近${facilityType?.label ?: "设施"}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                
-                IconButton(
-                    onClick = onClose
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "关闭",
-                        tint = Color.White
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            facilities.forEach { facility ->
-                FacilityItem(
-                    facility = facility,
-                    textToSpeechService = textToSpeechService
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-/**
- * 设施项
- */
-@Composable
-fun FacilityItem(
-    facility: Facility,
-    textToSpeechService: TextToSpeechService
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF333333))
-            .clickable { textToSpeechService.speak("${facility.name}，距离${facility.distance}，地址：${facility.address}") }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 设施图标
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Primary),
+                .background(Color.White.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = when(facility.type) {
-                    FacilityType.HOSPITAL -> Icons.Default.LocalHospital
-                    FacilityType.PHARMACY -> Icons.Default.LocalPharmacy
-                    FacilityType.RESTAURANT -> Icons.Default.Restaurant
-                    FacilityType.COMMUNITY_CENTER -> Icons.Default.People
-                },
-                contentDescription = null,
+                imageVector = icon,
+                contentDescription = label,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
         }
         
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = facility.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = facility.address,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         
         Text(
-            text = facility.distance,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Primary
-        )
-    }
-}
-
-/**
- * 百度地图POI结果列表
- */
-@Composable
-fun BaiduPoiResultsList(
-    poiList: List<PoiInfo>,
-    facilityType: FacilityType?,
-    textToSpeechService: TextToSpeechService,
-    onClose: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "附近${facilityType?.label ?: "设施"}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                
-                IconButton(
-                    onClick = onClose
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "关闭",
-                        tint = Color.White
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            if (poiList.isNotEmpty()) {
-                poiList.take(5).forEach { poi ->
-                    BaiduFacilityItem(
-                        poi = poi,
-                        facilityType = facilityType ?: FacilityType.HOSPITAL,
-                        textToSpeechService = textToSpeechService
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            } else {
-                Text(
-                    text = "未找到附近设施",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
-
-/**
- * 百度地图POI结果项
- */
-@Composable
-fun BaiduFacilityItem(
-    poi: PoiInfo,
-    facilityType: FacilityType,
-    textToSpeechService: TextToSpeechService
-) {
-    // 计算距离，单位转换为公里
-    val distanceInt = poi.distance.toInt()
-    val distanceText = if (distanceInt > 1000) {
-        String.format("%.1f公里", distanceInt / 1000.0)
-    } else {
-        "${distanceInt}米"
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF333333))
-            .clickable { textToSpeechService.speak("${poi.name}，距离${distanceText}，地址：${poi.address}") }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 设施图标
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = when(facilityType) {
-                    FacilityType.HOSPITAL -> Icons.Default.LocalHospital
-                    FacilityType.PHARMACY -> Icons.Default.LocalPharmacy
-                    FacilityType.RESTAURANT -> Icons.Default.Restaurant
-                    FacilityType.COMMUNITY_CENTER -> Icons.Default.People
-                },
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = poi.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = poi.address ?: "无详细地址",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        Text(
-            text = distanceText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Primary
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            maxLines = 1
         )
     }
 }
@@ -1713,7 +1369,7 @@ fun LocationInfoCard() {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "四川省成都市高新区",
+                    text = "吉林省长春市朝阳区",
                     fontSize = 16.sp,
                     color = Color.Black,
                     fontWeight = FontWeight.Medium
@@ -2160,7 +1816,7 @@ fun HealthServiceTab() {
                 ) {
                     Column {
                         Text(
-                            text = "颐年铂金会员",
+                            text = "慧龄",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -2215,7 +1871,7 @@ fun HealthServiceTab() {
                 )
                 
                 Text(
-                    text = "2021-05-16",
+                    text = "2025-05-16",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -2772,7 +2428,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 1,
             title = "初级水疗康复定制",
-            location = "康复科 | 天府区",
+            location = "康复科 | 朝阳区",
             rating = 5.0f,
             distance = "15 km",
             imageUrl = "",
@@ -2782,7 +2438,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 2,
             title = "老年性痴呆认知复健",
-            location = "康复科 | 武侯区",
+            location = "康复科 | 宽城区",
             rating = 4.0f,
             distance = "22 km",
             imageUrl = "",
@@ -2792,7 +2448,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 3,
             title = "脑卒中后康复复建",
-            location = "康复科 | 天府区",
+            location = "康复科 | 朝阳区",
             rating = 4.5f,
             distance = "48 km",
             imageUrl = "",
@@ -2802,7 +2458,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 4,
             title = "腿中风，踝助康复",
-            location = "康复科 | 高新区",
+            location = "康复科 | 二道区",
             rating = 3.5f,
             distance = "89 km",
             imageUrl = "",
@@ -2812,7 +2468,7 @@ fun RehabilitationScreen(
         RehabilitationGuide(
             id = 5,
             title = "心血管疾病康复",
-            location = "康复科 | 高新区",
+            location = "康复科 | 绿园区",
             rating = 5.0f,
             distance = "106 km",
             imageUrl = "",
