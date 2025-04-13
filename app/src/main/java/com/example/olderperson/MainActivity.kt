@@ -40,6 +40,7 @@ import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
+import com.example.olderperson.utils.ScheduleManager
 
 class MainActivity : ComponentActivity() {
     // 视频通话服务
@@ -64,6 +65,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate开始执行")
+        
+        // 重置所有闹钟提醒
+        resetScheduleReminders()
         
         try {
             // 初始化服务
@@ -191,6 +195,19 @@ class MainActivity : ComponentActivity() {
                 speechRecognitionService = speechRecognitionService,
                 phoneCallService = phoneCallService
             )
+        }
+    }
+
+    /**
+     * 重置所有日程提醒
+     */
+    private fun resetScheduleReminders() {
+        try {
+            // 使用ScheduleManager的重置方法
+            val scheduleManager = ScheduleManager.getInstance(this)
+            scheduleManager.resetAllReminders()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "重置日程提醒失败: ${e.message}")
         }
     }
 }
