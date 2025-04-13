@@ -86,6 +86,11 @@ class MainActivity : ComponentActivity() {
     private fun checkPermissions() {
         Log.d("MainActivity", "开始检查权限")
         
+        // 先启动服务，避免卡死在权限检查
+        startServices()
+        Log.d("MainActivity", "先启动服务，然后请求权限")
+        
+        // 需要请求的权限列表
         val permissions = arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -96,21 +101,12 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.CALL_PHONE
         )
         
-        // 筛选出未授权的权限
-        val permissionsToRequest = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
+        // 不再筛选已授予权限，直接请求所有权限
+        Log.d("MainActivity", "请求所有权限")
+        requestPermissionLauncher.launch(permissions)
         
-        Log.d("MainActivity", "需要请求的权限: ${permissionsToRequest.joinToString()}")
-        
-        if (permissionsToRequest.isNotEmpty()) {
-            // 请求未授权的权限
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
-        } else {
-            // 已经拥有所有需要的权限
-            Log.d("MainActivity", "已获取所有必要权限")
-            startServices()
-        }
+        // 不再阻塞UI线程等待权限结果
+        Log.d("MainActivity", "权限请求已发送，继续执行")
     }
 
     override fun onDestroy() {
