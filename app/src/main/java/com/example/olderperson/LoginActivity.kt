@@ -1,11 +1,14 @@
 package com.example.olderperson
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.olderperson.data.UserManager
 import com.example.olderperson.data.UserRole
@@ -33,29 +37,30 @@ import com.example.olderperson.ui.theme.OlderPersonTheme
 import kotlinx.coroutines.launch
 
 class LoginActivity : ComponentActivity() {
+    // 权限请求回调
+    private val requestPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.all { it.value }
+        if (allGranted) {
+            Log.d("LoginActivity", "所有权限已获取")
+            Toast.makeText(this, "所有权限已获取", Toast.LENGTH_SHORT).show()
+            checkLoginState()
+        } else {
+            val deniedPermissions = permissions.filterValues { !it }.keys
+            Log.w("LoginActivity", "以下权限被拒绝: $deniedPermissions")
+            Toast.makeText(this, "某些必要权限被拒绝，应用可能无法正常工作", Toast.LENGTH_LONG).show()
+            
+            // 即使权限被拒绝也继续执行
+            checkLoginState()
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 检查是否已登录
-        lifecycleScope.launch {
-            val (userId, rememberLogin) = UserManager.loadLoginState(this@LoginActivity)
-            if (userId != null && rememberLogin) {
-                val user = UserManager.getUserById(userId)
-                if (user != null) {
-                    // 根据用户角色跳转到相应界面
-                    if (user.role == UserRole.FAMILY) {
-                        // 跳转到关爱模式界面
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                        finish()
-                    } else {
-                        // 跳转到呵护模式界面
-                        val intent = Intent(this@LoginActivity, CareActivity::class.java)
-                        startActivity(intent)
-                        finish()
-                    }
-                }
-            }
-        }
+        // 请求必要权限
+        requestRequiredPermissions()
         
         // 添加全局异常处理
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
@@ -84,6 +89,60 @@ class LoginActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     LoginScreen()
+                }
+            }
+        }
+    }
+    
+    // 请求必要权限
+    private fun requestRequiredPermissions() {
+        Log.d("LoginActivity", "请求必要权限")
+        
+        val permissions = mutableListOf(
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        )
+        
+        // Android 13 (API 33)及以上使用新的媒体权限
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+            permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
+            permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+        }
+        
+        // 筛选出未授予的权限
+        val permissionsToRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        
+        if (permissionsToRequest.isNotEmpty()) {
+            Log.d("LoginActivity", "请求以下权限: $permissionsToRequest")
+            requestPermissionsLauncher.launch(permissionsToRequest.toTypedArray())
+        } else {
+            Log.d("LoginActivity", "已获取所有必要权限")
+            checkLoginState()
+        }
+    }
+    
+    // 检查登录状态
+    private fun checkLoginState() {
+        // 检查是否已登录
+        lifecycleScope.launch {
+            val (userId, rememberLogin) = UserManager.loadLoginState(this@LoginActivity)
+            if (userId != null && rememberLogin) {
+                val user = UserManager.getUserById(userId)
+                if (user != null) {
+                    // 根据用户角色跳转到相应界面
+                    if (user.role == UserRole.FAMILY) {
+                        // 跳转到关爱模式界面
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        finish()
+                    } else {
+                        // 跳转到呵护模式界面
+                        val intent = Intent(this@LoginActivity, CareActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
                 }
             }
         }

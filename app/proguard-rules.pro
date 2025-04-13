@@ -14,8 +14,22 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# 保留Lambda表达式的元数据
+-keep class java.lang.invoke.** { *; }
+-keepclassmembers class java.lang.invoke.** { *; }
+-dontwarn java.lang.invoke.**
+
+# 允许访问LambdaMetafactory
+-keep class java.lang.invoke.LambdaMetafactory { *; }
+-keepclassmembers class java.lang.invoke.LambdaMetafactory { *; }
+
+# 保持androidx.datastore相关类
+-keep class androidx.datastore.** { *; }
+-keepclassmembers class androidx.datastore.** { *; }
+-keep class kotlinx.coroutines.** { *; }

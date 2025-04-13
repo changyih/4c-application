@@ -12,12 +12,20 @@ android {
             storePassword = "314159"
             keyAlias = "GenerateAPK"
             keyPassword = "314159"
+            enableV1Signing = true
+            enableV2Signing = true
         }
         getByName("debug") {
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+//            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+//            storePassword = "android"
+//            keyAlias = "androiddebugkey"
+//            keyPassword = "android"
+            storeFile = file("E:\\APK\\GenerateAPK.jks")
+            storePassword = "314159"
+            keyAlias = "GenerateAPK"
+            keyPassword = "314159"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
     namespace = "com.example.olderperson"
@@ -31,11 +39,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 允许访问隐藏API，解决LambdaMetafactory问题
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -44,15 +57,22 @@ android {
         }
         debug {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-Xno-param-assertions",
+            "-Xno-call-assertions",
+            "-Xno-receiver-assertions"
+        )
     }
     buildFeatures {
         compose = true

@@ -7,6 +7,7 @@ import com.baidu.mapapi.SDKInitializer
 import com.baidu.mapapi.CoordType
 import com.example.olderperson.utils.ExceptionHandler
 import com.example.olderperson.data.UserManager
+import java.io.File
 
 class OlderPersonApplication : Application() {
     
@@ -22,6 +23,9 @@ class OlderPersonApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         context = applicationContext
+        
+        // 修复SharedPreferences文件名异常问题
+        fixSharedPreferencesIssue()
         
         // 在使用SDK各组件之前初始化百度地图SDK
         SDKInitializer.setAgreePrivacy(this, true)
@@ -50,6 +54,29 @@ class OlderPersonApplication : Application() {
         
         Log.d("BaiduMap", "SDK初始化完成")
         Log.i(TAG, "应用初始化完成")
+    }
+    
+    private fun fixSharedPreferencesIssue() {
+        try {
+            // 清理可能存在的问题文件
+            val sharedPrefsDir = File(applicationContext.dataDir, "shared_prefs")
+            if (sharedPrefsDir.exists() && sharedPrefsDir.isDirectory) {
+                sharedPrefsDir.listFiles()?.forEach { file ->
+                    if (file.name.contains("authStatus") && file.name.length > 100) {
+                        Log.w(TAG, "删除异常长度的SharedPreferences文件: ${file.name}")
+                        file.delete()
+                    }
+                }
+            }
+            
+            // 设置默认的SharedPreferences
+            getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().apply {
+                putBoolean("first_run", false)
+                apply()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "修复SharedPreferences问题时出错", e)
+        }
     }
     
     private fun initializeUserData() {
