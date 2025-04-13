@@ -61,6 +61,22 @@ import com.example.olderperson.data.ContactHelper
 import com.example.olderperson.data.ContactRepository
 import com.example.olderperson.data.FamilyContact
 import kotlinx.coroutines.flow.collectLatest
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.olderperson.utils.FamilyPhotoManager
 
 @Composable
 fun FamilyScreen(
@@ -770,6 +786,212 @@ private fun AddContactItem(onClick: () -> Unit) {
 
 @Composable
 private fun FamilyPhotoAlbumCard() {
+    val context = LocalContext.current
+    val photoManager = remember { FamilyPhotoManager.getInstance(context) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 照片列表状态
+    var photos by remember { mutableStateOf(photoManager.getAllPhotos()) }
+    
+    // 添加照片对话框状态
+    var showAddPhotoDialog by remember { mutableStateOf(false) }
+    var photoTitle by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // 显示照片对话框
+    var showPhotoDialog by remember { mutableStateOf(false) }
+    var selectedPhoto by remember { mutableStateOf<FamilyPhotoManager.PhotoItem?>(null) }
+    var selectedPhotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    
+    // 图片选择器启动器
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // 显示添加照片对话框
+            showAddPhotoDialog = true
+            selectedImageUri = it
+        }
+    }
+    
+    // 添加照片对话框
+    if (showAddPhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showAddPhotoDialog = false 
+                photoTitle = ""
+                selectedImageUri = null
+            },
+            title = { Text("添加照片") },
+            text = {
+                Column {
+                    // 照片预览
+                    selectedImageUri?.let { uri ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.LightGray)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(uri)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "照片预览",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    
+                    // 标题输入
+                    OutlinedTextField(
+                        value = photoTitle,
+                        onValueChange = { photoTitle = it },
+                        label = { Text("照片标题(可选)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // 添加照片
+                        selectedImageUri?.let { uri ->
+                            coroutineScope.launch {
+                                val title = if (photoTitle.isBlank()) "家庭照片" else photoTitle
+                                val success = photoManager.addPhoto(uri, title)
+                                if (success) {
+                                    // 刷新照片列表
+                                    photos = photoManager.getAllPhotos()
+                                    // 重置状态
+                                    photoTitle = ""
+                                    selectedImageUri = null
+                                    showAddPhotoDialog = false
+                                } else {
+                                    // 显示错误提示
+                                    Toast.makeText(context, "添加照片失败", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    enabled = selectedImageUri != null
+                ) {
+                    Text("添加")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showAddPhotoDialog = false
+                    photoTitle = ""
+                    selectedImageUri = null
+                }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 照片详情对话框
+    if (showPhotoDialog && selectedPhoto != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showPhotoDialog = false 
+                selectedPhoto = null
+                selectedPhotoBitmap = null
+            },
+            title = { Text(selectedPhoto?.title ?: "照片") },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 照片显示
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        selectedPhotoBitmap?.let { bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "照片",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } ?: run {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row {
+                    // 删除按钮
+                    TextButton(
+                        onClick = {
+                            selectedPhoto?.let { photo ->
+                                val success = photoManager.deletePhoto(photo.id)
+                                if (success) {
+                                    // 刷新照片列表
+                                    photos = photoManager.getAllPhotos()
+                                    // 关闭对话框
+                                    showPhotoDialog = false
+                                    selectedPhoto = null
+                                    selectedPhotoBitmap = null
+                                } else {
+                                    Toast.makeText(context, "删除照片失败", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color.Red
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = Color.Red
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("删除")
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // 关闭按钮
+                    Button(
+                        onClick = { 
+                            showPhotoDialog = false 
+                            selectedPhoto = null
+                            selectedPhotoBitmap = null
+                        }
+                    ) {
+                        Text("关闭")
+                    }
+                }
+            },
+            dismissButton = { }
+        )
+    }
+    
+    // 照片被选中时加载位图
+    LaunchedEffect(selectedPhoto) {
+        if (selectedPhoto != null) {
+            selectedPhotoBitmap = photoManager.getPhotoBitmap(selectedPhoto!!)
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -838,14 +1060,37 @@ private fun FamilyPhotoAlbumCard() {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 相册预览 - 改进布局为更现代的网格
-            PhotoGrid()
+            // 相册预览 - 实际照片显示或默认网格
+            if (photos.isEmpty()) {
+                // 无照片时显示默认网格
+                PhotoGrid()
+            } else {
+                // 显示实际照片
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(photos.take(6)) { photo ->
+                        PhotoItemReal(
+                            photo = photo, 
+                            photoManager = photoManager,
+                            onClick = {
+                                selectedPhoto = photo
+                                showPhotoDialog = true
+                            }
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             // 添加照片按钮
             Button(
-                onClick = { /* 添加照片 */ },
+                onClick = { 
+                    // 启动图片选择器
+                    imagePickerLauncher.launch("image/*")
+                },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF4682B4)
@@ -871,78 +1116,42 @@ private fun FamilyPhotoAlbumCard() {
     }
 }
 
+// 实际照片项组件
 @Composable
-private fun PhotoGrid() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // 第一行照片
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            PhotoItem(
-                color = Color(0xFFE0F7FA),
-                icon = Icons.Default.Landscape,
-                modifier = Modifier.weight(1f)
-            )
-            PhotoItem(
-                color = Color(0xFFF3E5F5),
-                icon = Icons.Default.People,
-                modifier = Modifier.weight(1f)
-            )
-            PhotoItem(
-                color = Color(0xFFFFF3E0),
-                icon = Icons.Default.Cake,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        
-        // 第二行照片
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            PhotoItem(
-                color = Color(0xFFE8F5E9),
-                icon = Icons.Default.Park,
-                modifier = Modifier.weight(1f)
-            )
-            PhotoItem(
-                color = Color(0xFFE1F5FE),
-                icon = Icons.Default.House,
-                modifier = Modifier.weight(1f)
-            )
-            PhotoItem(
-                color = Color(0xFFFCE4EC),
-                icon = Icons.Default.EmojiEvents,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PhotoItem(
-    color: Color,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
+private fun PhotoItemReal(
+    photo: FamilyPhotoManager.PhotoItem,
+    photoManager: FamilyPhotoManager,
+    onClick: () -> Unit
 ) {
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    
+    // 加载照片位图
+    LaunchedEffect(photo) {
+        bitmap = photoManager.getPhotoBitmap(photo)
+    }
+    
     Box(
-        modifier = modifier
-            .aspectRatio(1f)
+        modifier = Modifier
+            .size(100.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(color)
-            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+            .background(Color.LightGray)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = "照片",
-            tint = Color(0xFF4682B4),
-            modifier = Modifier.size(32.dp)
-        )
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = photo.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } ?: run {
+            // 加载中显示占位符
+            CircularProgressIndicator(
+                color = Color(0xFF4682B4),
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
@@ -1394,5 +1603,80 @@ private fun ManageContactItem(
                 tint = Color(0xFFE53935)
             )
         }
+    }
+}
+
+@Composable
+private fun PhotoGrid() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 第一行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE0F7FA),
+                icon = Icons.Default.Landscape,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFF3E5F5),
+                icon = Icons.Default.People,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFFF3E0),
+                icon = Icons.Default.Cake,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        // 第二行照片
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                color = Color(0xFFE8F5E9),
+                icon = Icons.Default.Park,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFE1F5FE),
+                icon = Icons.Default.House,
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                color = Color(0xFFFCE4EC),
+                icon = Icons.Default.EmojiEvents,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoItem(
+    color: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color)
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = "照片",
+            tint = Color(0xFF4682B4),
+            modifier = Modifier.size(32.dp)
+        )
     }
 } 
