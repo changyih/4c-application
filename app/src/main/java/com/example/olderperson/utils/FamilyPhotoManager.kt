@@ -179,6 +179,44 @@ class FamilyPhotoManager(private val context: Context) {
         }
     }
 
+    /**
+     * 更新照片标题
+     * @param id 照片ID
+     * @param newTitle 新标题
+     * @return 是否更新成功
+     */
+    fun updatePhotoTitle(id: String, newTitle: String): Boolean {
+        try {
+            // 获取所有照片
+            val photos = getAllPhotos().toMutableList()
+            
+            // 查找要更新的照片
+            val index = photos.indexOfFirst { it.id == id }
+            if (index == -1) return false
+            
+            // 更新照片标题
+            val updatedPhoto = photos[index].copy(title = newTitle)
+            photos[index] = updatedPhoto
+            
+            // 保存更新
+            saveAllPhotos(photos)
+            
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "更新照片标题失败: ${e.message}")
+            return false
+        }
+    }
+
+    /**
+     * 根据ID获取照片项
+     * @param id 照片ID
+     * @return 照片项，如果未找到则返回null
+     */
+    fun getPhotoById(id: String): PhotoItem? {
+        return getAllPhotos().find { it.id == id }
+    }
+
     companion object {
         private const val TAG = "FamilyPhotoManager"
         

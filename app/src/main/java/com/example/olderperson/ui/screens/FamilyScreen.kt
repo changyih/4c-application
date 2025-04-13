@@ -77,6 +77,10 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.olderperson.utils.FamilyPhotoManager
+import androidx.compose.ui.input.pointer.pointerInput
+
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 @Composable
 fun FamilyScreen(
@@ -900,13 +904,22 @@ private fun FamilyPhotoAlbumCard() {
     
     // 照片详情对话框
     if (showPhotoDialog && selectedPhoto != null) {
+        var isEditing by remember { mutableStateOf(false) }
+        var editTitle by remember { mutableStateOf(selectedPhoto?.title ?: "") }
+        
         AlertDialog(
             onDismissRequest = { 
                 showPhotoDialog = false 
                 selectedPhoto = null
                 selectedPhotoBitmap = null
             },
-            title = { Text(selectedPhoto?.title ?: "照片") },
+            title = { 
+                if (isEditing) {
+                    Text("编辑照片标题")
+                } else {
+                    Text(selectedPhoto?.title ?: "照片")
+                }
+            },
             text = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -933,51 +946,127 @@ private fun FamilyPhotoAlbumCard() {
                             CircularProgressIndicator()
                         }
                     }
+                    
+                    // 标题编辑区域
+                    if (isEditing) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = editTitle,
+                            onValueChange = { editTitle = it },
+                            label = { Text("照片标题") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Row {
-                    // 删除按钮
-                    TextButton(
-                        onClick = {
-                            selectedPhoto?.let { photo ->
-                                val success = photoManager.deletePhoto(photo.id)
-                                if (success) {
-                                    // 刷新照片列表
-                                    photos = photoManager.getAllPhotos()
-                                    // 关闭对话框
-                                    showPhotoDialog = false
-                                    selectedPhoto = null
-                                    selectedPhotoBitmap = null
-                                } else {
-                                    Toast.makeText(context, "删除照片失败", Toast.LENGTH_SHORT).show()
+                    if (isEditing) {
+                        // 保存按钮（编辑模式）
+                        Button(
+                            onClick = {
+                                selectedPhoto?.let { photo ->
+                                    if (editTitle.isNotBlank()) {
+                                        val success = photoManager.updatePhotoTitle(photo.id, editTitle)
+                                        if (success) {
+                                            // 刷新照片列表
+                                            photos = photoManager.getAllPhotos()
+                                            // 更新当前照片
+                                            selectedPhoto = photos.find { it.id == photo.id }
+                                            isEditing = false
+                                            Toast.makeText(context, "更新成功", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "更新失败", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "标题不能为空", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color.Red
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "删除",
-                            tint = Color.Red
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("删除")
-                    }
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    // 关闭按钮
-                    Button(
-                        onClick = { 
-                            showPhotoDialog = false 
-                            selectedPhoto = null
-                            selectedPhotoBitmap = null
+                        ) {
+                            Text("保存")
                         }
-                    ) {
-                        Text("关闭")
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // 取消按钮（编辑模式）
+                        TextButton(
+                            onClick = { 
+                                isEditing = false 
+                                editTitle = selectedPhoto?.title ?: ""
+                            }
+                        ) {
+                            Text("取消")
+                        }
+                    } else {
+                        // 编辑按钮（查看模式）
+                        TextButton(
+                            onClick = {
+                                isEditing = true
+                                editTitle = selectedPhoto?.title ?: ""
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = Color(0xFF2196F3)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "编辑",
+                                tint = Color(0xFF2196F3)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("编辑")
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // 删除按钮（查看模式）
+                        TextButton(
+                            onClick = {
+                                selectedPhoto?.let { photo ->
+                                    coroutineScope.launch {
+                                        val success = photoManager.deletePhoto(photo.id)
+                                        if (success) {
+                                            // 刷新照片列表并通知FamilyPhotoAlbumCard组件
+                                            val refreshedPhotos = photoManager.getAllPhotos()
+                                            photos = refreshedPhotos
+                                            // 关闭对话框
+                                            showPhotoDialog = false
+                                            selectedPhoto = null
+                                            selectedPhotoBitmap = null
+                                            Toast.makeText(context, "已删除照片", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = Color.Red
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "删除",
+                                tint = Color.Red
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("删除")
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // 关闭按钮（查看模式）
+                        Button(
+                            onClick = { 
+                                showPhotoDialog = false 
+                                selectedPhoto = null
+                                selectedPhotoBitmap = null
+                            }
+                        ) {
+                            Text("关闭")
+                        }
                     }
                 }
             },
@@ -1077,6 +1166,9 @@ private fun FamilyPhotoAlbumCard() {
                             onClick = {
                                 selectedPhoto = photo
                                 showPhotoDialog = true
+                            },
+                            onPhotosUpdated = { updatedPhotos ->
+                                photos = updatedPhotos
                             }
                         )
                     }
@@ -1117,13 +1209,18 @@ private fun FamilyPhotoAlbumCard() {
 }
 
 // 实际照片项组件
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PhotoItemReal(
     photo: FamilyPhotoManager.PhotoItem,
     photoManager: FamilyPhotoManager,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onPhotosUpdated: (List<FamilyPhotoManager.PhotoItem>) -> Unit
 ) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     
     // 加载照片位图
     LaunchedEffect(photo) {
@@ -1135,7 +1232,10 @@ private fun PhotoItemReal(
             .size(100.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color.LightGray)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { showMenu = true }
+            ),
         contentAlignment = Alignment.Center
     ) {
         bitmap?.let {
@@ -1150,6 +1250,84 @@ private fun PhotoItemReal(
             CircularProgressIndicator(
                 color = Color(0xFF4682B4),
                 modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        // 照片底部显示简短标题
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(4.dp)
+        ) {
+            Text(
+                text = photo.title,
+                color = Color.White,
+                fontSize = 10.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        // 照片操作菜单
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            modifier = Modifier
+                .widthIn(min = 120.dp)
+                .background(Color.White)
+        ) {
+            // 查看选项
+            DropdownMenuItem(
+                onClick = { 
+                    showMenu = false
+                    onClick()
+                },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "查看",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("查看照片")
+                    }
+                }
+            )
+            
+            // 删除选项
+            DropdownMenuItem(
+                onClick = { 
+                    coroutineScope.launch {
+                        showMenu = false
+                        val success = photoManager.deletePhoto(photo.id)
+                        if (success) {
+                            // 刷新照片列表并通知FamilyPhotoAlbumCard组件
+                            val refreshedPhotos = photoManager.getAllPhotos()
+                            onPhotosUpdated(refreshedPhotos)
+                            Toast.makeText(context, "已删除照片", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("删除照片", color = Color.Red)
+                    }
+                }
             )
         }
     }
