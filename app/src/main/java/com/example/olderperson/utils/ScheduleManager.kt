@@ -165,99 +165,121 @@ class ScheduleManager(private val context: Context) {
      * 设置日程提醒
      */
     fun setScheduleReminder(item: ScheduleItem) {
-        // 解析时间字符串（格式为 HH:mm）
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val scheduledTime = try {
-            val parsedTime = timeFormat.parse(item.time)
-            val calendar = Calendar.getInstance()
-            val now = Calendar.getInstance()
-            
-            // 设置小时和分钟
-            calendar.time = parsedTime ?: return
-            
-            // 使用今天的日期
-            calendar.set(Calendar.YEAR, now.get(Calendar.YEAR))
-            calendar.set(Calendar.MONTH, now.get(Calendar.MONTH))
-            calendar.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH))
-            
-            // 如果时间已经过去，设置为明天
-            if (calendar.before(now)) {
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
+        try {
+            // 解析时间字符串（格式为 HH:mm）
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val scheduledTime = try {
+                val parsedTime = timeFormat.parse(item.time)
+                val calendar = Calendar.getInstance()
+                val now = Calendar.getInstance()
+                
+                // 设置小时和分钟
+                calendar.time = parsedTime ?: return
+                
+                // 使用今天的日期
+                calendar.set(Calendar.YEAR, now.get(Calendar.YEAR))
+                calendar.set(Calendar.MONTH, now.get(Calendar.MONTH))
+                calendar.set(Calendar.DAY_OF_MONTH, now.get(Calendar.DAY_OF_MONTH))
+                
+                // 如果时间已经过去，设置为明天
+                if (calendar.before(now)) {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                }
+                
+                calendar.timeInMillis
+            } catch (e: Exception) {
+                Log.e("ScheduleManager", "解析时间失败: ${e.message}")
+                return
             }
             
-            calendar.timeInMillis
+            // 创建提醒意图
+            try {
+                val receiverClass = Class.forName("com.example.olderperson.receivers.ScheduleAlarmReceiver")
+                val intent = Intent(context, receiverClass).apply {
+                    putExtra("SCHEDULE_ID", item.id)
+                    putExtra("SCHEDULE_TITLE", item.title)
+                    putExtra("SCHEDULE_DESC", item.description)
+                    putExtra("SCHEDULE_TIME", item.time)
+                }
+                
+                val pendingIntentFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+                
+                // 需要使用唯一的requestCode，这里使用item.id的hashCode
+                val requestCode = item.id.hashCode()
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    requestCode,
+                    intent,
+                    pendingIntentFlag
+                )
+                
+                // 设置精确闹钟
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            scheduledTime,
+                            pendingIntent
+                        )
+                    } else {
+                        alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            scheduledTime,
+                            pendingIntent
+                        )
+                    }
+                    
+                    Log.d("ScheduleManager", "设置提醒成功: ${item.title}, 时间: ${item.time}, ID: ${item.id}")
+                } catch (e: Exception) {
+                    Log.e("ScheduleManager", "设置闹钟失败: ${e.message}", e)
+                }
+            } catch (e: Exception) {
+                Log.e("ScheduleManager", "创建提醒意图失败: ${e.message}", e)
+            }
         } catch (e: Exception) {
-            Log.e("ScheduleManager", "解析时间失败: ${e.message}")
-            return
+            Log.e("ScheduleManager", "设置提醒过程中发生错误: ${e.message}", e)
         }
-        
-        // 创建提醒意图
-        val intent = Intent(context, Class.forName("com.example.olderperson.receivers.ScheduleAlarmReceiver")).apply {
-            putExtra("SCHEDULE_ID", item.id)
-            putExtra("SCHEDULE_TITLE", item.title)
-            putExtra("SCHEDULE_DESC", item.description)
-            putExtra("SCHEDULE_TIME", item.time)
-        }
-        
-        val pendingIntentFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        
-        // 需要使用唯一的requestCode，这里使用item.id的hashCode
-        val requestCode = item.id.hashCode()
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            pendingIntentFlag
-        )
-        
-        // 设置精确闹钟
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                scheduledTime,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                scheduledTime,
-                pendingIntent
-            )
-        }
-        
-        Log.d("ScheduleManager", "设置提醒成功: ${item.title}, 时间: ${item.time}, ID: ${item.id}")
     }
     
     /**
      * 取消日程提醒
      */
     fun cancelScheduleReminder(item: ScheduleItem) {
-        val intent = Intent(context, Class.forName("com.example.olderperson.receivers.ScheduleAlarmReceiver"))
-        
-        val pendingIntentFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_NO_CREATE
-        }
-        
-        // 需要使用相同的requestCode
-        val requestCode = item.id.hashCode()
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            pendingIntentFlag
-        )
-        
-        // 如果pendingIntent存在，取消它
-        pendingIntent?.let {
-            alarmManager.cancel(it)
-            it.cancel()
-            Log.d("ScheduleManager", "取消提醒成功: ${item.title}, ID: ${item.id}")
+        try {
+            val receiverClass = Class.forName("com.example.olderperson.receivers.ScheduleAlarmReceiver")
+            val intent = Intent(context, receiverClass)
+            
+            val pendingIntentFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_NO_CREATE
+            }
+            
+            // 需要使用相同的requestCode
+            val requestCode = item.id.hashCode()
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                pendingIntentFlag
+            )
+            
+            // 如果pendingIntent存在，取消它
+            pendingIntent?.let {
+                try {
+                    alarmManager.cancel(it)
+                    it.cancel()
+                    Log.d("ScheduleManager", "取消提醒成功: ${item.title}, ID: ${item.id}")
+                } catch (e: Exception) {
+                    Log.e("ScheduleManager", "取消提醒失败: ${e.message}", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ScheduleManager", "取消提醒过程中发生错误: ${e.message}", e)
         }
     }
     

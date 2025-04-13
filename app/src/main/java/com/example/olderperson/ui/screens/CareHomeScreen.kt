@@ -1300,11 +1300,50 @@ private fun NavigationButton(
 @Composable
 private fun TodayScheduleCard() {
     val context = LocalContext.current
-    val scheduleManager = remember { ScheduleManager.getInstance(context) }
-    val textToSpeechService = remember { TextToSpeechService(context) }
+    val scheduleManager = remember { 
+        try {
+            ScheduleManager.getInstance(context) 
+        } catch (e: Exception) {
+            Log.e("CareHomeScreen", "获取ScheduleManager实例失败: ${e.message}", e)
+            null
+        }
+    }
+    val textToSpeechService = remember { 
+        try {
+            TextToSpeechService(context)
+        } catch (e: Exception) {
+            Log.e("CareHomeScreen", "初始化TextToSpeechService失败: ${e.message}", e)
+            null
+        }
+    }
+    
+    // 如果关键服务初始化失败，显示错误信息并返回
+    if (scheduleManager == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "加载日程服务失败，请重试",
+                color = Color.Red
+            )
+        }
+        return
+    }
     
     // 状态管理
-    var scheduleItems by remember { mutableStateOf(scheduleManager.getAllScheduleItems()) }
+    var scheduleItems by remember { 
+        mutableStateOf(
+            try {
+                scheduleManager.getAllScheduleItems()
+            } catch (e: Exception) {
+                Log.e("CareHomeScreen", "获取日程列表失败: ${e.message}", e)
+                emptyList()
+            }
+        )
+    }
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -1312,7 +1351,11 @@ private fun TodayScheduleCard() {
     
     // 刷新日程列表
     fun refreshScheduleItems() {
-        scheduleItems = scheduleManager.getAllScheduleItems()
+        try {
+            scheduleItems = scheduleManager.getAllScheduleItems()
+        } catch (e: Exception) {
+            Log.e("CareHomeScreen", "刷新日程列表失败: ${e.message}", e)
+        }
     }
 
     // 编辑对话框
@@ -1320,10 +1363,16 @@ private fun TodayScheduleCard() {
         ScheduleEditDialog(
             showDialog = true,
             scheduleItem = selectedScheduleItem,
-            onDialogDismiss = { showEditDialog = false },
+            onDialogDismiss = { 
+                showEditDialog = false 
+            },
             onScheduleSave = { item ->
-                scheduleManager.updateScheduleItem(item)
-                refreshScheduleItems()
+                try {
+                    scheduleManager.updateScheduleItem(item)
+                    refreshScheduleItems()
+                } catch (e: Exception) {
+                    Log.e("CareHomeScreen", "更新日程失败: ${e.message}", e)
+                }
             },
             textToSpeechService = textToSpeechService
         )
@@ -1333,10 +1382,16 @@ private fun TodayScheduleCard() {
     if (showAddDialog) {
         ScheduleEditDialog(
             showDialog = true,
-            onDialogDismiss = { showAddDialog = false },
+            onDialogDismiss = { 
+                showAddDialog = false 
+            },
             onScheduleSave = { item ->
-                scheduleManager.addScheduleItem(item)
-                refreshScheduleItems()
+                try {
+                    scheduleManager.addScheduleItem(item)
+                    refreshScheduleItems()
+                } catch (e: Exception) {
+                    Log.e("CareHomeScreen", "添加日程失败: ${e.message}", e)
+                }
             },
             textToSpeechService = textToSpeechService
         )
@@ -1348,10 +1403,15 @@ private fun TodayScheduleCard() {
             showDialog = true,
             scheduleItem = selectedScheduleItem,
             onConfirm = {
-                selectedScheduleItem?.id?.let { scheduleManager.deleteScheduleItem(it) }
-                refreshScheduleItems()
-                showDeleteDialog = false
-                textToSpeechService.speak("已删除安排：${selectedScheduleItem?.title}")
+                try {
+                    selectedScheduleItem?.id?.let { scheduleManager.deleteScheduleItem(it) }
+                    refreshScheduleItems()
+                    showDeleteDialog = false
+                    textToSpeechService?.speak("已删除安排：${selectedScheduleItem?.title}")
+                } catch (e: Exception) {
+                    Log.e("CareHomeScreen", "删除日程失败: ${e.message}", e)
+                    showDeleteDialog = false
+                }
             },
             onDismiss = { 
                 showDeleteDialog = false
@@ -1401,7 +1461,7 @@ private fun TodayScheduleCard() {
                 IconButton(
                     onClick = { 
                         showAddDialog = true
-                        textToSpeechService.speak("添加新日程安排")
+                        textToSpeechService?.speak("添加新日程安排")
                     },
                     modifier = Modifier
                         .size(40.dp)
@@ -1468,7 +1528,7 @@ private fun TodayScheduleCard() {
                         Button(
                             onClick = { 
                                 showAddDialog = true
-                                textToSpeechService.speak("添加新日程安排")
+                                textToSpeechService?.speak("添加新日程安排")
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF4CAF50)
@@ -1499,7 +1559,7 @@ private fun TodayScheduleCard() {
                         onEdit = {
                             selectedScheduleItem = item
                             showEditDialog = true
-                            textToSpeechService.speak("编辑安排：${item.title}")
+                            textToSpeechService?.speak("编辑安排：${item.title}")
                         },
                         onDelete = {
                             selectedScheduleItem = item
@@ -1521,7 +1581,7 @@ private fun TodayScheduleCard() {
                             .fillMaxWidth()
                             .clickable { 
                                 showAddDialog = true
-                                textToSpeechService.speak("添加新日程安排")
+                                textToSpeechService?.speak("添加新日程安排")
                             }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
@@ -1562,7 +1622,9 @@ private fun ScheduleItemWithActions(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { showActions = !showActions },
+            .clickable { 
+                showActions = !showActions
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 时间
@@ -1612,7 +1674,7 @@ private fun ScheduleItemWithActions(
         ) {
             Row {
                 IconButton(
-                    onClick = onEdit,
+                    onClick = { onEdit() },
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
@@ -1623,7 +1685,7 @@ private fun ScheduleItemWithActions(
                 }
                 
                 IconButton(
-                    onClick = onDelete,
+                    onClick = { onDelete() },
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(

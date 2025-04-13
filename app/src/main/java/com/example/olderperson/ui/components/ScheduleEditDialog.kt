@@ -27,6 +27,7 @@ import com.example.olderperson.service.TextToSpeechService
 import com.example.olderperson.utils.ScheduleManager
 import java.text.SimpleDateFormat
 import java.util.*
+import android.util.Log
 
 /**
  * 时间选择对话框
@@ -297,7 +298,15 @@ fun ScheduleEditDialog(
                         
                         Switch(
                             checked = reminderEnabled,
-                            onCheckedChange = { reminderEnabled = it }
+                            onCheckedChange = { 
+                                try {
+                                    // 使用安全的状态更新
+                                    reminderEnabled = it
+                                } catch (e: Exception) {
+                                    // 捕获并记录可能的异常
+                                    Log.e("ScheduleEditDialog", "切换提醒状态时出错: ${e.message}", e)
+                                }
+                            }
                         )
                     }
                 }
@@ -305,20 +314,35 @@ fun ScheduleEditDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        val item = ScheduleManager.ScheduleItem(
-                            id = scheduleItem?.id ?: UUID.randomUUID().toString(),
-                            time = time,
-                            title = title,
-                            description = description,
-                            reminderEnabled = reminderEnabled
-                        )
-                        onScheduleSave(item)
-                        
-                        // 播报反馈
-                        val actionText = if (isEditMode) "编辑" else "添加"
-                        textToSpeechService?.speak("${actionText}成功：$title，时间：$time")
-                        
-                        onDialogDismiss()
+                        try {
+                            val item = ScheduleManager.ScheduleItem(
+                                id = scheduleItem?.id ?: UUID.randomUUID().toString(),
+                                time = time,
+                                title = title,
+                                description = description,
+                                reminderEnabled = reminderEnabled
+                            )
+                            
+                            // 安全地调用回调
+                            try {
+                                onScheduleSave(item)
+                            } catch (e: Exception) {
+                                Log.e("ScheduleEditDialog", "保存日程时出错: ${e.message}", e)
+                            }
+                            
+                            // 播报反馈
+                            try {
+                                val actionText = if (isEditMode) "编辑" else "添加"
+                                textToSpeechService?.speak("${actionText}成功：$title，时间：$time")
+                            } catch (e: Exception) {
+                                Log.e("ScheduleEditDialog", "播报反馈时出错: ${e.message}", e)
+                            }
+                            
+                            // 关闭对话框
+                            onDialogDismiss()
+                        } catch (e: Exception) {
+                            Log.e("ScheduleEditDialog", "保存按钮点击处理错误: ${e.message}", e)
+                        }
                     },
                     enabled = isFormValid
                 ) {

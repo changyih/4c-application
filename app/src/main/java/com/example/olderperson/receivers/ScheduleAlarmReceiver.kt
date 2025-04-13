@@ -98,15 +98,49 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
     private fun speakReminder(context: Context, title: String, time: String) {
         try {
             val tts = TextToSpeechService(context)
+            // 确保TTS初始化后才播报
+            var initialized = false
+            // 设置超时，避免无限等待
+            val startTime = System.currentTimeMillis()
+            val timeoutMs = 5000 // 5秒超时
+            
             // 等待TTS初始化完成
             tts.setOnInitListener {
+                // 标记初始化完成
+                initialized = true
                 // 播报信息
-                val message = "提醒您，现在是$time，您有日程安排：$title"
-                tts.speak(message)
-                Log.d(TAG, "语音播报: $message")
+                try {
+                    val message = "提醒您，现在是$time，您有日程安排：$title"
+                    tts.speak(message)
+                    Log.d(TAG, "语音播报: $message")
+                } catch (e: Exception) {
+                    Log.e(TAG, "语音播报消息时出错: ${e.message}", e)
+                }
             }
+            
+            // 使用循环等待初始化，但设置超时避免无限等待
+            while (!initialized && System.currentTimeMillis() - startTime < timeoutMs) {
+                Thread.sleep(100)
+            }
+            
+            // 如果超时仍未初始化，则记录日志
+            if (!initialized) {
+                Log.e(TAG, "TTS初始化超时，无法播报消息")
+            }
+            
+            // 延迟关闭TTS资源，确保有足够时间播报完成
+            Thread {
+                try {
+                    // 等待足够时间让TTS播报完成
+                    Thread.sleep(10000) // 10秒
+                    tts.shutdown()
+                    Log.d(TAG, "TTS资源已释放")
+                } catch (e: Exception) {
+                    Log.e(TAG, "关闭TTS资源时出错: ${e.message}", e)
+                }
+            }.start()
         } catch (e: Exception) {
-            Log.e(TAG, "语音播报失败: ${e.message}")
+            Log.e(TAG, "语音播报失败: ${e.message}", e)
         }
     }
 } 
