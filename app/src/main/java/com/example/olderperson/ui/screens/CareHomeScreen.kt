@@ -2,8 +2,14 @@ package com.example.olderperson.ui.screens
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -70,6 +76,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 
 import com.example.olderperson.ui.components.DraggableEmergencyButton
 import com.example.olderperson.ui.components.ScheduleEditDialog
+import com.example.olderperson.ui.components.ScheduleDeleteConfirmDialog
+import com.example.olderperson.utils.ScheduleManager
 
 
 @Composable
@@ -1291,15 +1299,78 @@ private fun NavigationButton(
 
 @Composable
 private fun TodayScheduleCard() {
+    val context = LocalContext.current
+    val scheduleManager = remember { ScheduleManager.getInstance(context) }
+    val textToSpeechService = remember { TextToSpeechService(context) }
+    
+    // 状态管理
+    var scheduleItems by remember { mutableStateOf(scheduleManager.getAllScheduleItems()) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedScheduleItem by remember { mutableStateOf<ScheduleManager.ScheduleItem?>(null) }
+    
+    // 刷新日程列表
+    fun refreshScheduleItems() {
+        scheduleItems = scheduleManager.getAllScheduleItems()
+    }
+
+    // 编辑对话框
+    if (showEditDialog && selectedScheduleItem != null) {
+        ScheduleEditDialog(
+            showDialog = true,
+            scheduleItem = selectedScheduleItem,
+            onDialogDismiss = { showEditDialog = false },
+            onScheduleSave = { item ->
+                scheduleManager.updateScheduleItem(item)
+                refreshScheduleItems()
+            },
+            textToSpeechService = textToSpeechService
+        )
+    }
+    
+    // 添加对话框
+    if (showAddDialog) {
+        ScheduleEditDialog(
+            showDialog = true,
+            onDialogDismiss = { showAddDialog = false },
+            onScheduleSave = { item ->
+                scheduleManager.addScheduleItem(item)
+                refreshScheduleItems()
+            },
+            textToSpeechService = textToSpeechService
+        )
+    }
+    
+    // 删除确认对话框
+    if (showDeleteDialog && selectedScheduleItem != null) {
+        ScheduleDeleteConfirmDialog(
+            showDialog = true,
+            scheduleItem = selectedScheduleItem,
+            onConfirm = {
+                selectedScheduleItem?.id?.let { scheduleManager.deleteScheduleItem(it) }
+                refreshScheduleItems()
+                showDeleteDialog = false
+                textToSpeechService.speak("已删除安排：${selectedScheduleItem?.title}")
+            },
+            onDismiss = { 
+                showDeleteDialog = false
+            }
+        )
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // 标题和查看全部
+            // 标题和添加按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -1313,7 +1384,7 @@ private fun TodayScheduleCard() {
                         imageVector = Icons.Outlined.CalendarToday,
                         contentDescription = "今日安排",
                         tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1326,10 +1397,28 @@ private fun TodayScheduleCard() {
                     )
                 }
                 
+                // 添加按钮
+                IconButton(
+                    onClick = { 
+                        showAddDialog = true
+                        textToSpeechService.speak("添加新日程安排")
+                    },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE8F5E9))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "添加安排",
+                        tint = Color(0xFF2E7D32)
+                    )
+                }
+                
                 // 查看全部
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { /* 查看全部 */ }
+                TextButton(
+                    onClick = { /* 查看全部 */ },
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Text(
                         text = "全部",
@@ -1348,60 +1437,211 @@ private fun TodayScheduleCard() {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 晨间服药
-            ScheduleItem(
-                time = "08:00",
-                title = "晨间服药",
-                description = "降压药 1片，维生素 1片"
-            )
-            
-            Divider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = Color(0xFFEEEEEE),
-                thickness = 1.dp
-            )
-            
-            // 心脏科复诊
-            ScheduleItem(
-                time = "10:30",
-                title = "心脏科复诊",
-                description = "市第一人民医院"
-            )
+            // 没有日程时显示的内容
+            if (scheduleItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.EventBusy,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "今日暂无安排",
+                            fontSize = FontSizeConfig.scaledSp(16).sp,
+                            color = Color.Gray
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Button(
+                            onClick = { 
+                                showAddDialog = true
+                                textToSpeechService.speak("添加新日程安排")
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4CAF50)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("添加安排")
+                        }
+                    }
+                }
+            } else {
+                // 日程列表
+                scheduleItems.forEachIndexed { index, item ->
+                    if (index > 0) {
+                        Divider(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = Color(0xFFEEEEEE),
+                            thickness = 1.dp
+                        )
+                    }
+                    
+                    ScheduleItemWithActions(
+                        scheduleItem = item,
+                        onEdit = {
+                            selectedScheduleItem = item
+                            showEditDialog = true
+                            textToSpeechService.speak("编辑安排：${item.title}")
+                        },
+                        onDelete = {
+                            selectedScheduleItem = item
+                            showDeleteDialog = true
+                        }
+                    )
+                }
+                
+                // 空间不足时的添加按钮
+                if (scheduleItems.size < 4) {
+                    Divider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = Color(0xFFEEEEEE),
+                        thickness = 1.dp
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                showAddDialog = true
+                                textToSpeechService.speak("添加新日程安排")
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "添加安排",
+                                tint = Color(0xFF4CAF50)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            Text(
+                                text = "添加安排",
+                                fontSize = FontSizeConfig.scaledSp(16).sp,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ScheduleItem(
-    time: String,
-    title: String,
-    description: String
+private fun ScheduleItemWithActions(
+    scheduleItem: ScheduleManager.ScheduleItem,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showActions by remember { mutableStateOf(false) }
+    
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { showActions = !showActions },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = time,
-            fontSize = FontSizeConfig.scaledSp(16).sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF87CEEB)
-        )
+        // 时间
+        Box(
+            modifier = Modifier
+                .width(80.dp)
+                .height(80.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE3F2FD)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = scheduleItem.time,
+                fontSize = FontSizeConfig.scaledSp(18).sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1976D2)
+            )
+        }
         
         Spacer(modifier = Modifier.width(16.dp))
         
-        Column {
+        // 内容
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
-                text = title,
+                text = scheduleItem.title,
                 fontSize = FontSizeConfig.scaledSp(16).sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black
             )
             
+            Spacer(modifier = Modifier.height(4.dp))
+            
             Text(
-                text = description,
+                text = scheduleItem.description,
                 fontSize = FontSizeConfig.scaledSp(14).sp,
                 color = Color.Gray
+            )
+        }
+        
+        // 操作按钮
+        AnimatedVisibility(
+            visible = showActions,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Row {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "编辑",
+                        tint = Color(0xFF2196F3)
+                    )
+                }
+                
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = Color(0xFFE57373)
+                    )
+                }
+            }
+        }
+        
+        // 当操作按钮未显示时，显示展开箭头指示可点击
+        if (!showActions) {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = "显示更多",
+                tint = Color.Gray,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
     }
