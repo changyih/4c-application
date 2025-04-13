@@ -397,31 +397,103 @@ fun ScheduleEditDialog(
 fun ScheduleDeleteConfirmDialog(
     showDialog: Boolean,
     scheduleItem: ScheduleManager.ScheduleItem?,
-    onDialogDismiss: () -> Unit,
-    onConfirmDelete: () -> Unit,
-    textToSpeechService: TextToSpeechService? = null
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     if (showDialog && scheduleItem != null) {
         AlertDialog(
-            onDismissRequest = onDialogDismiss,
-            title = { Text("删除安排", color = Color.Red) },
-            text = {
-                Text("确定要删除以下安排吗？\n\n时间：${scheduleItem.time}\n标题：${scheduleItem.title}")
+            onDismissRequest = onDismiss,
+            containerColor = Color.White,
+            title = { 
+                Text(
+                    text = "删除安排", 
+                    fontSize = 20.sp, 
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE57373)
+                ) 
+            },
+            text = { 
+                Column {
+                    Text(
+                        text = "确定要删除以下安排吗？", 
+                        fontSize = 16.sp,
+                        color = Color.DarkGray
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF5F5F5)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1976D2)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = scheduleItem.time,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF1976D2)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = scheduleItem.title,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            if (scheduleItem.description.isNotEmpty()) {
+                                Text(
+                                    text = scheduleItem.description,
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "此操作无法撤销",
+                        fontSize = 14.sp,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        onConfirmDelete()
-                        textToSpeechService?.speak("已删除安排：${scheduleItem.time} ${scheduleItem.title}")
-                        onDialogDismiss()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE57373)
+                    )
                 ) {
-                    Text("删除")
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("确认删除")
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = onDialogDismiss) {
+                OutlinedButton(
+                    onClick = onDismiss
+                ) {
                     Text("取消")
                 }
             }
