@@ -29,13 +29,40 @@ import com.example.olderperson.ui.screens.MyDevicesScreen
 @Composable
 fun ProfileScreen(
     onBackToHome: () -> Unit = {},
-    textToSpeechService: TextToSpeechService
+    textToSpeechService: TextToSpeechService,
+    onLogout: () -> Unit = {}
 ) {
     var showWallet by remember { mutableStateOf(false) }
     var showFavorites by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var showServiceOrder by remember { mutableStateOf(false) }
     var showMyDevices by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // 退出登录确认对话框
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("退出登录") },
+            text = { Text("确定要退出关爱模式吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        textToSpeechService.speak("退出登录")
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     if (showWallet) {
         WalletScreen(
@@ -175,6 +202,16 @@ fun ProfileScreen(
                 onClick = {
                     textToSpeechService.speak("帮助")
                     showHelp = true
+                }
+            )
+            
+            // 添加退出登录菜单项
+            MenuListItem(
+                title = "退出登录",
+                iconTint = Color.Red,
+                onClick = {
+                    textToSpeechService.speak("退出登录")
+                    showLogoutDialog = true
                 }
             )
         }

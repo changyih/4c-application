@@ -41,6 +41,7 @@ import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
 import com.example.olderperson.utils.ScheduleManager
+import android.content.Intent
 
 
 class MainActivity : ComponentActivity() {
@@ -237,6 +238,15 @@ fun MainContent(
         }
     }
 
+    // 退出登录功能
+    val onLogout: () -> Unit = {
+        // 跳转到登录界面
+        val intent = Intent(context, LoginActivity::class.java)
+        // 清除任务栈，防止用户按返回键回到当前界面
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        context.startActivity(intent)
+    }
+
     if (showVideoCall) {
         VideoCallScreen(
             videoCallService = videoCallService,
@@ -254,7 +264,8 @@ fun MainContent(
             )
             NavSection.PROFILE -> ProfileScreen(
                 onBackToHome = { currentSection = NavSection.HOME },
-                textToSpeechService = textToSpeechService
+                textToSpeechService = textToSpeechService,
+                onLogout = onLogout
             )
             NavSection.MESSAGE -> ChatScreen(
                 onBackClick = { currentSection = NavSection.HOME },
