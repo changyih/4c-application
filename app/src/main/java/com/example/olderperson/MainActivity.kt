@@ -42,6 +42,7 @@ import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
 import com.example.olderperson.utils.ScheduleManager
 
+
 class MainActivity : ComponentActivity() {
     // 视频通话服务
     private lateinit var videoCallService: VideoCallService
