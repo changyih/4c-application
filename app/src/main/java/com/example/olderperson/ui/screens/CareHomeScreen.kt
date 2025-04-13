@@ -63,13 +63,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.text.font.FontStyle
-import com.example.olderperson.ui.components.DraggableEmergencyButton
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.platform.LocalDensity
-import com.example.olderperson.ui.components.ScheduleEditDialog
-import com.example.olderperson.ui.components.ScheduleDeleteConfirmDialog
-import com.example.olderperson.utils.ScheduleManager
 
 
 @Composable
@@ -123,7 +116,7 @@ fun CareHomeScreen(
                 
                 // 今日安排
                 item {
-                    TodayScheduleCard(textToSpeechService)
+                    TodayScheduleCard()
                 }
                 
                 // 底部间距
@@ -141,29 +134,17 @@ fun CareHomeScreen(
             )
         }
         
-        // 替换固定的紧急呼叫按钮为可拖动按钮
-        var parentSize by remember { mutableStateOf(IntSize(0, 0)) }
-        
-        // 检测父容器尺寸
+        // 紧急呼叫按钮（固定在右下角）
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coordinates ->
-                    parentSize = coordinates.size
-                }
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 90.dp, end = 16.dp)
         ) {
-            // 默认位置在右下角，但可以拖动
-            // 只有在父容器尺寸确定后才显示按钮
-            if (parentSize.width > 0 && parentSize.height > 0) {
-                DraggableEmergencyButton(
-                    emergencyContact = emergencyContact,
-                    textToSpeechService = textToSpeechService,
-                    context = context,
-                    parentSize = parentSize,
-                    initialX = (parentSize.width - 100).coerceAtLeast(0),
-                    initialY = (parentSize.height - 200).coerceAtLeast(0)
-                )
-            }
+            EmergencyCallButton(
+                emergencyContact = emergencyContact,
+                textToSpeechService = textToSpeechService,
+                context = context
+            )
         }
     }
 }
@@ -1286,61 +1267,7 @@ private fun NavigationButton(
 }
 
 @Composable
-private fun TodayScheduleCard(textToSpeechService: TextToSpeechService? = null) {
-    val context = LocalContext.current
-    val scheduleManager = remember { ScheduleManager.getInstance(context) }
-    
-    // 获取所有日程安排
-    val scheduleItems = remember { mutableStateOf(scheduleManager.getAllScheduleItems()) }
-    
-    // 对话框状态
-    var showAddDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedScheduleItem by remember { mutableStateOf<ScheduleManager.ScheduleItem?>(null) }
-    
-    // 排序后的安排列表（按时间排序）
-    val sortedScheduleItems = remember(scheduleItems.value) {
-        scheduleItems.value.sortedBy { it.time }
-    }
-    
-    // 添加/编辑安排对话框
-    ScheduleEditDialog(
-        showDialog = showAddDialog || showEditDialog,
-        scheduleItem = if (showEditDialog) selectedScheduleItem else null,
-        onDialogDismiss = { 
-            showAddDialog = false
-            showEditDialog = false
-        },
-        onScheduleSave = { item ->
-            if (showEditDialog) {
-                // 更新现有安排
-                scheduleManager.updateScheduleItem(item)
-            } else {
-                // 添加新安排
-                scheduleManager.addScheduleItem(item)
-            }
-            // 刷新列表
-            scheduleItems.value = scheduleManager.getAllScheduleItems()
-        },
-        textToSpeechService = textToSpeechService
-    )
-    
-    // 删除确认对话框
-    ScheduleDeleteConfirmDialog(
-        showDialog = showDeleteDialog,
-        scheduleItem = selectedScheduleItem,
-        onDialogDismiss = { showDeleteDialog = false },
-        onConfirmDelete = {
-            selectedScheduleItem?.let { item ->
-                scheduleManager.deleteScheduleItem(item.id)
-                // 刷新列表
-                scheduleItems.value = scheduleManager.getAllScheduleItems()
-            }
-        },
-        textToSpeechService = textToSpeechService
-    )
-    
+private fun TodayScheduleCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -1349,7 +1276,7 @@ private fun TodayScheduleCard(textToSpeechService: TextToSpeechService? = null) 
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // 标题和添加按钮
+            // 标题和查看全部
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -1376,20 +1303,6 @@ private fun TodayScheduleCard(textToSpeechService: TextToSpeechService? = null) 
                     )
                 }
                 
-                // 添加按钮
-                IconButton(
-                    onClick = { 
-                        textToSpeechService?.speak("添加新安排")
-                        showAddDialog = true 
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "添加安排",
-                        tint = Color(0xFF2E7D32)
-                    )
-                }
-                
                 // 查看全部
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1412,172 +1325,61 @@ private fun TodayScheduleCard(textToSpeechService: TextToSpeechService? = null) 
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 安排列表
-            if (sortedScheduleItems.isEmpty()) {
-                // 无安排时显示提示
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "今日暂无安排，点击 + 添加",
-                        color = Color.Gray,
-                        fontSize = FontSizeConfig.scaledSp(16).sp
-                    )
-                }
-            } else {
-                // 显示所有安排
-                sortedScheduleItems.forEachIndexed { index, item ->
-                    if (index > 0) {
-                        Divider(
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            color = Color(0xFFEEEEEE),
-                            thickness = 1.dp
-                        )
-                    }
-                    
-                    EditableScheduleItem(
-                        item = item,
-                        onEditClick = {
-                            selectedScheduleItem = item
-                            showEditDialog = true
-                            textToSpeechService?.speak("编辑安排：${item.time} ${item.title}")
-                        },
-                        onDeleteClick = {
-                            selectedScheduleItem = item
-                            showDeleteDialog = true
-                            textToSpeechService?.speak("确认删除安排：${item.time} ${item.title}")
-                        }
-                    )
-                }
-            }
+            // 晨间服药
+            ScheduleItem(
+                time = "08:00",
+                title = "晨间服药",
+                description = "降压药 1片，维生素 1片"
+            )
+            
+            Divider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = Color(0xFFEEEEEE),
+                thickness = 1.dp
+            )
+            
+            // 心脏科复诊
+            ScheduleItem(
+                time = "10:30",
+                title = "心脏科复诊",
+                description = "市第一人民医院"
+            )
         }
     }
 }
 
-/**
- * 可编辑的日程安排项
- */
 @Composable
-private fun EditableScheduleItem(
-    item: ScheduleManager.ScheduleItem,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+private fun ScheduleItem(
+    time: String,
+    title: String,
+    description: String
 ) {
-    var showButtons by remember { mutableStateOf(false) }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showButtons = !showButtons }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 时间
+        Text(
+            text = time,
+            fontSize = FontSizeConfig.scaledSp(16).sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF87CEEB)
+        )
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
             Text(
-                text = item.time,
+                text = title,
                 fontSize = FontSizeConfig.scaledSp(16).sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF87CEEB)
+                color = Color.Black
             )
             
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            // 内容
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = item.title,
-                    fontSize = FontSizeConfig.scaledSp(16).sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black
-                )
-                
-                if (item.description.isNotEmpty()) {
-                    Text(
-                        text = item.description,
-                        fontSize = FontSizeConfig.scaledSp(14).sp,
-                        color = Color.Gray
-                    )
-                }
-            }
-            
-            // 显示箭头图标表示可展开
-            if (!showButtons) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowRight,
-                    contentDescription = "展开操作",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(20.dp)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "收起操作",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        
-        // 编辑和删除按钮区域，只在showButtons为true时显示
-        AnimatedVisibility(
-            visible = showButtons,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                // 编辑按钮
-                OutlinedButton(
-                    onClick = {
-                        onEditClick()
-                        showButtons = false
-                    },
-                    modifier = Modifier.padding(end = 8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF2E7D32)
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFF2E7D32))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "编辑",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("编辑", fontSize = FontSizeConfig.scaledSp(14).sp)
-                }
-                
-                // 删除按钮
-                OutlinedButton(
-                    onClick = {
-                        onDeleteClick()
-                        showButtons = false
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFE53935)
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFFE53935))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("删除", fontSize = FontSizeConfig.scaledSp(14).sp)
-                }
-            }
+            Text(
+                text = description,
+                fontSize = FontSizeConfig.scaledSp(14).sp,
+                color = Color.Gray
+            )
         }
     }
 }
@@ -1772,6 +1574,133 @@ private fun buildPromptForQianwen(
 
 再次强调：不要使用任何格式标记，如'#'或'*'等，直接使用普通文本。标题和重点内容可以用"食材推荐："这样的格式直接表示，无需加粗或标题格式。
     """.trimIndent()
+}
+
+/**
+ * 紧急呼叫按钮
+ */
+@Composable
+private fun EmergencyCallButton(
+    emergencyContact: EmergencyContactsManager.EmergencyContact?,
+    textToSpeechService: TextToSpeechService?,
+    context: Context
+) {
+    // 是否显示确认对话框
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    
+    // 确认对话框
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("紧急呼叫", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = { 
+                Text(
+                    text = emergencyContact?.let { 
+                        "确认拨打${it.name}的电话：${it.phone}？" 
+                    } ?: "您尚未设置紧急联系人。请先在设置页面添加紧急联系人。",
+                    fontSize = 16.sp
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        if (emergencyContact != null) {
+                            textToSpeechService?.speak("正在拨打紧急联系人${emergencyContact.name}的电话")
+                            // 直接拨打电话
+                            val intent = Intent(Intent.ACTION_CALL).apply {
+                                data = Uri.parse("tel:${emergencyContact.phone}")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "无法拨打电话，请检查应用权限", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    enabled = emergencyContact != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("确认拨打", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showConfirmDialog = false },
+                    border = BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .padding(16.dp)
+            .size(80.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = CircleShape,
+                spotColor = Color.Red.copy(alpha = 0.5f)
+            )
+            .clip(CircleShape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFF5252),
+                        Color(0xFFD50000)
+                    )
+                )
+            )
+            .clickable {
+                if (emergencyContact != null) {
+                    // 直接拨打电话
+                    textToSpeechService?.speak("正在拨打紧急联系人${emergencyContact.name}的电话")
+                    val intent = Intent(Intent.ACTION_CALL).apply {
+                        data = Uri.parse("tel:${emergencyContact.phone}")
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "无法拨打电话，请检查应用权限", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    textToSpeechService?.speak("请先设置紧急联系人")
+                    Toast.makeText(context, "请先设置紧急联系人", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .border(
+                width = 2.dp,
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.8f),
+                        Color.White.copy(alpha = 0.3f)
+                    )
+                ),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Call,
+                contentDescription = "紧急呼叫",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "紧急呼叫",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
 }
 
 // 添加辅助函数：从养生方案内容中提取指定部分
