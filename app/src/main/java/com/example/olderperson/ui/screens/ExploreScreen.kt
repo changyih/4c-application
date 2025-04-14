@@ -31,6 +31,7 @@ import android.webkit.WebViewClient
 import android.net.Uri
 import androidx.compose.ui.platform.LocalFocusManager
 import com.example.olderperson.service.TextToSpeechService
+import android.widget.FrameLayout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,18 +189,32 @@ fun ExploreScreen(
                             AndroidView(
                                 modifier = Modifier.fillMaxSize(),
                                 factory = { context ->
-                                    WebView(context).apply {
-                                        settings.javaScriptEnabled = true
-                                        settings.loadWithOverviewMode = true
-                                        settings.useWideViewPort = true
-                                        settings.setSupportZoom(true)
-                                        settings.textZoom = 120 // 增大文字以适应老年人
-                                        webViewClient = WebViewClient()
+                                    android.widget.ScrollView(context).apply {
+                                        val webView = WebView(context).apply {
+                                            settings.javaScriptEnabled = true
+                                            settings.loadWithOverviewMode = true
+                                            settings.useWideViewPort = true
+                                            settings.setSupportZoom(true)
+                                            settings.textZoom = 120 // 增大文字以适应老年人
+                                            settings.domStorageEnabled = true // 启用DOM存储
+                                            settings.builtInZoomControls = true // 启用内置缩放控件
+                                            settings.displayZoomControls = false // 隐藏缩放控件UI
+                                            webViewClient = WebViewClient()
+                                            
+                                            // 构建百度搜索URL
+                                            val encodedQuery = Uri.encode(searchQuery)
+                                            val baiduSearchUrl = "https://m.baidu.com/s?word=$encodedQuery&sa=tp_wise&tn=baidu"
+                                            loadUrl(baiduSearchUrl)
+                                        }
                                         
-                                        // 构建百度搜索URL
-                                        val encodedQuery = Uri.encode(searchQuery)
-                                        val baiduSearchUrl = "https://m.baidu.com/s?word=$encodedQuery&sa=tp_wise&tn=baidu"
-                                        loadUrl(baiduSearchUrl)
+                                        // 设置ScrollView的布局参数
+                                        webView.layoutParams = FrameLayout.LayoutParams(
+                                            FrameLayout.LayoutParams.MATCH_PARENT,
+                                            FrameLayout.LayoutParams.MATCH_PARENT
+                                        )
+                                        
+                                        // 添加WebView到ScrollView
+                                        addView(webView)
                                     }
                                 }
                             )

@@ -42,6 +42,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import android.content.Intent
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import com.example.olderperson.data.UserManager
 
 // 定义DataStore
 val Context.dataStore by preferencesDataStore(name = "settings")
@@ -294,10 +295,8 @@ class CareActivity : ComponentActivity() {
                             
                             // 使用lifecycleScope启动协程
                             lifecycleScope.launch {
-                                // 在协程内调用suspend函数
-                                dataStore.edit { preferences ->
-                                    // 可以清除所有保存的偏好设置，或者只清除登录状态
-                                }
+                                // 清除用户登录状态
+                                UserManager.clearCurrentUser(this@CareActivity)
                                 
                                 // 返回到登录界面
                                 val intent = Intent(this@CareActivity, LoginActivity::class.java)

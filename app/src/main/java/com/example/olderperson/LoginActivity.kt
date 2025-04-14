@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +32,8 @@ import com.example.olderperson.data.UserManager
 import com.example.olderperson.data.UserRole
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +119,89 @@ class LoginActivity : ComponentActivity() {
         }
     }
     
+    // 注册处理函数
+    private fun handleRegister(phoneNumber: String, password: String, name: String, role: UserRole) {
+        // 验证输入
+        if (phoneNumber.isBlank() || password.isBlank() || name.isBlank()) {
+            Toast.makeText(this, "请填写完整信息", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // 验证手机号格式
+        if (!phoneNumber.matches(Regex("^1[3-9]\\d{9}$"))) {
+            Toast.makeText(this, "请输入有效的手机号码", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // 检查手机号是否已注册
+        if (UserManager.isPhoneNumberExists(phoneNumber)) {
+            Toast.makeText(this, "该手机号已注册，请直接登录", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        try {
+            // 注册新用户
+            val newUser = UserManager.registerUser(phoneNumber, password, name, role)
+            
+            // 显示注册成功消息
+            Toast.makeText(this@LoginActivity, "注册成功，请使用新账号登录", Toast.LENGTH_SHORT).show()
+            
+            // 显示账号信息对话框
+            showAccountsInfoDialog()
+            
+            // 清空输入框，并切换到登录模式
+            // 注意：这里不再自动登录，让用户手动输入账号密码登录
+            clearInputFields()
+            switchToLoginMode()
+        } catch (e: Exception) {
+            // 记录错误
+            Log.e("LoginActivity", "注册失败: ${e.message}", e)
+            Toast.makeText(this@LoginActivity, "注册失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // 清空输入框
+    private fun clearInputFields() {
+        setContent {
+            OlderPersonTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    LoginScreen(clearInputs = true)
+                }
+            }
+        }
+    }
+    
+    // 切换到登录模式
+    private fun switchToLoginMode() {
+        setContent {
+            OlderPersonTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    LoginScreen(switchToLogin = true)
+                }
+            }
+        }
+    }
+    
+    // 显示账号信息对话框
+    private fun showAccountsInfoDialog() {
+        setContent {
+            OlderPersonTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    LoginScreen(showAccounts = true)
+                }
+            }
+        }
+    }
+    
     // 游客登录处理函数
     private fun handleGuestLogin(isCareMode: Boolean) {
         if (isCareMode) {
@@ -131,29 +217,64 @@ class LoginActivity : ComponentActivity() {
     }
     
     @Composable
-    fun LoginScreen() {
+    fun LoginScreen(
+        clearInputs: Boolean = false,
+        switchToLogin: Boolean = false,
+        showAccounts: Boolean = false
+    ) {
+        var isLoginMode by remember { mutableStateOf(true) }
         var phoneNumber by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
+        var userName by remember { mutableStateOf("") }
         var rememberLogin by remember { mutableStateOf(false) }
-        var isCareMode by remember { mutableStateOf(true) }
+        var isCareMode by remember { mutableStateOf(true) } // 默认关爱模式
         
         // 用于显示提示信息
         var showAccountsInfo by remember { mutableStateOf(false) }
         
-        // 现有账号信息显示
+        // 处理传入的参数
+        LaunchedEffect(clearInputs, switchToLogin, showAccounts) {
+            if (clearInputs) {
+                phoneNumber = ""
+                password = ""
+                userName = ""
+            }
+            
+            if (switchToLogin) {
+                isLoginMode = true
+            }
+            
+            if (showAccounts) {
+                showAccountsInfo = true
+            }
+        }
+        
+        // 每次打开对话框时强制重新获取用户列表
         if (showAccountsInfo) {
             AlertDialog(
                 onDismissRequest = { showAccountsInfo = false },
                 title = { Text("可用账号信息") },
                 text = {
-                    Column {
-                        Text("父亲李长青 (呵护模式):")
-                        Text("手机号: 13800000001")
-                        Text("密码: 123456")
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("儿子李明远 (关爱模式):")
-                        Text("手机号: 13800000002")
-                        Text("密码: 123456")
+                    // 直接获取最新的用户列表并显示，不使用remember缓存
+                    val latestUsers = UserManager.getUsers()
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    ) {
+                        latestUsers.forEach { user ->
+                            val modeText = if (user.role == UserRole.ELDER) "呵护模式" else "关爱模式"
+                            Text(
+                                "${user.name} (${modeText}):",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1677FF)
+                            )
+                            Text("手机号: ${user.phoneNumber}")
+                            Text("密码: ${user.password}")
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                        
+                        if (latestUsers.isEmpty()) {
+                            Text("当前没有可用账号")
+                        }
                     }
                 },
                 confirmButton = {
@@ -180,15 +301,17 @@ class LoginActivity : ComponentActivity() {
             )
             
             Text(
-                text = "请登录",
+                text = if (isLoginMode) "请登录" else "新用户注册",
                 fontSize = 16.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 4.dp)
             )
             
-            // 查看账号按钮
-            TextButton(onClick = { showAccountsInfo = true }) {
-                Text("查看现有账号", color = Color(0xFF1677FF))
+            // 查看账号按钮（只在登录模式显示）
+            if (isLoginMode) {
+                TextButton(onClick = { showAccountsInfo = true }) {
+                    Text("查看现有账号", color = Color(0xFF1677FF))
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -213,6 +336,30 @@ class LoginActivity : ComponentActivity() {
                     isSelected = !isCareMode,
                     onClick = { isCareMode = false }
                 )
+            }
+            
+            // 如果是注册模式，显示姓名输入框
+            if (!isLoginMode) {
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = { userName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    placeholder = { Text("姓名") },
+                    leadingIcon = { 
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "姓名"
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF8F8F8),
+                        unfocusedBorderColor = Color.Transparent
+                    ),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
             
             // 手机号输入框
@@ -258,175 +405,133 @@ class LoginActivity : ComponentActivity() {
                 singleLine = true
             )
             
-            // 记住登录状态
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = rememberLogin,
-                    onCheckedChange = { rememberLogin = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary
+            // 记住密码选项（只在登录模式显示）
+            if (isLoginMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = rememberLogin,
+                        onCheckedChange = { rememberLogin = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF1677FF)
+                        )
                     )
-                )
-                Text(
-                    text = "记住登录状态",
-                    modifier = Modifier.clickable { rememberLogin = !rememberLogin }
-                )
+                    
+                    Text(
+                        text = "记住密码",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    Text(
+                        text = "忘记密码?",
+                        fontSize = 14.sp,
+                        color = Color(0xFF1677FF),
+                        modifier = Modifier.clickable { /* 忘记密码功能 */ }
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // 登录按钮
+            // 登录/注册按钮
             Button(
                 onClick = {
-                    if (phoneNumber.isEmpty() || password.isEmpty()) {
-                        Toast.makeText(applicationContext, "请输入手机号和密码", Toast.LENGTH_SHORT).show()
-                        return@Button
+                    if (isLoginMode) {
+                        // 登录处理
+                        handleLogin(phoneNumber, password, rememberLogin)
+                    } else {
+                        // 注册处理
+                        val role = if (isCareMode) UserRole.FAMILY else UserRole.ELDER
+                        handleRegister(phoneNumber, password, userName, role)
                     }
-                    handleLogin(phoneNumber, password, rememberLogin)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(48.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1A1A2E)
+                    containerColor = Color(0xFF1677FF)
                 )
             ) {
-                Text("登录", fontSize = 16.sp)
+                Text(
+                    text = if (isLoginMode) "登录" else "注册",
+                    fontSize = 16.sp
+                )
             }
             
-            // 游客登录按钮
-            TextButton(
-                onClick = { handleGuestLogin(isCareMode) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("游客登录", fontSize = 15.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 游客模式登录
+            if (isLoginMode) {
+                OutlinedButton(
+                    onClick = { handleGuestLogin(isCareMode) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF1677FF)
+                    )
+                ) {
+                    Text(
+                        text = "游客模式",
+                        fontSize = 16.sp
+                    )
+                }
             }
             
-            // 其他登录方式
-            Text(
-                text = "其他登录方式",
-                modifier = Modifier.padding(top = 12.dp),
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            Spacer(modifier = Modifier.height(24.dp))
             
-            // 第三方登录图标
+            // 切换登录/注册模式
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 微信登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "微信登录",
-                    tint = Color(0xFF07C160)
-                )
-                
-                Spacer(modifier = Modifier.width(40.dp))
-                
-                // QQ登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "QQ登录",
-                    tint = Color(0xFF12B7F5)
-                )
-                
-                Spacer(modifier = Modifier.width(40.dp))
-                
-                // 支付宝登录
-                ThirdPartyLoginButton(
-                    iconResourceId = android.R.drawable.ic_dialog_info,
-                    description = "支付宝登录",
-                    tint = Color(0xFF1677FF)
-                )
-            }
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            // 底部选项
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "忘记密码",
-                    color = Color.Gray,
-                    fontSize = 14.sp
+                    text = if (isLoginMode) "没有账号？" else "已有账号？",
+                    color = Color.Gray
                 )
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
                 Text(
-                    text = "|",
-                    color = Color.LightGray,
-                    fontSize = 14.sp
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "立即注册",
+                    text = if (isLoginMode) "立即注册" else "去登录",
                     color = Color(0xFF1677FF),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+                    modifier = Modifier.clickable {
+                        isLoginMode = !isLoginMode
+                    }
                 )
             }
         }
     }
-}
-
-@Composable
-fun ModeSelectorButton(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                else Color.Transparent
+    
+    @Composable
+    fun ModeSelectorButton(
+        text: String,
+        isSelected: Boolean,
+        onClick: () -> Unit
+    ) {
+        val backgroundColor = if (isSelected) Color(0xFF1677FF) else Color.White
+        val textColor = if (isSelected) Color.White else Color.Black
+        
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = text,
+                color = textColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = text,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-fun ThirdPartyLoginButton(
-    iconResourceId: Int,
-    description: String,
-    tint: Color
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(id = iconResourceId),
-            contentDescription = description,
-            tint = tint,
-            modifier = Modifier.size(28.dp)
-        )
+        }
     }
 }
