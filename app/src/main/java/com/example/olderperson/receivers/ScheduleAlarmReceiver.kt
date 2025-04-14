@@ -9,7 +9,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.olderperson.MainActivity
+import com.example.olderperson.CareActivity
 import com.example.olderperson.R
 import com.example.olderperson.service.TextToSpeechService
 
@@ -54,7 +54,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         // 创建打开App的PendingIntent
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, CareActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("SCHEDULE_ID", scheduleId)
         }
