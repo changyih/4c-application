@@ -51,7 +51,6 @@ object UserManager {
         ),
         
         // 儿子李明远 - 关爱模式用户
-
         User(
             id = "user2",
             phoneNumber = "13800000002",
@@ -74,12 +73,50 @@ object UserManager {
     
     // 添加用户
     fun addUser(user: User) {
-        users.add(user)
+        // 确保不添加重复的用户
+        if (users.none { it.phoneNumber == user.phoneNumber }) {
+            users.add(user)
+        }
     }
     
     // 通过电话和密码验证用户
     fun authenticateUser(phoneNumber: String, password: String): User? {
         return users.find { it.phoneNumber == phoneNumber && it.password == password }
+    }
+
+    // 检查手机号是否已存在
+    fun isPhoneNumberExists(phoneNumber: String): Boolean {
+        return users.any { it.phoneNumber == phoneNumber }
+    }
+
+    // 注册新用户
+    fun registerUser(phoneNumber: String, password: String, name: String, role: UserRole): User {
+        // 检查手机号是否已存在
+        if (isPhoneNumberExists(phoneNumber)) {
+            // 返回已存在的用户
+            return users.first { it.phoneNumber == phoneNumber }
+        }
+        
+        // 生成新的唯一ID
+        val newId = "user${users.size + 1}"
+        
+        // 创建新用户
+        val newUser = User(
+            id = newId,
+            phoneNumber = phoneNumber,
+            password = password,
+            name = name,
+            role = role,
+            location = "未知",
+            healthPlans = 0,
+            serviceOrders = 0,
+            devices = 0
+        )
+        
+        // 添加到用户列表
+        users.add(newUser)
+        
+        return newUser
     }
     
     // 通过ID获取用户

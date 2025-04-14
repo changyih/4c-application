@@ -61,6 +61,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import android.content.Intent
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import com.example.olderperson.data.UserManager
 import kotlinx.coroutines.CoroutineExceptionHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -366,50 +367,48 @@ class CareActivity : ComponentActivity() {
                                 )
                             }
                             
-                            CareApp(
-                                textToSpeechService = textToSpeechService,
-                                speechRecognitionService = speechRecognitionService,
-                                phoneCallService = phoneCallService,
-                                onRequestMicPermission = {
-                                    // 检查麦克风权限状态
-                                    if (ContextCompat.checkSelfPermission(
-                                            this,
-                                            Manifest.permission.RECORD_AUDIO
-                                        ) != PackageManager.PERMISSION_GRANTED
-                                    ) {
-                                        showMicPermissionDialog = true
-                                    }
-                                },
-                                onRequestPhonePermission = {
-                                    // 检查电话权限状态
-                                    if (ContextCompat.checkSelfPermission(
-                                            this,
-                                            Manifest.permission.CALL_PHONE
-                                        ) != PackageManager.PERMISSION_GRANTED
-                                    ) {
-                                        showPhonePermissionDialog = true
-                                    }
-                                },
-                                onLogout = {
-                                    // 处理退出登录逻辑
-                                    Log.d(TAG, "Logging out")
-                                    
-                                    // 使用lifecycleScope启动协程
-                                    lifecycleScope.launch {
-                                        // 在协程内调用suspend函数
-                                        dataStore.edit { preferences ->
-                                            // 可以清除所有保存的偏好设置，或者只清除登录状态
-                                        }
-                                        
-                                        // 返回到登录界面
-                                        val intent = Intent(this@CareActivity, LoginActivity::class.java)
-                                        // 清除任务栈，防止用户按返回键回到当前界面
-                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        startActivity(intent)
-                                        finish()
-                                    }
-                                }
-                            )
+CareApp(
+    textToSpeechService = textToSpeechService,
+    speechRecognitionService = speechRecognitionService,
+    phoneCallService = phoneCallService,
+    onRequestMicPermission = {
+        // 检查麦克风权限状态
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            showMicPermissionDialog = true
+        }
+    },
+    onRequestPhonePermission = {
+        // 检查电话权限状态
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CALL_PHONE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            showPhonePermissionDialog = true
+        }
+    },
+    onLogout = {
+        // 处理退出登录逻辑
+        Log.d(TAG, "Logging out")
+        
+        // 使用lifecycleScope启动协程
+        lifecycleScope.launch {
+            // 清除用户登录状态
+            UserManager.clearCurrentUser(this@CareActivity)
+            
+            // 返回到登录界面
+            val intent = Intent(this@CareActivity, LoginActivity::class.java)
+            // 清除任务栈，防止用户按返回键回到当前界面
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
+    }
+)
                         }
                     }
                 }
