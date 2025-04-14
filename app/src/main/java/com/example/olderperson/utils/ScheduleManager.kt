@@ -166,6 +166,14 @@ class ScheduleManager(private val context: Context) {
      */
     fun setScheduleReminder(item: ScheduleItem) {
         try {
+            // 检查Android 12及以上版本的精确闹钟权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    Log.e("ScheduleManager", "没有精确闹钟权限，无法设置提醒")
+                    return
+                }
+            }
+
             // 解析时间字符串（格式为 HH:mm）
             val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
             val scheduledTime = try {
@@ -200,6 +208,8 @@ class ScheduleManager(private val context: Context) {
                     putExtra("SCHEDULE_TITLE", item.title)
                     putExtra("SCHEDULE_DESC", item.description)
                     putExtra("SCHEDULE_TIME", item.time)
+                    // 添加一个备用操作
+                    action = "com.example.olderperson.ACTION_SCHEDULE_ALARM"
                 }
                 
                 val pendingIntentFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
