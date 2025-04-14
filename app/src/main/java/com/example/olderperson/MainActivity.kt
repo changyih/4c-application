@@ -40,6 +40,9 @@ import com.example.olderperson.service.VideoCallService
 import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import androidx.compose.runtime.DisposableEffect
+import com.example.olderperson.utils.ScheduleManager
+import android.content.Intent
+
 
 class MainActivity : ComponentActivity() {
     // 视频通话服务
@@ -65,6 +68,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate开始执行")
         
+        // 重置所有闹钟提醒
+        resetScheduleReminders()
+        
         try {
             // 初始化服务
             videoCallService = VideoCallService(this)
@@ -86,6 +92,11 @@ class MainActivity : ComponentActivity() {
     private fun checkPermissions() {
         Log.d("MainActivity", "开始检查权限")
         
+        // 先启动服务，避免卡死在权限检查
+        startServices()
+        Log.d("MainActivity", "先启动服务，然后请求权限")
+        
+        // 需要请求的权限列表
         val permissions = arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -96,21 +107,12 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.CALL_PHONE
         )
         
-        // 筛选出未授权的权限
-        val permissionsToRequest = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
+        // 不再筛选已授予权限，直接请求所有权限
+        Log.d("MainActivity", "请求所有权限")
+        requestPermissionLauncher.launch(permissions)
         
-        Log.d("MainActivity", "需要请求的权限: ${permissionsToRequest.joinToString()}")
-        
-        if (permissionsToRequest.isNotEmpty()) {
-            // 请求未授权的权限
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
-        } else {
-            // 已经拥有所有需要的权限
-            Log.d("MainActivity", "已获取所有必要权限")
-            startServices()
-        }
+        // 不再阻塞UI线程等待权限结果
+        Log.d("MainActivity", "权限请求已发送，继续执行")
     }
 
     override fun onDestroy() {
@@ -177,7 +179,7 @@ class MainActivity : ComponentActivity() {
         }
         
         if (hasError) {
-            ErrorScreen(
+            MainErrorScreen(
                 errorMessage = errorMessage ?: "加载界面时发生未知错误",
                 retry = { 
                     hasError = false
@@ -191,6 +193,19 @@ class MainActivity : ComponentActivity() {
                 speechRecognitionService = speechRecognitionService,
                 phoneCallService = phoneCallService
             )
+        }
+    }
+
+    /**
+     * 重置所有日程提醒
+     */
+    private fun resetScheduleReminders() {
+        try {
+            // 使用ScheduleManager的重置方法
+            val scheduleManager = ScheduleManager.getInstance(this)
+            scheduleManager.resetAllReminders()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "重置日程提醒失败: ${e.message}")
         }
     }
 }
@@ -223,6 +238,15 @@ fun MainContent(
         }
     }
 
+    // 退出登录功能
+    val onLogout: () -> Unit = {
+        // 跳转到登录界面
+        val intent = Intent(context, LoginActivity::class.java)
+        // 清除任务栈，防止用户按返回键回到当前界面
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        context.startActivity(intent)
+    }
+
     if (showVideoCall) {
         VideoCallScreen(
             videoCallService = videoCallService,
@@ -240,7 +264,8 @@ fun MainContent(
             )
             NavSection.PROFILE -> ProfileScreen(
                 onBackToHome = { currentSection = NavSection.HOME },
-                textToSpeechService = textToSpeechService
+                textToSpeechService = textToSpeechService,
+                onLogout = onLogout
             )
             NavSection.MESSAGE -> ChatScreen(
                 onBackClick = { currentSection = NavSection.HOME },
@@ -264,7 +289,7 @@ fun MainContent(
 }
 
 @Composable
-fun ErrorScreen(errorMessage: String, retry: () -> Unit) {
+fun MainErrorScreen(errorMessage: String, retry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()

@@ -227,7 +227,9 @@ class LoginActivity : ComponentActivity() {
         var password by remember { mutableStateOf("") }
         var userName by remember { mutableStateOf("") }
         var rememberLogin by remember { mutableStateOf(false) }
-        var isCareMode by remember { mutableStateOf(true) } // 默认关爱模式
+
+        var isCareMode by remember { mutableStateOf(false) }
+
         
         // 用于显示提示信息
         var showAccountsInfo by remember { mutableStateOf(false) }
@@ -466,6 +468,7 @@ class LoginActivity : ComponentActivity() {
                 )
             }
             
+
             Spacer(modifier = Modifier.height(16.dp))
             
             // 游客模式登录
@@ -488,6 +491,7 @@ class LoginActivity : ComponentActivity() {
             }
             
             Spacer(modifier = Modifier.height(24.dp))
+
             
             // 切换登录/注册模式
             Row(

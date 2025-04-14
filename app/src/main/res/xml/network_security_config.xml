@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 允许HTTP明文通信 -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- 信任系统预装的CA证书 -->
+            <certificates src="system" />
+            <!-- 信任用户添加的CA证书 -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 允许特定域名使用自签名证书 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">api.map.baidu.com</domain>
+        <domain includeSubdomains="true">maponline0.bdimg.com</domain>
+        <domain includeSubdomains="true">maponline1.bdimg.com</domain>
+        <domain includeSubdomains="true">maponline2.bdimg.com</domain>
+        <domain includeSubdomains="true">maponline3.bdimg.com</domain>
+        <domain includeSubdomains="true">loc.map.baidu.com</domain>
+        <domain includeSubdomains="true">nssug.baidu.com</domain>
+    </domain-config>
+</network-security-config> 

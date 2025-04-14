@@ -2,6 +2,8 @@ package com.example.olderperson.service
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
@@ -45,7 +47,12 @@ class TextToSpeechService(context: Context) {
     
     // 设置TTS监听器
     private fun setTtsListener() {
-        textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+        textToSpeech?.setOnUtteranceProgressListener(createProgressListener())
+    }
+    
+    // 创建进度监听器
+    private fun createProgressListener(): UtteranceProgressListener {
+        return object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String) {
                 Log.d(TAG, "开始播放: $utteranceId")
                 currentUtteranceId = utteranceId
@@ -60,7 +67,7 @@ class TextToSpeechService(context: Context) {
                 Log.e(TAG, "播放错误: $utteranceId")
                 currentUtteranceId = ""
             }
-        })
+        }
     }
 
     fun speak(text: String) {
@@ -141,5 +148,27 @@ class TextToSpeechService(context: Context) {
         textToSpeech = null
         isInitialized = false
         Log.d(TAG, "TTS服务已关闭")
+    }
+    
+    // 添加初始化完成的监听器
+    fun setOnInitListener(listener: () -> Unit) {
+        if (isInitialized) {
+            // 如果已经初始化完成，直接调用监听器
+            listener()
+        } else {
+            // 使用Handler延迟检查初始化状态
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (isInitialized) {
+                    listener()
+                } else {
+                    // 再次延迟检查
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (isInitialized) {
+                            listener()
+                        }
+                    }, 500)
+                }
+            }, 100)
+        }
     }
 } 
