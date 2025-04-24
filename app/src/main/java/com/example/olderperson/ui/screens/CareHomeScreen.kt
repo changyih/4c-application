@@ -67,6 +67,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -1348,11 +1349,24 @@ private fun TodayScheduleCard() {
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedScheduleItem by remember { mutableStateOf<ScheduleManager.ScheduleItem?>(null) }
+
+    // 使用key强制重新组合
+    val refreshKey = remember { mutableStateOf(0) }
+
+    // 订阅日程更新
+    LaunchedEffect(refreshKey.value) {
+        try {
+            scheduleItems = scheduleManager.getAllScheduleItems()
+        } catch (e: Exception) {
+            Log.e("CareHomeScreen", "自动刷新日程列表失败: ${e.message}", e)
+        }
+    }
     
     // 刷新日程列表
     fun refreshScheduleItems() {
         try {
             scheduleItems = scheduleManager.getAllScheduleItems()
+            refreshKey.value = refreshKey.value + 1  // 触发重组
         } catch (e: Exception) {
             Log.e("CareHomeScreen", "刷新日程列表失败: ${e.message}", e)
         }
@@ -1564,6 +1578,14 @@ private fun TodayScheduleCard() {
                         onDelete = {
                             selectedScheduleItem = item
                             showDeleteDialog = true
+                        },
+                        onStatusChange = {
+                            refreshScheduleItems()
+                            if (item.isCompleted) {
+                                textToSpeechService?.speak("${item.title}已标记为未完成")
+                            } else {
+                                textToSpeechService?.speak("${item.title}已标记为完成")
+                            }
                         }
                     )
                 }
@@ -1614,56 +1636,109 @@ private fun TodayScheduleCard() {
 private fun ScheduleItemWithActions(
     scheduleItem: ScheduleManager.ScheduleItem,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onStatusChange: () -> Unit = {}
 ) {
     var showActions by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scheduleManager = remember { 
+        try {
+            ScheduleManager.getInstance(context) 
+        } catch (e: Exception) {
+            Log.e("ScheduleItemWithActions", "获取ScheduleManager实例失败: ${e.message}", e)
+            null
+        }
+    }
     
-    Row(
+    // 根据完成状态确定背景颜色
+    val backgroundColor = if (scheduleItem.isCompleted) {
+        Color(0xFFE8F5E9) // 淡绿色背景表示已完成
+    } else {
+        Color(0xFFE3F2FD) // 原来的蓝色背景
+    }
+    
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { 
-                showActions = !showActions
-            },
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (scheduleItem.isCompleted) Color(0xFFE8F5E9) else Color.White)
+            .clickable { showActions = !showActions }
+            .padding(8.dp)
     ) {
-        // 时间
-        Box(
-            modifier = Modifier
-                .width(80.dp)
-                .height(80.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFE3F2FD)),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = scheduleItem.time,
-                fontSize = FontSizeConfig.scaledSp(18).sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1976D2)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        // 内容
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = scheduleItem.title,
-                fontSize = FontSizeConfig.scaledSp(16).sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
+            // 时间
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(backgroundColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = scheduleItem.time,
+                    fontSize = FontSizeConfig.scaledSp(18).sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (scheduleItem.isCompleted) Color(0xFF2E7D32) else Color(0xFF1976D2)
+                )
+            }
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             
-            Text(
-                text = scheduleItem.description,
-                fontSize = FontSizeConfig.scaledSp(14).sp,
-                color = Color.Gray
-            )
+            // 内容
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = scheduleItem.title,
+                    fontSize = FontSizeConfig.scaledSp(16).sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (scheduleItem.isCompleted) Color(0xFF2E7D32) else Color.Black,
+                    textDecoration = if (scheduleItem.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = scheduleItem.description,
+                    fontSize = FontSizeConfig.scaledSp(14).sp,
+                    color = if (scheduleItem.isCompleted) Color(0xFF81C784) else Color.Gray
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 完成状态指示
+                if (scheduleItem.isCompleted) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "已完成",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "已完成",
+                            fontSize = FontSizeConfig.scaledSp(12).sp,
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
+                }
+            }
+            
+            // 当操作按钮未显示时，显示展开箭头指示可点击
+            if (!showActions) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = "显示更多",
+                    tint = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
         }
         
         // 操作按钮
@@ -1672,39 +1747,74 @@ private fun ScheduleItemWithActions(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Row {
-                IconButton(
-                    onClick = { onEdit() },
-                    modifier = Modifier.size(40.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 已完成按钮
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            scheduleManager?.updateScheduleItemCompletionStatus(
+                                scheduleItem.id,
+                                !scheduleItem.isCompleted
+                            )
+                            onStatusChange()
+                        }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "编辑",
-                        tint = Color(0xFF2196F3)
+                    Checkbox(
+                        checked = scheduleItem.isCompleted,
+                        onCheckedChange = { isChecked ->
+                            scheduleManager?.updateScheduleItemCompletionStatus(
+                                scheduleItem.id,
+                                isChecked
+                            )
+                            onStatusChange()
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF4CAF50),
+                            uncheckedColor = Color.Gray
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (scheduleItem.isCompleted) "已完成" else "标记为已完成",
+                        fontSize = FontSizeConfig.scaledSp(14).sp,
+                        color = if (scheduleItem.isCompleted) Color(0xFF4CAF50) else Color.Gray
                     )
                 }
                 
-                IconButton(
-                    onClick = { onDelete() },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = Color(0xFFE57373)
-                    )
+                Row {
+                    // 编辑按钮
+                    IconButton(
+                        onClick = { onEdit() },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "编辑",
+                            tint = Color(0xFF2196F3)
+                        )
+                    }
+                    
+                    // 删除按钮
+                    IconButton(
+                        onClick = { onDelete() },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = Color(0xFFE57373)
+                        )
+                    }
                 }
             }
-        }
-        
-        // 当操作按钮未显示时，显示展开箭头指示可点击
-        if (!showActions) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = "显示更多",
-                tint = Color.Gray,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
         }
     }
 }

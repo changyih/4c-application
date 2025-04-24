@@ -5,8 +5,13 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.olderperson.CareActivity
@@ -23,6 +28,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         private const val TAG = "ScheduleAlarmReceiver"
         private const val NOTIFICATION_ID = 1000
         private const val CHANNEL_ID = "schedule_notification_channel"
+        private var mediaPlayer: MediaPlayer? = null // 用于播放闹铃声音
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -34,11 +40,31 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         val scheduleDesc = intent.getStringExtra("SCHEDULE_DESC") ?: ""
         val scheduleTime = intent.getStringExtra("SCHEDULE_TIME") ?: ""
         
-        // 创建通知
-        showNotification(context, scheduleId, scheduleTitle, scheduleDesc, scheduleTime)
+        // 获取提醒选项
+        val notificationEnabled = intent.getBooleanExtra("NOTIFICATION_ENABLED", true)
+        val vibrationEnabled = intent.getBooleanExtra("VIBRATION_ENABLED", true)
+        val alarmSoundEnabled = intent.getBooleanExtra("ALARM_SOUND_ENABLED", true)
+        val voiceEnabled = intent.getBooleanExtra("VOICE_ENABLED", true)
         
-        // 使用语音播报提醒
-        speakReminder(context, scheduleTitle, scheduleTime)
+        Log.d(TAG, "接收到提醒选项: 通知=$notificationEnabled, 震动=$vibrationEnabled, 闹铃=$alarmSoundEnabled, 语音=$voiceEnabled")
+        
+        // 根据选项显示通知
+        if (notificationEnabled) {
+            showNotification(context, scheduleId, scheduleTitle, scheduleDesc, scheduleTime, vibrationEnabled)
+        }
+        
+        // 启动前台服务进行语音播报和闹铃提醒
+        startReminderSoundService(
+            context, 
+            scheduleId, 
+            scheduleTitle, 
+            scheduleDesc, 
+            scheduleTime,
+            notificationEnabled,
+            vibrationEnabled,
+            alarmSoundEnabled,
+            voiceEnabled
+        )
     }
     
     /**
@@ -49,7 +75,8 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         scheduleId: String,
         title: String,
         description: String,
-        time: String
+        time: String,
+        vibrationEnabled: Boolean
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
@@ -72,9 +99,9 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             pendingIntentFlag
         )
         
-        // 创建通知
+        // 创建通知构建器
         val notificationContent = "$time - $description"
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // 请确保有合适的图标
             .setContentTitle(title)
             .setContentText(notificationContent)
@@ -84,12 +111,16 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
-            .setVibrate(longArrayOf(0, 500, 250, 500))
-            .build()
+        
+        // 根据设置决定是否震动
+        if (vibrationEnabled) {
+            builder.setVibrate(longArrayOf(0, 500, 250, 500, 250, 500, 250, 1000)) // 增强震动模式，更强烈、持续时间更长
+        }
         
         // 显示通知
+        val notification = builder.build()
         notificationManager.notify(NOTIFICATION_ID + scheduleId.hashCode(), notification)
-        Log.d(TAG, "已显示通知: $title")
+        Log.d(TAG, "已显示通知: $title, 震动: $vibrationEnabled")
     }
     
     /**
@@ -141,6 +172,137 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             }.start()
         } catch (e: Exception) {
             Log.e(TAG, "语音播报失败: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * 播放闹铃声音
+     */
+    private fun playAlarmSound(context: Context) {
+        try {
+            // 停止之前可能正在播放的闹铃
+            stopAlarmSound()
+            
+            // 获取系统默认闹钟铃声
+            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            
+            // 如果没有闹钟铃声，使用通知铃声
+            val finalAlarmUri = if (alarmUri == null) {
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            } else {
+                alarmUri
+            }
+            
+            // 创建MediaPlayer并设置音频属性
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(context, finalAlarmUri)
+                
+                // 设置音频属性（适用于高版本Android）
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                } else {
+                    // 低版本Android使用旧的设置方法
+                    @Suppress("DEPRECATION")
+                    setAudioStreamType(android.media.AudioManager.STREAM_ALARM)
+                }
+                
+                // 设置循环播放
+                isLooping = true
+                
+                prepare()
+                start()
+            }
+            
+            Log.d(TAG, "开始播放闹铃声音")
+            
+            // 设置闹铃持续时间（这里设置为30秒后自动停止）
+            Handler(Looper.getMainLooper()).postDelayed({
+                stopAlarmSound()
+                Log.d(TAG, "闹铃声音已自动停止")
+            }, 30000) // 30秒
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "播放闹铃声音失败: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * 停止闹铃声音
+     */
+    private fun stopAlarmSound() {
+        mediaPlayer?.let {
+            try {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.release()
+                Log.d(TAG, "闹铃声音已停止")
+            } catch (e: Exception) {
+                Log.e(TAG, "停止闹铃声音时出错: ${e.message}", e)
+            }
+        }
+        mediaPlayer = null
+    }
+
+    private fun startReminderSoundService(
+        context: Context,
+        scheduleId: String,
+        title: String,
+        description: String,
+        time: String,
+        notificationEnabled: Boolean,
+        vibrationEnabled: Boolean,
+        alarmSoundEnabled: Boolean,
+        voiceEnabled: Boolean
+    ) {
+        try {
+            Log.d(TAG, "准备启动ReminderSoundService: title=$title, time=$time")
+            
+            // 创建服务Intent
+            val serviceIntent = Intent(context, com.example.olderperson.service.ReminderSoundService::class.java).apply {
+                action = com.example.olderperson.service.ReminderSoundService.ACTION_PLAY_REMINDER
+                
+                // 添加额外数据
+                putExtra("schedule_id", scheduleId)
+                putExtra("schedule_title", title)
+                putExtra("schedule_desc", description)
+                putExtra("schedule_time", time)
+                
+                // 添加提醒选项
+                putExtra("notification_enabled", notificationEnabled)
+                putExtra("vibration_enabled", vibrationEnabled)
+                putExtra("alarm_sound_enabled", alarmSoundEnabled)
+                putExtra("voice_enabled", voiceEnabled)
+                
+                // 设置包名确保找到正确的服务
+                setPackage(context.packageName)
+            }
+            
+            // 以前台服务方式启动
+            Log.d(TAG, "调用startForegroundService/startService")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            
+            Log.d(TAG, "服务启动请求发送成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "启动提醒声音服务失败: ${e.message}", e)
+            
+            // 如果服务启动失败，回退到旧的方式
+            Log.d(TAG, "回退到本地提醒方式")
+            if (alarmSoundEnabled) {
+                playAlarmSound(context)
+            }
+            if (voiceEnabled) {
+                speakReminder(context, title, time)
+            }
         }
     }
 } 

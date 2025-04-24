@@ -183,11 +183,23 @@ fun ScheduleEditDialog(
     var description by remember { mutableStateOf(scheduleItem?.description ?: "") }
     var reminderEnabled by remember { mutableStateOf(scheduleItem?.reminderEnabled ?: true) }
     
+    // 提醒方式选择状态
+    var notificationEnabled by remember { mutableStateOf(scheduleItem?.notificationEnabled ?: true) }
+    var vibrationEnabled by remember { mutableStateOf(scheduleItem?.vibrationEnabled ?: true) }
+    var alarmSoundEnabled by remember { mutableStateOf(scheduleItem?.alarmSoundEnabled ?: true) }
+    var voiceEnabled by remember { mutableStateOf(scheduleItem?.voiceEnabled ?: true) }
+    var showReminderError by remember { mutableStateOf(false) }
+    
     // 显示时间选择器对话框
     var showTimePicker by remember { mutableStateOf(false) }
     
     // 表单验证
-    val isFormValid = title.isNotBlank() && time.isNotBlank()
+    fun isAtLeastOneReminderSelected(): Boolean {
+        return notificationEnabled || vibrationEnabled || alarmSoundEnabled || voiceEnabled
+    }
+    
+    val isFormValid = title.isNotBlank() && time.isNotBlank() && 
+                      (!reminderEnabled || isAtLeastOneReminderSelected())
     
     // 时间选择器对话框
     if (showTimePicker) {
@@ -309,18 +321,174 @@ fun ScheduleEditDialog(
                             }
                         )
                     }
+                    
+                    // 提醒方式选择列表（仅在提醒开启时显示）
+                    if (reminderEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 标题和错误提示
+                        Column {
+                            Text(
+                                text = "提醒方式（至少选择一项）",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            
+                            // 显示错误消息
+                            if (showReminderError) {
+                                Text(
+                                    text = "请至少选择一种提醒方式",
+                                    color = Color.Red,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                        }
+                        
+                        // 通知提醒选项
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = notificationEnabled,
+                                onCheckedChange = { checked ->
+                                    // 检查是否可以取消选择
+                                    if (checked || (vibrationEnabled || alarmSoundEnabled || voiceEnabled)) {
+                                        notificationEnabled = checked
+                                        showReminderError = false
+                                    } else {
+                                        // 提示用户至少选择一项
+                                        showReminderError = true
+                                        textToSpeechService?.speak("请至少选择一种提醒方式")
+                                    }
+                                }
+                            )
+                            
+                            Text(
+                                text = "通知提醒",
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .weight(1f)
+                            )
+                        }
+                        
+                        // 震动提醒选项
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = vibrationEnabled,
+                                onCheckedChange = { checked ->
+                                    // 检查是否可以取消选择
+                                    if (checked || (notificationEnabled || alarmSoundEnabled || voiceEnabled)) {
+                                        vibrationEnabled = checked
+                                        showReminderError = false
+                                    } else {
+                                        // 提示用户至少选择一项
+                                        showReminderError = true
+                                        textToSpeechService?.speak("请至少选择一种提醒方式")
+                                    }
+                                }
+                            )
+                            
+                            Text(
+                                text = "震动提醒",
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .weight(1f)
+                            )
+                        }
+                        
+                        // 闹铃声音选项
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = alarmSoundEnabled,
+                                onCheckedChange = { checked ->
+                                    // 检查是否可以取消选择
+                                    if (checked || (notificationEnabled || vibrationEnabled || voiceEnabled)) {
+                                        alarmSoundEnabled = checked
+                                        showReminderError = false
+                                    } else {
+                                        // 提示用户至少选择一项
+                                        showReminderError = true
+                                        textToSpeechService?.speak("请至少选择一种提醒方式")
+                                    }
+                                }
+                            )
+                            
+                            Text(
+                                text = "闹铃声音",
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .weight(1f)
+                            )
+                        }
+                        
+                        // 语音播报选项
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = voiceEnabled,
+                                onCheckedChange = { checked ->
+                                    // 检查是否可以取消选择
+                                    if (checked || (notificationEnabled || vibrationEnabled || alarmSoundEnabled)) {
+                                        voiceEnabled = checked
+                                        showReminderError = false
+                                    } else {
+                                        // 提示用户至少选择一项
+                                        showReminderError = true
+                                        textToSpeechService?.speak("请至少选择一种提醒方式")
+                                    }
+                                }
+                            )
+                            
+                            Text(
+                                text = "语音播报",
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .weight(1f)
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
+                        // 检查是否至少选择了一种提醒方式
+                        if (reminderEnabled && !isAtLeastOneReminderSelected()) {
+                            showReminderError = true
+                            textToSpeechService?.speak("请至少选择一种提醒方式")
+                            return@Button
+                        }
+                        
                         try {
                             val item = ScheduleManager.ScheduleItem(
                                 id = scheduleItem?.id ?: UUID.randomUUID().toString(),
                                 time = time,
                                 title = title,
                                 description = description,
-                                reminderEnabled = reminderEnabled
+                                reminderEnabled = reminderEnabled,
+                                notificationEnabled = notificationEnabled,
+                                vibrationEnabled = vibrationEnabled,
+                                alarmSoundEnabled = alarmSoundEnabled,
+                                voiceEnabled = voiceEnabled
                             )
                             
                             // 安全地调用回调
