@@ -24,7 +24,7 @@ import com.example.olderperson.ui.screens.WalletScreen
 import com.example.olderperson.ui.screens.MyFavoritesScreen
 import com.example.olderperson.ui.screens.HelpScreen
 import com.example.olderperson.ui.screens.ServiceOrderScreen
-import com.example.olderperson.ui.screens.MyDevicesScreen
+import com.example.olderperson.ui.screens.BindFamilyScreen
 
 @Composable
 fun ProfileScreen(
@@ -36,7 +36,7 @@ fun ProfileScreen(
     var showFavorites by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var showServiceOrder by remember { mutableStateOf(false) }
-    var showMyDevices by remember { mutableStateOf(false) }
+    var showBindFamily by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     // 退出登录确认对话框
@@ -84,10 +84,10 @@ fun ProfileScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showServiceOrder = false }
         )
-    } else if (showMyDevices) {
-        MyDevicesScreen(
+    } else if (showBindFamily) {
+        BindFamilyScreen(
             textToSpeechService = textToSpeechService,
-            onBackClick = { showMyDevices = false }
+            onBackClick = { showBindFamily = false }
         )
     } else {
         Column(
@@ -171,11 +171,11 @@ fun ProfileScreen(
                     }
                 )
                 StatItem(
-                    count = "03",
-                    label = "我的设备",
+                    count = "02",
+                    label = "绑定家人",
                     onClick = {
-                        textToSpeechService.speak("我的设备")
-                        showMyDevices = true
+                        textToSpeechService.speak("绑定家人")
+                        showBindFamily = true
                     }
                 )
             }
