@@ -2,11 +2,13 @@ package com.example.olderperson
 
 import android.app.Application
 import android.content.Context
+import android.os.StrictMode
 import android.util.Log
 import com.baidu.mapapi.SDKInitializer
 import com.baidu.mapapi.CoordType
 import com.example.olderperson.utils.ExceptionHandler
 import com.example.olderperson.data.UserManager
+import com.example.olderperson.service.ReminderSoundService
 
 class OlderPersonApplication : Application() {
     
@@ -29,6 +31,24 @@ class OlderPersonApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "应用正在初始化...")
+        
+        // 设置StrictMode策略，用于开发调试
+        if (true) { // 开发调试模式
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
+            
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder()
+                    .detectLeakedSqlLiteObjects()
+                    .detectLeakedClosableObjects()
+                    .penaltyLog()
+                    .build()
+            )
+        }
         
         try {
             // 保存应用上下文
@@ -60,6 +80,21 @@ class OlderPersonApplication : Application() {
             Log.i(TAG, "应用初始化完成")
         } catch (e: Exception) {
             Log.e(TAG, "应用初始化过程中发生严重错误: ${e.message}", e)
+        }
+    }
+    
+    override fun onTerminate() {
+        super.onTerminate()
+        
+        // 应用终止时确保释放TTS资源
+        try {
+            // 创建临时服务实例来关闭静态TTS
+            val reminderService = ReminderSoundService()
+            reminderService.shutdownTTS()
+            
+            Log.d(TAG, "应用终止，TTS资源已释放")
+        } catch (e: Exception) {
+            Log.e(TAG, "释放TTS资源出错: ${e.message}")
         }
     }
     

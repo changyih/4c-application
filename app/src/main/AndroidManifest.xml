@@ -22,6 +22,13 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 确保有语音合成相关权限 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <application
         android:name=".OlderPersonApplication"
@@ -80,6 +87,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+        
+        <!-- 日程提醒声音服务 -->
+        <service
+            android:name=".service.ReminderSoundService"
+            android:enabled="true"
+            android:exported="false">
+        </service>
     </application>
 
 </manifest>

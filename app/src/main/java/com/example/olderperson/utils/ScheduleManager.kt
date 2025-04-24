@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
@@ -71,7 +72,14 @@ class ScheduleManager(private val context: Context) {
             ).apply {
                 description = "日程提醒通知"
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 250, 500)
+                vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 500, 250, 1000) // 增强震动模式，更强烈且持续时间更长
+                
+                // 设置通知声音为系统闹钟声音
+                val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                setSound(alarmSound, android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
             }
             notificationManager.createNotificationChannel(channel)
         }
