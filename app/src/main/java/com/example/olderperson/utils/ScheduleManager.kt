@@ -30,7 +30,8 @@ class ScheduleManager(private val context: Context) {
         var notificationEnabled: Boolean = true, // 是否启用通知提醒
         var vibrationEnabled: Boolean = true, // 是否启用震动提醒
         var alarmSoundEnabled: Boolean = true, // 是否启用闹铃声音
-        var voiceEnabled: Boolean = true // 是否启用语音播报
+        var voiceEnabled: Boolean = true, // 是否启用语音播报
+        var isCompleted: Boolean = false // 是否已完成
     )
 
     // SharedPreferences 键名
@@ -357,6 +358,20 @@ class ScheduleManager(private val context: Context) {
                 voiceEnabled = true
             )
         )
+    }
+
+    /**
+     * 更新日程安排项的完成状态
+     */
+    fun updateScheduleItemCompletionStatus(id: String, isCompleted: Boolean) {
+        val items = getAllScheduleItems().toMutableList()
+        val index = items.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val item = items[index].copy(isCompleted = isCompleted)
+            items[index] = item
+            saveAllScheduleItems(items)
+            Log.d("ScheduleManager", "日程\"${item.title}\"状态已更新为: ${if(isCompleted) "已完成" else "未完成"}")
+        }
     }
 
     companion object {
