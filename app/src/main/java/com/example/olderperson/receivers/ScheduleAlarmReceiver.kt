@@ -40,11 +40,31 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         val scheduleDesc = intent.getStringExtra("SCHEDULE_DESC") ?: ""
         val scheduleTime = intent.getStringExtra("SCHEDULE_TIME") ?: ""
         
-        // 创建通知
-        showNotification(context, scheduleId, scheduleTitle, scheduleDesc, scheduleTime)
+        // 获取提醒选项
+        val notificationEnabled = intent.getBooleanExtra("NOTIFICATION_ENABLED", true)
+        val vibrationEnabled = intent.getBooleanExtra("VIBRATION_ENABLED", true)
+        val alarmSoundEnabled = intent.getBooleanExtra("ALARM_SOUND_ENABLED", true)
+        val voiceEnabled = intent.getBooleanExtra("VOICE_ENABLED", true)
+        
+        Log.d(TAG, "接收到提醒选项: 通知=$notificationEnabled, 震动=$vibrationEnabled, 闹铃=$alarmSoundEnabled, 语音=$voiceEnabled")
+        
+        // 根据选项显示通知
+        if (notificationEnabled) {
+            showNotification(context, scheduleId, scheduleTitle, scheduleDesc, scheduleTime, vibrationEnabled)
+        }
         
         // 启动前台服务进行语音播报和闹铃提醒
-        startReminderSoundService(context, scheduleId, scheduleTitle, scheduleDesc, scheduleTime)
+        startReminderSoundService(
+            context, 
+            scheduleId, 
+            scheduleTitle, 
+            scheduleDesc, 
+            scheduleTime,
+            notificationEnabled,
+            vibrationEnabled,
+            alarmSoundEnabled,
+            voiceEnabled
+        )
     }
     
     /**
@@ -55,7 +75,8 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         scheduleId: String,
         title: String,
         description: String,
-        time: String
+        time: String,
+        vibrationEnabled: Boolean
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
@@ -78,9 +99,9 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             pendingIntentFlag
         )
         
-        // 创建通知
+        // 创建通知构建器
         val notificationContent = "$time - $description"
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // 请确保有合适的图标
             .setContentTitle(title)
             .setContentText(notificationContent)
@@ -90,12 +111,16 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
-            .setVibrate(longArrayOf(0, 500, 250, 500, 250, 500, 250, 1000)) // 增强震动模式，更强烈、持续时间更长
-            .build()
+        
+        // 根据设置决定是否震动
+        if (vibrationEnabled) {
+            builder.setVibrate(longArrayOf(0, 500, 250, 500, 250, 500, 250, 1000)) // 增强震动模式，更强烈、持续时间更长
+        }
         
         // 显示通知
+        val notification = builder.build()
         notificationManager.notify(NOTIFICATION_ID + scheduleId.hashCode(), notification)
-        Log.d(TAG, "已显示通知: $title")
+        Log.d(TAG, "已显示通知: $title, 震动: $vibrationEnabled")
     }
     
     /**
@@ -229,7 +254,11 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         scheduleId: String,
         title: String,
         description: String,
-        time: String
+        time: String,
+        notificationEnabled: Boolean,
+        vibrationEnabled: Boolean,
+        alarmSoundEnabled: Boolean,
+        voiceEnabled: Boolean
     ) {
         try {
             Log.d(TAG, "准备启动ReminderSoundService: title=$title, time=$time")
@@ -243,6 +272,12 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
                 putExtra("schedule_title", title)
                 putExtra("schedule_desc", description)
                 putExtra("schedule_time", time)
+                
+                // 添加提醒选项
+                putExtra("notification_enabled", notificationEnabled)
+                putExtra("vibration_enabled", vibrationEnabled)
+                putExtra("alarm_sound_enabled", alarmSoundEnabled)
+                putExtra("voice_enabled", voiceEnabled)
                 
                 // 设置包名确保找到正确的服务
                 setPackage(context.packageName)
@@ -262,8 +297,12 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             
             // 如果服务启动失败，回退到旧的方式
             Log.d(TAG, "回退到本地提醒方式")
-            playAlarmSound(context)
-            speakReminder(context, title, time)
+            if (alarmSoundEnabled) {
+                playAlarmSound(context)
+            }
+            if (voiceEnabled) {
+                speakReminder(context, title, time)
+            }
         }
     }
 } 

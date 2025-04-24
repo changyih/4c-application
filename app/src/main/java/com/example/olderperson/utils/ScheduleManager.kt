@@ -26,7 +26,11 @@ class ScheduleManager(private val context: Context) {
         var time: String,
         var title: String,
         var description: String,
-        var reminderEnabled: Boolean = true // 添加是否开启提醒的标志
+        var reminderEnabled: Boolean = true, // 添加是否开启提醒的标志
+        var notificationEnabled: Boolean = true, // 是否启用通知提醒
+        var vibrationEnabled: Boolean = true, // 是否启用震动提醒
+        var alarmSoundEnabled: Boolean = true, // 是否启用闹铃声音
+        var voiceEnabled: Boolean = true // 是否启用语音播报
     )
 
     // SharedPreferences 键名
@@ -216,6 +220,13 @@ class ScheduleManager(private val context: Context) {
                     putExtra("SCHEDULE_TITLE", item.title)
                     putExtra("SCHEDULE_DESC", item.description)
                     putExtra("SCHEDULE_TIME", item.time)
+                    
+                    // 添加提醒选项
+                    putExtra("NOTIFICATION_ENABLED", item.notificationEnabled)
+                    putExtra("VIBRATION_ENABLED", item.vibrationEnabled)
+                    putExtra("ALARM_SOUND_ENABLED", item.alarmSoundEnabled)
+                    putExtra("VOICE_ENABLED", item.voiceEnabled)
+                    
                     // 添加一个备用操作
                     action = "com.example.olderperson.ACTION_SCHEDULE_ALARM"
                 }
@@ -252,6 +263,7 @@ class ScheduleManager(private val context: Context) {
                     }
                     
                     Log.d("ScheduleManager", "设置提醒成功: ${item.title}, 时间: ${item.time}, ID: ${item.id}")
+                    Log.d("ScheduleManager", "提醒选项: 通知=${item.notificationEnabled}, 震动=${item.vibrationEnabled}, 闹铃=${item.alarmSoundEnabled}, 语音=${item.voiceEnabled}")
                 } catch (e: Exception) {
                     Log.e("ScheduleManager", "设置闹钟失败: ${e.message}", e)
                 }
@@ -327,14 +339,22 @@ class ScheduleManager(private val context: Context) {
                 time = "08:00",
                 title = "晨间服药",
                 description = "降压药 1片，维生素 1片",
-                reminderEnabled = true
+                reminderEnabled = true,
+                notificationEnabled = true,
+                vibrationEnabled = true,
+                alarmSoundEnabled = true,
+                voiceEnabled = true
             ),
             ScheduleItem(
                 id = "2",
                 time = "10:30",
                 title = "心脏科复诊",
                 description = "市第一人民医院",
-                reminderEnabled = true
+                reminderEnabled = true,
+                notificationEnabled = true,
+                vibrationEnabled = true,
+                alarmSoundEnabled = true,
+                voiceEnabled = true
             )
         )
     }

@@ -53,6 +53,12 @@ class ReminderSoundService : Service() {
     private var currentTitle = ""
     private var currentTime = ""
     
+    // 提醒选项
+    private var notificationEnabled = true
+    private var vibrationEnabled = true
+    private var alarmSoundEnabled = true
+    private var voiceEnabled = true
+    
     // Handler用于延迟操作
     private val handler = Handler(Looper.getMainLooper())
     
@@ -83,22 +89,33 @@ class ReminderSoundService : Service() {
             val description = intent.getStringExtra("schedule_desc") ?: ""
             currentTime = intent.getStringExtra("schedule_time") ?: ""
             
+            // 获取提醒选项
+            notificationEnabled = intent.getBooleanExtra("notification_enabled", true)
+            vibrationEnabled = intent.getBooleanExtra("vibration_enabled", true)
+            alarmSoundEnabled = intent.getBooleanExtra("alarm_sound_enabled", true)
+            voiceEnabled = intent.getBooleanExtra("voice_enabled", true)
+            
             Log.d(TAG, "收到提醒数据: title=$currentTitle, time=$currentTime")
+            Log.d(TAG, "提醒选项: 通知=$notificationEnabled, 震动=$vibrationEnabled, 闹铃=$alarmSoundEnabled, 语音=$voiceEnabled")
             
             // 更新通知内容
             updateNotification("正在提醒: $currentTitle")
             
-            // 播放闹铃声音
-            playAlarmSound()
+            // 根据选项播放闹铃声音
+            if (alarmSoundEnabled) {
+                playAlarmSound()
+            }
             
-            // 播放语音提醒
-            if (isTTSInitialized) {
-                Log.d(TAG, "TTS已准备好，立即开始语音提醒")
-                speakReminder(currentTitle, currentTime)
-            } else {
-                Log.d(TAG, "TTS尚未准备好，等待初始化")
-                // 定期检查TTS初始化状态
-                checkTTSAndSpeak(10)
+            // 根据选项播放语音提醒
+            if (voiceEnabled) {
+                if (isTTSInitialized) {
+                    Log.d(TAG, "TTS已准备好，立即开始语音提醒")
+                    speakReminder(currentTitle, currentTime)
+                } else {
+                    Log.d(TAG, "TTS尚未准备好，等待初始化")
+                    // 定期检查TTS初始化状态
+                    checkTTSAndSpeak(10)
+                }
             }
             
             // 60秒后关闭服务
@@ -413,8 +430,11 @@ class ReminderSoundService : Service() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "用于确保提醒声音和语音能可靠播放"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 250, 500)
+                // 根据选项启用震动
+                enableVibration(vibrationEnabled)
+                if (vibrationEnabled) {
+                    vibrationPattern = longArrayOf(0, 500, 250, 500)
+                }
             }
             
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -435,14 +455,13 @@ class ReminderSoundService : Service() {
         )
         
         // 创建通知
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, CHANNEL_ID)
                 .setContentTitle("日程提醒")
                 .setContentText(message)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
-                .build()
         } else {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
@@ -452,8 +471,15 @@ class ReminderSoundService : Service() {
                 .setContentIntent(pendingIntent)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setOngoing(true)
-                .build()
         }
+        
+        // 根据选项启用震动
+        if (vibrationEnabled && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            builder.setVibrate(longArrayOf(0, 500, 250, 500))
+        }
+        
+        return builder.build()
     }
     
     /**
