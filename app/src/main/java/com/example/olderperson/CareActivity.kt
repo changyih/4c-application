@@ -44,7 +44,7 @@ import com.example.olderperson.ui.screens.*
 import com.example.olderperson.ui.screens.CareHomeScreen
 import com.example.olderperson.ui.screens.CommunityScreen
 import com.example.olderperson.ui.screens.FamilyScreen
-import com.example.olderperson.ui.screens.SelfScreen
+
 import com.example.olderperson.ui.screens.SettingsScreen
 import com.example.olderperson.ui.screens.ChatScreen
 import com.example.olderperson.ui.screens.ExploreScreen
