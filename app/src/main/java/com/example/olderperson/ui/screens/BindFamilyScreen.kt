@@ -746,7 +746,7 @@ fun FamilyDetailDialog(
                             Spacer(modifier = Modifier.width(16.dp))
                             
                             Text(
-                                text = "2023年5月15日绑定",
+                                text = "2025年5月15日绑定",
                                 color = Color.Black
                             )
                         }

@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +24,7 @@ import com.example.olderperson.ui.screens.WalletScreen
 import com.example.olderperson.ui.screens.MyFavoritesScreen
 import com.example.olderperson.ui.screens.HelpScreen
 import com.example.olderperson.ui.screens.ServiceOrderScreen
+
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -43,7 +43,7 @@ fun ProfileScreen(
     var showFavorites by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var showServiceOrder by remember { mutableStateOf(false) }
-    var showBindFamily by remember { mutableStateOf(false) }
+    var showMyDevices by remember { mutableStateOf(false) }
     var showChangePassword by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSchedule by remember { mutableStateOf(false) }
@@ -115,12 +115,7 @@ fun ProfileScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showServiceOrder = false }
         )
-    } else if (showBindFamily) {
-        BindFamilyScreen(
-            textToSpeechService = textToSpeechService,
-            onBackClick = { showBindFamily = false }
-        )
-    } else if (showChangePassword) {
+    }  else if (showChangePassword) {
         ChangePasswordScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showChangePassword = false }
@@ -223,7 +218,7 @@ fun ProfileScreen(
                     label = "绑定家人",
                     onClick = {
                         textToSpeechService.speak("绑定家人")
-                        showBindFamily = true
+                        showMyDevices = true
                     }
                 )
             }

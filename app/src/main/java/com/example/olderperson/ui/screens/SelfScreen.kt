@@ -30,54 +30,59 @@ fun SelfScreen(
     onBackToHome: () -> Unit = {},
     textToSpeechService: TextToSpeechService
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F0F0))
+            .background(Color(0xFFF5F5F5))
     ) {
-        // 顶部栏
-        TopBar(onBackToHome = onBackToHome, textToSpeechService = textToSpeechService)
-        
-        // 内容区域
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // 用户信息区域
-            item {
-                UserInfoSection(textToSpeechService = textToSpeechService)
-            }
+            // 顶部区域
+            SelfHeader(onBackToHome)
             
-            // 近期医疗安排
-            item {
-                MedicalScheduleSection(textToSpeechService = textToSpeechService)
-            }
-            
-            // 个人成长
-            item {
-                PersonalGrowthSection(textToSpeechService = textToSpeechService)
-            }
-            
-            // 健康中心区域
-            item {
-                HealthCenterSection(textToSpeechService = textToSpeechService)
-            }
-            
-            // 健康生活建议
-            item {
-                HealthAdviceSection(textToSpeechService = textToSpeechService)
-            }
-            
-            // 今日用药区域
-            item {
-                MedicationSection(textToSpeechService = textToSpeechService)
-            }
-            
-            // 底部间距
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+            // 内容区域
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 用户信息区域
+                item {
+                    UserInfoSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 近期医疗安排
+                item {
+                    MedicalScheduleSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 个人成长
+                item {
+                    PersonalGrowthSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 健康中心区域
+                item {
+                    HealthCenterSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 健康生活建议
+                item {
+                    HealthAdviceSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 今日用药区域
+                item {
+                    MedicationSection(textToSpeechService = textToSpeechService)
+                }
+                
+                // 底部间距
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
         }
     }
@@ -87,42 +92,63 @@ fun SelfScreen(
  * 顶部栏
  */
 @Composable
-private fun TopBar(
-    onBackToHome: () -> Unit,
-    textToSpeechService: TextToSpeechService
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 4.dp
+private fun SelfHeader(onBackToHome: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
     ) {
-        Box(
+        // 标题栏
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 16.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // 返回按钮
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
-                tint = Color.Black,
-                modifier = Modifier
-                    .size(24.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable { 
-                        textToSpeechService.speak("返回")
-                        onBackToHome() 
-                    }
-            )
+            IconButton(
+                onClick = onBackToHome
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = Color.Black
+                )
+            }
             
             Text(
-                text = "我和自己界面",
-                modifier = Modifier.align(Alignment.Center),
-                fontSize = FontSizeConfig.scaledSp(18).sp,
+                text = "我和自己",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
             )
+            
+            // 用户头像
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF87CEEB))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "用户头像",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.Center)
+                )
+            }
         }
+        
+        // 副标题
+        Text(
+            text = "关注自我健康和成长",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+        )
     }
 }
 
@@ -132,57 +158,114 @@ private fun TopBar(
 @Composable
 private fun UserInfoSection(textToSpeechService: TextToSpeechService) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
+            // 标题和按钮
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 用户头像
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF87CEEB))
-                        .clickable { textToSpeechService.speak("用户头像") },
-                    contentAlignment = Alignment.Center
+                // 标题图标和文字
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "用户头像",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF87CEEB).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "个人信息",
+                            tint = Color(0xFF4682B4),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
                     Text(
-                        text = "我和自己",
-                        fontSize = FontSizeConfig.scaledSp(20).sp,
+                        text = "个人信息",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        modifier = Modifier.clickable { textToSpeechService.speak("我和自己") }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    Text(
-                        text = "关注自我健康和成长",
-                        fontSize = FontSizeConfig.scaledSp(14).sp,
-                        color = Color.Gray,
-                        modifier = Modifier.clickable { textToSpeechService.speak("关注自我健康和成长") }
+                        color = Color.Black
                     )
                 }
+                
+                // 详情按钮
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { textToSpeechService.speak("查看详情") }
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "详情",
+                        fontSize = 14.sp,
+                        color = Color(0xFF4682B4)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "详情",
+                        tint = Color(0xFF4682B4),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 健康数据网格
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 血压
+                HealthMetricItem(
+                    value = "126/82",
+                    unit = "血压 (mmHg)",
+                    modifier = Modifier.weight(1f),
+                    onClick = { textToSpeechService.speak("血压126/82毫米汞柱") }
+                )
+                
+                // 心率
+                HealthMetricItem(
+                    value = "72",
+                    unit = "心率 (次/分)",
+                    modifier = Modifier.weight(1f),
+                    onClick = { textToSpeechService.speak("心率72次每分钟") }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 今日步数
+                HealthMetricItem(
+                    value = "2305",
+                    unit = "今日步数",
+                    modifier = Modifier.weight(1f),
+                    onClick = { textToSpeechService.speak("今日步数2305步") }
+                )
+                
+                // 睡眠时间
+                HealthMetricItem(
+                    value = "6.2",
+                    unit = "睡眠 (小时)",
+                    modifier = Modifier.weight(1f),
+                    onClick = { textToSpeechService.speak("睡眠时间6.2小时") }
+                )
             }
         }
     }
@@ -196,36 +279,42 @@ private fun HealthCenterSection(textToSpeechService: TextToSpeechService) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             // 标题和详情按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 标题图标和文字
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { textToSpeechService.speak("健康中心") }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "健康中心",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4CAF50).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "健康中心",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
                         text = "健康中心",
-                        fontSize = FontSizeConfig.scaledSp(18).sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
@@ -234,19 +323,22 @@ private fun HealthCenterSection(textToSpeechService: TextToSpeechService) {
                 // 详情按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { textToSpeechService.speak("详情") }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { textToSpeechService.speak("详情") }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "详情",
-                        fontSize = FontSizeConfig.scaledSp(14).sp,
+                        fontSize = 14.sp,
                         color = Color(0xFF4CAF50)
                     )
                     
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        imageVector = Icons.Default.ChevronRight,
                         contentDescription = "详情",
                         tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -347,36 +439,42 @@ private fun MedicalScheduleSection(textToSpeechService: TextToSpeechService) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             // 标题和查看全部
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 标题图标和文字
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { textToSpeechService.speak("近期医疗安排") }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = "近期医疗安排",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4CAF50).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = "近期医疗安排",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
                         text = "近期医疗安排",
-                        fontSize = FontSizeConfig.scaledSp(18).sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
@@ -385,19 +483,22 @@ private fun MedicalScheduleSection(textToSpeechService: TextToSpeechService) {
                 // 全部按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { textToSpeechService.speak("查看全部医疗安排") }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { textToSpeechService.speak("查看全部医疗安排") }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "全部",
-                        fontSize = FontSizeConfig.scaledSp(14).sp,
+                        fontSize = 14.sp,
                         color = Color(0xFF4CAF50)
                     )
                     
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        imageVector = Icons.Default.ChevronRight,
                         contentDescription = "查看全部",
                         tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -539,57 +640,66 @@ private fun PersonalGrowthSection(textToSpeechService: TextToSpeechService) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            // 标题和更多
+            // 标题和查看全部
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 标题图标和文字
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { textToSpeechService.speak("个人成长") }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "个人成长",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFA726).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Insights,
+                            contentDescription = "个人成长",
+                            tint = Color(0xFFFFA726),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
                         text = "个人成长",
-                        fontSize = FontSizeConfig.scaledSp(18).sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                 }
                 
-                // 更多按钮
+                // 详情按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { textToSpeechService.speak("更多个人成长活动") }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { textToSpeechService.speak("查看更多") }
+                        .padding(8.dp)
                 ) {
                     Text(
                         text = "更多",
-                        fontSize = FontSizeConfig.scaledSp(14).sp,
-                        color = Color(0xFF4CAF50)
+                        fontSize = 14.sp,
+                        color = Color(0xFFFFA726)
                     )
                     
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        imageVector = Icons.Default.ChevronRight,
                         contentDescription = "更多",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFFFFA726),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -710,35 +820,46 @@ private fun HealthAdviceSection(textToSpeechService: TextToSpeechService) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            // 标题
+            // 标题和详情按钮
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { textToSpeechService.speak("健康生活建议") }
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Spa,
-                    contentDescription = "健康生活建议",
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(24.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "健康生活建议",
-                    fontSize = FontSizeConfig.scaledSp(18).sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                // 标题图标和文字
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF5C6BC0).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lightbulb,
+                            contentDescription = "健康生活建议",
+                            tint = Color(0xFF5C6BC0),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "健康生活建议",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -793,35 +914,68 @@ private fun MedicationSection(textToSpeechService: TextToSpeechService) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8FF))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            // 标题
+            // 标题和详情按钮
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { textToSpeechService.speak("今日用药") }
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Medication,
-                    contentDescription = "今日用药",
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(24.dp)
-                )
+                // 标题图标和文字
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF5350).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Medication,
+                            contentDescription = "今日用药",
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "今日用药",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "今日用药",
-                    fontSize = FontSizeConfig.scaledSp(18).sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                // 详情按钮
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { textToSpeechService.speak("查看全部用药") }
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "全部",
+                        fontSize = 14.sp,
+                        color = Color(0xFFEF5350)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "全部",
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))

@@ -60,16 +60,6 @@ fun CommunityActivityScreen(
                 )
             }
             
-            // 活动分类
-            item {
-                SectionTitle("活动分类", textToSpeechService)
-            }
-            
-            // 活动分类列表
-            item {
-                ActivityCategoryRow(textToSpeechService)
-            }
-            
             // 近期活动
             item {
                 SectionTitle("近期活动", textToSpeechService)
@@ -78,16 +68,6 @@ fun CommunityActivityScreen(
             // 近期活动列表
             items(upcomingActivities) { activity ->
                 UpcomingActivityCard(activity, textToSpeechService)
-            }
-            
-            // 活动日历
-            item {
-                SectionTitle("活动日历", textToSpeechService)
-            }
-            
-            // 活动日历组件
-            item {
-                ActivityCalendar(textToSpeechService)
             }
             
             // 热门活动
@@ -149,57 +129,6 @@ fun CommunityActivityTipsCard(
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
             )
         }
-    }
-}
-
-/**
- * 活动分类行
- */
-@Composable
-fun ActivityCategoryRow(textToSpeechService: TextToSpeechService) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(activityCategories) { category ->
-            ActivityCategoryItem(category, textToSpeechService)
-        }
-    }
-}
-
-/**
- * 活动分类项
- */
-@Composable
-fun ActivityCategoryItem(
-    category: ActivityCategory,
-    textToSpeechService: TextToSpeechService
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { textToSpeechService.speak(category.name) }
-    ) {
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = category.name,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(30.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = category.name,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 
@@ -301,163 +230,6 @@ fun UpcomingActivityCard(
                     )
                 ) {
                     Text("立即报名")
-                }
-            }
-        }
-    }
-}
-
-/**
- * 活动日历组件
- */
-@Composable
-fun ActivityCalendar(textToSpeechService: TextToSpeechService) {
-    val currentDate = LocalDate.now()
-    val dateFormatter = DateTimeFormatter.ofPattern("MM月dd日")
-    val weekDays = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-    var selectedDate by remember { mutableStateOf(currentDate) }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "${currentDate.year}年${currentDate.monthValue}月",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { textToSpeechService.speak("${currentDate.year}年${currentDate.monthValue}月") }
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 日历头部（周一至周日）
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                weekDays.forEach { day ->
-                    Text(
-                        text = day,
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.clickable { textToSpeechService.speak(day) }
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // 日期选择器
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val dates = (0..13).map { currentDate.plusDays(it.toLong()) }
-                items(dates) { date ->
-                    val isSelected = date == selectedDate
-                    val hasActivity = activityDates.contains(date.format(DateTimeFormatter.ISO_DATE))
-                    
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clickable {
-                                selectedDate = date
-                                textToSpeechService.speak(date.format(dateFormatter))
-                            }
-                            .padding(8.dp)
-                    ) {
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            fontSize = 16.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = when {
-                                isSelected -> MaterialTheme.colorScheme.primary
-                                hasActivity -> MaterialTheme.colorScheme.secondary
-                                else -> Color.Black
-                            }
-                        )
-                        
-                        Spacer(modifier = Modifier.height(4.dp))
-                        
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    when {
-                                        isSelected -> MaterialTheme.colorScheme.primary
-                                        hasActivity -> MaterialTheme.colorScheme.secondary
-                                        else -> Color.Transparent
-                                    }
-                                )
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 选中日期的活动
-            val selectedDateStr = selectedDate.format(DateTimeFormatter.ISO_DATE)
-            val activitiesOnSelectedDate = upcomingActivities.filter { it.date == selectedDateStr }
-            
-            if (activitiesOnSelectedDate.isNotEmpty()) {
-                Text(
-                    text = "${selectedDate.format(dateFormatter)}的活动",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { textToSpeechService.speak("${selectedDate.format(dateFormatter)}的活动") }
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                activitiesOnSelectedDate.forEach { activity ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clickable { textToSpeechService.speak(activity.name + "，" + activity.time + "，" + activity.location) },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = activity.icon,
-                            contentDescription = activity.name,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        Text(
-                            text = activity.name,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        Text(
-                            text = activity.time,
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "${selectedDate.format(dateFormatter)}暂无活动",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.clickable { textToSpeechService.speak("${selectedDate.format(dateFormatter)}暂无活动") }
-                    )
                 }
             }
         }
@@ -886,7 +658,7 @@ val popularActivities = listOf(
         id = "popular3",
         name = "社区一日游",
         description = "组织老年人参观市内名胜古迹，增进邻里感情，丰富老年人生活。含午餐和交通。",
-        date = "每月最后一个周六",
+        date = "每周六",
         time = "上午 8:00-下午 5:00",
         location = "社区门口集合出发",
         participants = 65,
