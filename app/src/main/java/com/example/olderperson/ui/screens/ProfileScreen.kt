@@ -29,6 +29,9 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import com.example.olderperson.utils.ScheduleManager
 
 @Composable
 fun ProfileScreen(
@@ -43,6 +46,29 @@ fun ProfileScreen(
     var showMyDevices by remember { mutableStateOf(false) }
     var showChangePassword by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showSchedule by remember { mutableStateOf(false) }
+
+    // 获取日程数量
+    val context = LocalContext.current
+    val scheduleManager = remember { 
+        try {
+            ScheduleManager.getInstance(context) 
+        } catch (e: Exception) {
+            Log.e("ProfileScreen", "获取ScheduleManager实例失败: ${e.message}", e)
+            null
+        }
+    }
+    
+    // 获取日程数量
+    val schedulesCount = remember {
+        try {
+            val count = scheduleManager?.getAllScheduleItems()?.size ?: 0
+            count.toString().padStart(2, '0')
+        } catch (e: Exception) {
+            Log.e("ProfileScreen", "获取日程数量失败: ${e.message}", e)
+            "00"
+        }
+    }
 
     // 退出登录确认对话框
     if (showLogoutDialog) {
@@ -98,6 +124,11 @@ fun ProfileScreen(
         ChangePasswordScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showChangePassword = false }
+        )
+    } else if (showSchedule) {
+        ScheduleScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showSchedule = false }
         )
     } else {
         Column(
@@ -171,7 +202,14 @@ fun ProfileScreen(
                     .padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                StatItem(count = "03", label = "健康计划")
+                StatItem(
+                    count = schedulesCount,
+                    label = "今日安排",
+                    onClick = {
+                        textToSpeechService.speak("今日安排")
+                        showSchedule = true
+                    }
+                )
                 StatItem(
                     count = "01",
                     label = "服务订单",
