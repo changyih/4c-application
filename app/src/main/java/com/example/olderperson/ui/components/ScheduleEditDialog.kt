@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -334,123 +336,72 @@ fun ScheduleEditDialog(
                             }
                         }
                         
-                        // 通知提醒选项
-                        Row(
+                        // 使用可滚动的Column来确保所有选项都能显示
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .height(140.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = 4.dp)
                         ) {
-                            Checkbox(
-                                checked = notificationEnabled,
+                            // 通知提醒选项
+                            ReminderTypeCheckbox(
+                                isChecked = notificationEnabled,
+                                text = "通知提醒",
                                 onCheckedChange = { checked ->
-                                    // 检查是否可以取消选择
                                     if (checked || (vibrationEnabled || alarmSoundEnabled || voiceEnabled)) {
                                         notificationEnabled = checked
                                         showReminderError = false
                                     } else {
-                                        // 提示用户至少选择一项
                                         showReminderError = true
                                         textToSpeechService?.speak("请至少选择一种提醒方式")
                                     }
                                 }
                             )
                             
-                            Text(
-                                text = "通知提醒",
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .weight(1f)
-                            )
-                        }
-                        
-                        // 震动提醒选项
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = vibrationEnabled,
+                            // 震动提醒选项
+                            ReminderTypeCheckbox(
+                                isChecked = vibrationEnabled,
+                                text = "震动提醒",
                                 onCheckedChange = { checked ->
-                                    // 检查是否可以取消选择
                                     if (checked || (notificationEnabled || alarmSoundEnabled || voiceEnabled)) {
                                         vibrationEnabled = checked
                                         showReminderError = false
                                     } else {
-                                        // 提示用户至少选择一项
                                         showReminderError = true
                                         textToSpeechService?.speak("请至少选择一种提醒方式")
                                     }
                                 }
                             )
                             
-                            Text(
-                                text = "震动提醒",
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .weight(1f)
-                            )
-                        }
-                        
-                        // 闹铃声音选项
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = alarmSoundEnabled,
+                            // 闹铃声音选项
+                            ReminderTypeCheckbox(
+                                isChecked = alarmSoundEnabled,
+                                text = "闹铃声音",
                                 onCheckedChange = { checked ->
-                                    // 检查是否可以取消选择
                                     if (checked || (notificationEnabled || vibrationEnabled || voiceEnabled)) {
                                         alarmSoundEnabled = checked
                                         showReminderError = false
                                     } else {
-                                        // 提示用户至少选择一项
                                         showReminderError = true
                                         textToSpeechService?.speak("请至少选择一种提醒方式")
                                     }
                                 }
                             )
                             
-                            Text(
-                                text = "闹铃声音",
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .weight(1f)
-                            )
-                        }
-                        
-                        // 语音播报选项
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = voiceEnabled,
+                            // 语音播报选项
+                            ReminderTypeCheckbox(
+                                isChecked = voiceEnabled,
+                                text = "语音播报",
                                 onCheckedChange = { checked ->
-                                    // 检查是否可以取消选择
                                     if (checked || (notificationEnabled || vibrationEnabled || alarmSoundEnabled)) {
                                         voiceEnabled = checked
                                         showReminderError = false
                                     } else {
-                                        // 提示用户至少选择一项
                                         showReminderError = true
                                         textToSpeechService?.speak("请至少选择一种提醒方式")
                                     }
                                 }
-                            )
-                            
-                            Text(
-                                text = "语音播报",
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .weight(1f)
                             )
                         }
                     }
@@ -621,6 +572,37 @@ fun ScheduleDeleteConfirmDialog(
                     Text("取消")
                 }
             }
+        )
+    }
+}
+
+/**
+ * 提醒类型复选框组件
+ */
+@Composable
+fun ReminderTypeCheckbox(
+    isChecked: Boolean,
+    text: String,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clickable { onCheckedChange(!isChecked) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isChecked,
+            onCheckedChange = onCheckedChange
+        )
+        
+        Text(
+            text = text,
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .weight(1f),
+            fontSize = 16.sp
         )
     }
 } 
