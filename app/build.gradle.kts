@@ -91,6 +91,14 @@ dependencies {
     implementation("io.agora.rtc:full-sdk:3.7.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     
+    // CameraX 相关依赖
+    val cameraxVersion = "1.3.1"
+    implementation("androidx.camera:camera-core:${cameraxVersion}")
+    implementation("androidx.camera:camera-camera2:${cameraxVersion}")
+    implementation("androidx.camera:camera-lifecycle:${cameraxVersion}")
+    implementation("androidx.camera:camera-view:${cameraxVersion}")
+    implementation("androidx.camera:camera-extensions:${cameraxVersion}")
+    
     // 百度地图依赖
     implementation("com.baidu.lbsyun:BaiduMapSDK_Map:7.5.0")
     implementation("com.baidu.lbsyun:BaiduMapSDK_Search:7.5.0")

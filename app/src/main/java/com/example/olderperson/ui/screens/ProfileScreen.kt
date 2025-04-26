@@ -24,6 +24,7 @@ import com.example.olderperson.ui.screens.WalletScreen
 import com.example.olderperson.ui.screens.MyFavoritesScreen
 import com.example.olderperson.ui.screens.HelpScreen
 import com.example.olderperson.ui.screens.ServiceOrderScreen
+import com.example.olderperson.ui.screens.BindFamilyScreen
 
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -47,6 +48,7 @@ fun ProfileScreen(
     var showChangePassword by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSchedule by remember { mutableStateOf(false) }
+    var showBindFamily by remember { mutableStateOf(false) }
 
     // 获取日程数量
     val context = LocalContext.current
@@ -124,6 +126,11 @@ fun ProfileScreen(
         ScheduleScreen(
             textToSpeechService = textToSpeechService,
             onBackClick = { showSchedule = false }
+        )
+    } else if (showBindFamily) {
+        BindFamilyScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = { showBindFamily = false }
         )
     } else {
         Column(
@@ -214,11 +221,11 @@ fun ProfileScreen(
                     }
                 )
                 StatItem(
-                    count = "02",
+                    count = "03",
                     label = "绑定家人",
                     onClick = {
                         textToSpeechService.speak("绑定家人")
-                        showMyDevices = true
+                        showBindFamily = true
                     }
                 )
             }

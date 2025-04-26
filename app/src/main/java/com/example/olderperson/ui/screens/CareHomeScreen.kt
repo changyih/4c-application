@@ -87,12 +87,9 @@ fun CareHomeScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToFamily: () -> Unit = {},
     onNavigateToCommunity: () -> Unit = {},
-
     onNavigateToChat: () -> Unit = {},
     onNavigateToExplore: () -> Unit = {},
-
     onNavigateToSettings: () -> Unit = {},
-
     textToSpeechService: TextToSpeechService? = null
 ) {
     val context = LocalContext.current

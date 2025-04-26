@@ -48,6 +48,7 @@ import com.example.olderperson.ui.screens.FamilyScreen
 import com.example.olderperson.ui.screens.SettingsScreen
 import com.example.olderperson.ui.screens.ChatScreen
 import com.example.olderperson.ui.screens.ExploreScreen
+import com.example.olderperson.ui.screens.MagnifierScreen
 
 import com.example.olderperson.ui.theme.OlderPersonTheme
 import com.example.olderperson.ui.theme.FontSizeConfig
@@ -581,7 +582,20 @@ fun CareApp(
                 Log.d("CareActivity", "Logging out")
                 onLogout()
             },
+            onNavigateToMagnifier = {
+                Log.d("CareActivity", "Navigating to Magnifier screen from Settings")
+                textToSpeechService.speak("进入简易放大镜")
+                currentScreen = "magnifier"
+            },
             textToSpeechService = textToSpeechService
+        )
+        "magnifier" -> MagnifierScreen(
+            textToSpeechService = textToSpeechService,
+            onBackClick = {
+                Log.d("CareActivity", "Returning from Magnifier screen")
+                textToSpeechService.speak("返回设置页面")
+                currentScreen = "settings"
+            }
         )
     }
 }
