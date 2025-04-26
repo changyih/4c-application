@@ -35,6 +35,7 @@ import com.example.olderperson.utils.EmergencyContactsManager
 fun SettingsScreen(
     onBackToHome: () -> Unit,
     onLogout: () -> Unit = {},
+    onNavigateToMagnifier: () -> Unit = {},
     textToSpeechService: TextToSpeechService? = null
 ) {
     val scrollState = rememberScrollState()
@@ -128,6 +129,19 @@ fun SettingsScreen(
             
             // 字体大小设置
             FontSizeSettings(textToSpeechService = textToSpeechService)
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            // 放大镜功能
+            SettingsItem(
+                icon = Icons.Outlined.ZoomIn,
+                title = "简易放大镜",
+                description = "使用相机放大查看细小字体或物体",
+                onClick = {
+                    textToSpeechService?.speak("打开简易放大镜")
+                    onNavigateToMagnifier()
+                }
+            )
             
             Divider(modifier = Modifier.padding(vertical = 8.dp))
             
