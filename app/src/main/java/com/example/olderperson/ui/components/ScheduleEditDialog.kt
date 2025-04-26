@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,10 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,140 +31,6 @@ import com.example.olderperson.utils.ScheduleManager
 import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
-
-/**
- * 时间选择对话框
- */
-@Composable
-fun TimePickerDialog(
-    initialTime: String,
-    onTimeSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var selectedHour by remember { 
-        // 解析初始时间
-        val initialHour = if (initialTime.isNotEmpty()) {
-            initialTime.split(":")[0].toIntOrNull() ?: 8
-        } else 8
-        mutableStateOf(initialHour) 
-    }
-    
-    var selectedMinute by remember { 
-        val initialMinute = if (initialTime.isNotEmpty() && initialTime.contains(":")) {
-            initialTime.split(":")[1].toIntOrNull() ?: 0
-        } else 0
-        mutableStateOf(initialMinute) 
-    }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("选择时间", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 小时选择
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("小时", fontSize = 16.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { 
-                                if (selectedHour < 23) selectedHour++ 
-                            },
-                            modifier = Modifier.size(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("▲", fontSize = 16.sp)
-                        }
-                        
-                        Text(
-                            text = String.format("%02d", selectedHour),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                        
-                        Button(
-                            onClick = { 
-                                if (selectedHour > 0) selectedHour-- 
-                            },
-                            modifier = Modifier.size(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("▼", fontSize = 16.sp)
-                        }
-                    }
-                    
-                    Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    
-                    // 分钟选择
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("分钟", fontSize = 16.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { 
-                                if (selectedMinute < 59) selectedMinute++ 
-                            },
-                            modifier = Modifier.size(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("▲", fontSize = 16.sp)
-                        }
-                        
-                        Text(
-                            text = String.format("%02d", selectedMinute),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                        
-                        Button(
-                            onClick = { 
-                                if (selectedMinute > 0) selectedMinute-- 
-                            },
-                            modifier = Modifier.size(48.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("▼", fontSize = 16.sp)
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val timeString = String.format("%02d:%02d", selectedHour, selectedMinute)
-                    onTimeSelected(timeString)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-            ) {
-                Text("确定")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("取消")
-            }
-        }
-    )
-}
 
 /**
  * 日程安排编辑对话框
@@ -179,6 +48,21 @@ fun ScheduleEditDialog(
     
     // 状态变量
     var time by remember { mutableStateOf(scheduleItem?.time ?: "08:00") }
+    // 拆分为小时和分钟
+    var hour by remember { 
+        mutableStateOf(
+            if (time.contains(":")) {
+                time.split(":")[0]
+            } else "08"
+        )
+    }
+    var minute by remember { 
+        mutableStateOf(
+            if (time.contains(":")) {
+                time.split(":")[1]
+            } else "00"
+        )
+    }
     var title by remember { mutableStateOf(scheduleItem?.title ?: "") }
     var description by remember { mutableStateOf(scheduleItem?.description ?: "") }
     var reminderEnabled by remember { mutableStateOf(scheduleItem?.reminderEnabled ?: true) }
@@ -190,28 +74,16 @@ fun ScheduleEditDialog(
     var voiceEnabled by remember { mutableStateOf(scheduleItem?.voiceEnabled ?: true) }
     var showReminderError by remember { mutableStateOf(false) }
     
-    // 显示时间选择器对话框
-    var showTimePicker by remember { mutableStateOf(false) }
-    
     // 表单验证
     fun isAtLeastOneReminderSelected(): Boolean {
         return notificationEnabled || vibrationEnabled || alarmSoundEnabled || voiceEnabled
     }
     
-    val isFormValid = title.isNotBlank() && time.isNotBlank() && 
-                      (!reminderEnabled || isAtLeastOneReminderSelected())
-    
-    // 时间选择器对话框
-    if (showTimePicker) {
-        TimePickerDialog(
-            initialTime = time,
-            onTimeSelected = { selectedTime ->
-                time = selectedTime
-                showTimePicker = false
-            },
-            onDismiss = { showTimePicker = false }
-        )
-    }
+    // 验证时间格式和表单是否有效
+    val isHourValid = hour.toIntOrNull()?.let { it in 0..23 } ?: false
+    val isMinuteValid = minute.toIntOrNull()?.let { it in 0..59 } ?: false
+    val isFormValid = title.isNotBlank() && isHourValid && isMinuteValid &&
+                       (!reminderEnabled || isAtLeastOneReminderSelected())
     
     if (showDialog) {
         AlertDialog(
@@ -229,30 +101,146 @@ fun ScheduleEditDialog(
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    // 时间选择
-                    OutlinedTextField(
-                        value = time,
-                        onValueChange = { time = it },
-                        label = { Text("时间") },
+                    // 小时和分钟输入区
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showTimePicker = true },
-                        enabled = false,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = "时间"
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { showTimePicker = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "编辑时间"
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = "设置时间",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // 小时输入
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "小时",
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                                )
+                                
+                                OutlinedTextField(
+                                    value = hour,
+                                    onValueChange = { newValue ->
+                                        // 限制最多2位数
+                                        if (newValue.length <= 2) {
+                                            hour = newValue
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textStyle = TextStyle(fontSize = 28.sp),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number
+                                    ),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF4CAF50),
+                                        unfocusedBorderColor = Color(0xFFBDBDBD),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    )
+                                )
+                                
+                                // 小时验证消息
+                                if (hour.isNotEmpty() && !isHourValid) {
+                                    Text(
+                                        text = "0-23之间",
+                                        color = Color.Red,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                                    )
+                                }
+                            }
+                            
+                            // 分隔符
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 40.dp)
+                                    .size(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = ":",
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            // 分钟输入
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "分钟",
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                                )
+                                
+                                OutlinedTextField(
+                                    value = minute,
+                                    onValueChange = { newValue ->
+                                        // 限制最多2位数
+                                        if (newValue.length <= 2) {
+                                            minute = newValue
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textStyle = TextStyle(fontSize = 28.sp),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number
+                                    ),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF4CAF50),
+                                        unfocusedBorderColor = Color(0xFFBDBDBD),
+                                        unfocusedContainerColor = Color(0xFFF5F5F5)
+                                    )
+                                )
+                                
+                                // 分钟验证消息
+                                if (minute.isNotEmpty() && !isMinuteValid) {
+                                    Text(
+                                        text = "0-59之间",
+                                        color = Color.Red,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // 时间预览
+                        if (isHourValid && isMinuteValid) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "您设置的时间是：",
+                                    fontSize = 18.sp
+                                )
+                                
+                                Text(
+                                    text = "${hour.padStart(2, '0')}:${minute.padStart(2, '0')}",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50)
                                 )
                             }
                         }
-                    )
+                    }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
@@ -481,7 +469,7 @@ fun ScheduleEditDialog(
                         try {
                             val item = ScheduleManager.ScheduleItem(
                                 id = scheduleItem?.id ?: UUID.randomUUID().toString(),
-                                time = time,
+                                time = "$hour:$minute",
                                 title = title,
                                 description = description,
                                 reminderEnabled = reminderEnabled,
@@ -501,7 +489,7 @@ fun ScheduleEditDialog(
                             // 播报反馈
                             try {
                                 val actionText = if (isEditMode) "编辑" else "添加"
-                                textToSpeechService?.speak("${actionText}成功：$title，时间：$time")
+                                textToSpeechService?.speak("${actionText}成功：$title，时间：$hour:$minute")
                             } catch (e: Exception) {
                                 Log.e("ScheduleEditDialog", "播报反馈时出错: ${e.message}", e)
                             }
