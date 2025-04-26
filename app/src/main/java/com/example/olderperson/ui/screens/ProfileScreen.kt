@@ -221,7 +221,7 @@ fun ProfileScreen(
                     }
                 )
                 StatItem(
-                    count = "03",
+                    count = "02",
                     label = "绑定家人",
                     onClick = {
                         textToSpeechService.speak("绑定家人")
