@@ -1,3 +1,9 @@
+[![uv](https://img.shields.io/badge/uv-%E2%9A%A1%EF%B8%8F-purple?style=for-the-badge&logo=)](https://github.com/astral-sh/uv)
+[![PyPI - Version](https://img.shields.io/pypi/v/uv?style=for-the-badge&color=orange&logo=pypi&logoColor=white)](https://pypi.org/project/uv/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uv?style=for-the-badge&color=blue)](https://pypi.org/project/uv/)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20%7C%20MIT-green?style=for-the-badge)](https://github.com/astral-sh/uv/blob/main/LICENSE-APACHE)
+[![CI](https://img.shields.io/github/actions/workflow/status/astral-sh/uv/ci.yml?branch=main&style=for-the-badge&label=CI&logo=github&logoColor=white)](https://github.com/astral-sh/uv/actions)
+
 # 安装指南
 
 ### 安装环境要求
