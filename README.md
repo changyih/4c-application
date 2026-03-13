@@ -25,7 +25,7 @@
   <!-- Stars -->
   <a href="https://github.com/changyih/4c-application/stargazers"><img src="https://img.shields.io/github/stars/changyih/4c-application?style=for-the-badge" alt="GitHub stars"></a>
 </p>
-
+<a href="https://github.com/changyih/4c-application/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"></a>
 ---
 # 安装指南
 
