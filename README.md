@@ -5,24 +5,6 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/astral-sh/uv/ci.yml?branch=main&style=for-the-badge&label=CI&logo=github&logoColor=white)](https://github.com/astral-sh/uv/actions)
 
 
-<p align="center">
-  <a href="https://github.com/你的用戶名/你的專案">
-    <img src="https://img.shields.io/badge/你的專案名-⚡-purple?style=for-the-badge&logo=" alt="你的專案名">
-  </a>
-  <a href="https://pypi.org/project/你的包名/">
-    <img src="https://img.shields.io/pypi/v/你的包名?style=for-the-badge&color=orange&logo=pypi&logoColor=white" alt="PyPI version">
-  </a>
-  <a href="https://pypi.org/project/你的包名/">
-    <img src="https://img.shields.io/pypi/pyversions/你的包名?style=for-the-badge&color=blue" alt="Python versions">
-  </a>
-  <a href="https://github.com/你的用戶名/你的專案/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License">
-  </a>
-  <a href="https://github.com/你的用戶名/你的專案/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/你的用戶名/你的專案/ci.yml?branch=main&style=for-the-badge&label=CI&logo=github" alt="CI">
-  </a>
-</p>
-
 
 # 安装指南
 
