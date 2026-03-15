@@ -2,13 +2,8 @@
 <p align="center">
   <!-- 平台支持 -->
   <a href="https://github.com/changyih/4c-application"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B-brightgreen?style=for-the-badge&logo=android" alt="Platform"></a>
-  <!-- 项目状态 -->
-  <a href="https://github.com/changyih/4c-application"><img src="https://img.shields.io/badge/Status-Active-blue?style=for-the-badge" alt="Status"></a>
-</p>
-
-<p align="center">
   <!-- 核心技术：阿里云通义千问 -->
-  <a href="https://tongyi.aliyun.com/"><img src="https://img.shields.io/badge/AI%20Model-%E9%98%BF%E9%87%8C%E4%BA%91%E9%80%9A%E4%B9%89%E5%8D%83%E9%97%AE-blueviolet?style=for-the-badge&logo=alibabacloud" alt="AI Model"></a>
+  <a href="https://tongyi.aliyun.com/"><img src="https://img.shields.io/badge/AI%20Model-%E9%98%BF%E9%87%8C%E4%BA%91%E9%80%9A%E4%B9%89%E5%8D%83%E9%97%AE-blueviolet?style=for-the-badge&logo=alibabacloud" alt="AI Model">
   <!-- 核心技术：百度地图 -->
   <a href="https://lbsyun.baidu.com/"><img src="https://img.shields.io/badge/Maps-%E7%99%BE%E5%BA%A6%E5%9C%B0%E5%9B%BE-informational?style=for-the-badge&logo=baidu" alt="Maps"></a>
 </p>
